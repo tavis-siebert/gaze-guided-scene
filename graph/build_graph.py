@@ -200,8 +200,8 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
 
                 break
 
-            # Save graph states dynamically at each timestamp
-            if frame_num in timestamps and edge_data:
+            # Save graph states dynamically at each timestamp if a graph exists
+            if (frame_num in timestamps or frame_num >= len(gaze)) and edge_data:
                 action_labels_t = get_future_action_labels(records_for_vid, frame_num, int_to_idx)
                 if action_labels_t.numel() == 0:   # insufficient data
                     continue 
@@ -220,7 +220,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                 all_edge_data.append(edge_data_t)
                 all_edge_indices.append(edge_index_t)
 
-                if frame_num == timestamps[-1]: # we're done, let's save ourselves compute
+                if frame_num == timestamps[-1] or frame_num >= len(gaze): # save ourselves compute
                     break
                 
             # EGTEA can have starting + ending black frames, so skip these
