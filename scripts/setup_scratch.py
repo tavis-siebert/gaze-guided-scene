@@ -4,6 +4,7 @@ from pathlib import Path
 from tqdm import tqdm
 import dropbox
 from typing import Optional, List
+import subprocess
 
 def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: Path) -> None:
     try:
@@ -59,6 +60,7 @@ class ScratchDirectories:
         self.raw_videos_dir = self.egtea_dir / "raw_videos"
         self.cropped_videos_dir = self.egtea_dir / "cropped_videos"
         self.tmp_dir = scratch_dir / "tmp"
+        self.ego_topo_dir = scratch_dir / "ego-topo"
 
     def create_all(self) -> None:
         for directory in [self.egtea_dir, self.raw_videos_dir, self.cropped_videos_dir, self.tmp_dir]:
@@ -105,6 +107,35 @@ def setup_raw_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> N
     print("Cleaning up temporary files...")
     video_links_path.unlink()
 
+def setup_ego_topo(directories: ScratchDirectories) -> None:
+    """Clone ego-topo repository and download train/val splits."""
+    if not directories.ego_topo_dir.exists():
+        print("Cloning ego-topo repository...")
+        subprocess.run(
+            ["git", "clone", "https://github.com/facebookresearch/ego-topo.git", str(directories.ego_topo_dir)],
+            check=True
+        )
+    else:
+        print("ego-topo repository already exists, skipping clone...")
+
+    # Make the download script executable and run it from the correct directory
+    download_script = Path("scripts/download_splits.sh")
+    if not download_script.exists():
+        raise FileNotFoundError("download_splits.sh script not found in scripts directory")
+
+    subprocess.run(["chmod", "+x", str(download_script)], check=True)
+    
+    # Create data directory in ego-topo if it doesn't exist
+    data_dir = directories.ego_topo_dir / "data"
+    data_dir.mkdir(exist_ok=True)
+    
+    print("Downloading train/val splits...")
+    subprocess.run(
+        [str(download_script.absolute())],
+        cwd=str(directories.ego_topo_dir),
+        check=True
+    )
+
 def setup_scratch(config, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
     if not access_token:
@@ -120,5 +151,8 @@ def setup_scratch(config, access_token: Optional[str] = None) -> None:
     
     # Step 2: Setup raw videos
     setup_raw_videos(dbx, directories)
+    
+    # Step 3: Setup ego-topo repository and splits
+    setup_ego_topo(directories)
     
     print("Setup complete!")

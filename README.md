@@ -31,7 +31,7 @@ To download the Egtea Gaze dataset and allow the `setup_scratch.py` script to au
 
 1. Make sure you are logged in to Dropbox in your browser.
 
-2. Go to [Dropbox App Console](https://www.dropbox.com/developers/apps/create)
+2. Go to [Dropbox App Console](https://www.dropbox.com/developers/apps/)
 
 3. Create a new app (any app type will work)
 
@@ -42,9 +42,11 @@ To download the Egtea Gaze dataset and allow the `setup_scratch.py` script to au
 6. Copy the `.env.example` file to `.env` and add your access token:
     ```bash
     cp .env.example .env
-    ````
+    ```
 
 7. Update the `DROPBOX_TOKEN` variable in the `.env` file with your access token
+
+Note: You may need to regenerate the access token (steps 5 and 7) if it expires.
 
 #### Setup the Scratch Directory and Download the Egtea Gaze Dataset
 
