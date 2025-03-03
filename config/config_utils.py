@@ -5,6 +5,9 @@ from typing import Dict, Any, Tuple
 import getpass
 from dataclasses import dataclass
 
+# Get absolute path to repository root directory (parent of config directory)
+REPO_ROOT = str(Path(__file__).parent.parent.absolute())
+
 class DotDict:
     """Dictionary subclass that enables dot notation access to nested dictionaries."""
     def __init__(self, dictionary: Dict[str, Any]):
@@ -31,10 +34,12 @@ class DotDict:
         return result
 
 def resolve_env_vars(value: str) -> str:
-    """Resolve environment variables in string values."""
+    """Resolve environment variables and special variables in string values."""
     if isinstance(value, str):
         # First replace ${USER} with actual username since some environments might not have USER set
         value = value.replace("${USER}", getpass.getuser())
+        # Replace ${REPO_ROOT} with the absolute path to repository root
+        value = value.replace("${REPO_ROOT}", REPO_ROOT)
         # Then handle any other environment variables
         return os.path.expandvars(value)
     return value

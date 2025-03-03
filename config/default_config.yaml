@@ -1,7 +1,7 @@
 # Paths
 paths:
   scratch_dir: /cluster/scratch/${USER}
-  egtea_dir: /cluster/home/${USER}/egocentric_vision/egtea_gaze
+  egtea_dir: ${REPO_ROOT}/egtea_gaze
   ego_topo_data: ${paths.scratch_dir}/ego-topo/data/gtea
 
 # Dataset parameters
