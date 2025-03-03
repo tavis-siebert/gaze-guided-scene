@@ -5,6 +5,7 @@ from tqdm import tqdm
 import dropbox
 from typing import Optional, List
 import subprocess
+from transformers import CLIPProcessor, CLIPModel
 
 def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: Path) -> None:
     try:
@@ -136,6 +137,22 @@ def setup_ego_topo(directories: ScratchDirectories) -> None:
         check=True
     )
 
+def setup_clip_model(directories: ScratchDirectories) -> None:
+    """Download CLIP model and processor for offline use."""
+    model_dir = directories.egtea_dir / "clip_model"
+    model_dir.mkdir(exist_ok=True)
+    
+    print("Downloading CLIP model and processor...")
+    model_id = "openai/clip-vit-base-patch16"
+    
+    # Download and save model
+    model = CLIPModel.from_pretrained(model_id)
+    processor = CLIPProcessor.from_pretrained(model_id)
+    
+    model.save_pretrained(model_dir)
+    processor.save_pretrained(model_dir)
+    print(f"CLIP model and processor saved to {model_dir}")
+
 def setup_scratch(config, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
     if not access_token:
@@ -154,5 +171,8 @@ def setup_scratch(config, access_token: Optional[str] = None) -> None:
     
     # Step 3: Setup ego-topo repository and splits
     setup_ego_topo(directories)
+    
+    # Step 4: Download CLIP model for offline use
+    setup_clip_model(directories)
     
     print("Setup complete!")
