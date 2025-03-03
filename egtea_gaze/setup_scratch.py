@@ -64,9 +64,6 @@ class ScratchDirectories:
         for directory in [self.egtea_dir, self.raw_videos_dir, self.cropped_videos_dir, self.tmp_dir]:
             directory.mkdir(parents=True, exist_ok=True)
 
-    def is_raw_videos_empty(self) -> bool:
-        return not any(self.raw_videos_dir.iterdir()) if self.raw_videos_dir.exists() else True
-
     def is_cropped_videos_empty(self) -> bool:
         return not any(self.cropped_videos_dir.iterdir()) if self.cropped_videos_dir.exists() else True
 
@@ -96,10 +93,6 @@ def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) 
 
 def setup_raw_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> None:
     """Download raw videos using links from the video_links.txt file."""
-    if not directories.is_raw_videos_empty():
-        print("Raw videos directory not empty, skipping download...")
-        return
-
     video_links_url = "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt"
     video_links_path = directories.tmp_dir / "video_links.txt"
 
