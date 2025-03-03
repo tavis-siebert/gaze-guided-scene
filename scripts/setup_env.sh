@@ -16,6 +16,14 @@ fi
 
 python -m venv --system-site-packages venv
 source venv/bin/activate
-pip3 install -r requirements.txt --upgrade
+
+# Only install pip packages if internet connection is available
+if nc -zw1 8.8.8.8 443 2>/dev/null; then
+    echo "Internet connection available, installing/upgrading packages..."
+    pip3 install -r requirements.txt --upgrade
+else
+    echo "No internet connection detected, skipping package installation"
+    echo "Note: You may need to run 'pip3 install -r requirements.txt --upgrade' manually when connected"
+fi
 
 echo "Setup completed successfully with Python $(python --version 2>&1 | cut -d' ' -f2)!"
