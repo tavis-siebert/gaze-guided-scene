@@ -14,7 +14,7 @@ Clone this repository and navigate to its directory
 
 1. Run the setup script:
    ```bash
-   source setup_env.sh
+   source scripts/setup_env.sh
    ```
    This script will:
    - Create a virtual environment called `venv`
@@ -23,7 +23,7 @@ Clone this repository and navigate to its directory
 
    You may rerun the script to update dependencies.
 
-Note: Always use `source setup_env.sh` rather than `sh setup_env.sh` or `./setup_env.sh` to ensure the virtual environment is activated in your current shell.
+Note: Always use `source scripts/setup_env.sh` rather than `sh scripts/setup_env.sh` or `./scripts/setup_env.sh` to ensure the virtual environment is activated in your current shell.
 
 #### Create a Dropbox Access Token
 
