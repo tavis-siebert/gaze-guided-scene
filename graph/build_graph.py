@@ -210,7 +210,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                 # normalize 1st, 2nd column and update 5th column
                 node_data_t[:,0] /= relative_frame_num
                 node_data_t[:,1] /= node_data_t[:,1].max()
-                node_data_t[:,4] = timestamp_ratios[timestamps.index(frame_num)]
+                node_data_t[:,4] = timestamp_ratios[timestamps.index(frame_num)] if frame_num < len(gaze) else frame_num / vid_length
 
                 edge_data_t = torch.stack(edge_data)
                 edge_index_t = torch.tensor(edge_index, dtype=torch.long)
