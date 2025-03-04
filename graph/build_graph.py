@@ -4,11 +4,14 @@ import torch
 import torchvision as tv
 from collections import defaultdict, Counter
 from transformers import CLIPProcessor, CLIPModel
+from pathlib import Path
+from tqdm import tqdm
 
 from graph.node import Node
-from graph.utils import update_graph, print_levels  #TODO rename config
-from egtea_gaze.utils import SCRATCH, EGTEA_DIR
+from graph.utils import update_graph, print_levels
+from egtea_gaze.constants import NUM_ACTION_CLASSES
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
+from config.config_utils import DotDict
 
 ### Helpers ###
 class Record:
@@ -68,8 +71,10 @@ def run_CLIP(model, processor, frames, CLIP_labels, obj_labels, device):
         images=frames,
         return_tensors='pt',
         padding=True
-    ).to(device)
-
+    )
+    # Move input to device after preprocessing
+    input = {k: v.to(device) if hasattr(v, 'to') else v for k, v in input.items()}
+    
     output = model(**input)
     probs = output.logits_per_image.softmax(dim=1)
     label = obj_labels[
@@ -104,11 +109,21 @@ def get_future_action_labels(records: list[Record], t: int, action_to_class: dic
 
 
 ### MAIN ###
-def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, print_graph=False):
+def build_graph(video_list: list[str], config: DotDict, split: str, print_graph: bool = False, desc=None):
+    """Build graph representation for a list of videos.
+    
+    Args:
+        video_list: List of video names to process
+        config: Configuration dictionary
+        split: Dataset split ('train' or 'val')
+        print_graph: Whether to print graph visualization
+    """
     # Initialize CLIP model
     # object labels are pulled from noun_idx.txt, maps class number to string
+    print(f"Building graph for {len(video_list)} videos in {split} split")
     obj_labels, labels_to_int = {}, {}
-    with open(EGTEA_DIR + '/action_annotation/noun_idx.txt') as f:
+    noun_idx_path = Path(config.paths.egtea_dir) / "action_annotation/noun_idx.txt"
+    with open(noun_idx_path) as f:
         for line in f:
             line = line.split(' ')
             class_idx, label = int(line[1]) - 1, line[0]
@@ -118,13 +133,24 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
     CLIP_labels = [f"a picture of a {obj}" for obj in obj_labels.values()]
 
     model_id = "openai/clip-vit-base-patch16"
-    processor = CLIPProcessor.from_pretrained(model_id)
-    model = CLIPModel.from_pretrained(model_id)
+    # Try loading from local directory first, fall back to online if not available
+    model_dir = Path(config.paths.scratch_dir) / "egtea_gaze/clip_model"
+    try:
+        print(f"Loading CLIP model from local directory: {model_dir}")
+        processor = CLIPProcessor.from_pretrained(str(model_dir))
+        model = CLIPModel.from_pretrained(str(model_dir))
+    except Exception as e:
+        print(f"Failed to load local model, attempting to download from {model_id}: {e}")
+        processor = CLIPProcessor.from_pretrained(model_id)
+        model = CLIPModel.from_pretrained(model_id)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
+    # Set up device and move model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device} for CLIP model")
+    model = model.to(device)
 
     # Collect data
+    ann_file = config.dataset.splits[split]
     vid_lengths = open(ann_file.replace('.csv', '_nframes.csv')).read().strip().split('\n')
     vid_lengths = [line.split('\t') for line in vid_lengths]
     vid_lengths = {k:int(v) for k,v in vid_lengths}
@@ -137,7 +163,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
     #NOTE I think the annotation files are such that one will get the same 106 actions for train and test, but the way the Egotopo people wrote it is bug-prone
     int_counts = [(record.label[0], record.label[1]) for record in records]
     int_counts = Counter(int_counts).items()
-    int_counts = sorted(int_counts, key=lambda x: -x[1])[:num_action_classes]    # top actions
+    int_counts = sorted(int_counts, key=lambda x: -x[1])[:NUM_ACTION_CLASSES]    # top actions
     int_to_idx = {interact:idx for idx, (interact, count) in enumerate(int_counts)}
 
     all_node_data = []
@@ -145,13 +171,15 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
     all_edge_indices = []
     all_labels = []
 
-    for video_name in video_list:
+    for video_name in tqdm(video_list, desc=desc or f"Processing {split} videos"):
         records_for_vid = sorted(records_by_vid[video_name], key=lambda record: record.end_frame)
         vid_length = vid_lengths[video_name]
 
+        timestamp_ratios = config.dataset[f"{split}_timestamps"]
         timestamps = [int(frac*vid_length) for frac in sorted(timestamp_ratios)]
        
-        gaze = parse_gtea_gaze(EGTEA_DIR + '/gaze_data/gaze_data/' + video_name + '.txt')
+        gaze_path = Path(config.paths.egtea_dir) / "gaze_data/gaze_data" / f"{video_name}.txt"
+        gaze = parse_gtea_gaze(str(gaze_path))
         
         # Build graph
         # ===========
@@ -159,7 +187,8 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
         # if gaze is 1 (fixation), run CLIP, increase counter, append keypoints
         # if gaze is 2 (saccade), create new Node, link, reset stuff
         #   linking = check duplicates (BFS + filter by label & keypoints) & label edge via gaze shift
-        stream = tv.io.VideoReader(SCRATCH + '/egtea_gaze/raw_videos/' + video_name + '.mp4', 'video')
+        video_path = Path(config.paths.scratch_dir) / "egtea_gaze/raw_videos" / f"{video_name}.mp4"
+        stream = tv.io.VideoReader(str(video_path), 'video')
 
         SIFT = cv2.SIFT_create()    #TODO other options that one can toggle
 
@@ -177,6 +206,9 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
         # Root is used to clean up the loop. 
         # To handle it in downstream tasks (e.g. BFS), filter via label == 'root'
         root = curr_node = Node(id=-1, object_label='root')
+        print(f"\nProcessing video: {video_name}")
+        print(f"Total frames: {vid_length}, Timestamps: {timestamps}")
+        
         while True:
             curr_frame = next(stream, 'EOS') 
 
@@ -184,6 +216,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                 # it's a little ugly to write the loop this way instead of checking EOS in the while condition, 
                 # but we have to handle the case of fixation ending the video
                 if potential_labels:
+                    print(f"- Final fixation detected, updating graph...")
                     visit.append(relative_frame_num - 1)
                     curr_node = update_graph(
                         curr_node,
@@ -204,8 +237,13 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
             if (frame_num in timestamps or frame_num >= len(gaze)) and edge_data:
                 action_labels_t = get_future_action_labels(records_for_vid, frame_num, int_to_idx)
                 if action_labels_t.numel() == 0:   # insufficient data
+                    print(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
                     continue 
 
+                print(f"\n[Frame {frame_num}] Saving graph state:")
+                print(f"- Current nodes: {num_nodes[0]}")
+                print(f"- Edge count: {len(edge_data)}")
+                
                 node_data_t = torch.stack(list(node_data.values()))
                 # normalize 1st, 2nd column and update 5th column
                 node_data_t[:,0] /= relative_frame_num
@@ -221,6 +259,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                 all_edge_indices.append(edge_index_t)
 
                 if frame_num == timestamps[-1] or frame_num >= len(gaze): # save ourselves compute
+                    print(f"[Frame {frame_num}] Reached final timestamp or end of gaze data")
                     break
                 
             # EGTEA can have starting + ending black frames, so skip these
@@ -231,14 +270,17 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
 
             # Main logic as described above
             gaze_type = gaze[frame_num, 2]
-            if gaze_type == 1:
+            if gaze_type == 1:  # Fixation
                 if not visit:   # add start of visit
                     visit.append(relative_frame_num)
                     x, y = gaze[frame_num, :2]
+                    print(f"\n[Frame {frame_num}] New fixation started at ({x:.1f}, {y:.1f})")
 
                 patch, _ = get_roi(frame, (int(x),int(y)), 256)
                 label = run_CLIP(model, processor, patch, CLIP_labels, obj_labels, device)
                 potential_labels[label] += 1
+
+                print(f"[Frame {frame_num}] CLIP detected: {label} (count: {potential_labels[label]})")
 
                 frame = cv2.cvtColor(
                     frame.permute(1,2,0).numpy(),
@@ -248,11 +290,17 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                 kps.append(kp)
                 descs.append(desc)
             
-            elif gaze_type == 2:
+            elif gaze_type == 2:  # Saccade
                 if potential_labels:  # not empty aka we've started tracking
                     visit.append(relative_frame_num - 1)
+                    
+                    most_likely_label = max(potential_labels.items(), key=lambda x: x[1])[0]
+                    print(f"\n[Frame {frame_num}] Saccade detected:")
+                    print(f"- Most likely object: {most_likely_label}")
+                    print(f"- Visit duration: {visit[-1] - visit[0] + 1} frames")
 
                     # update graph (create new nodes or merge to existing) and edge features
+                    prev_node_id = curr_node.id
                     curr_node = update_graph(
                         curr_node,
                         potential_labels,
@@ -265,6 +313,11 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                         edge_index,
                         num_nodes,
                     )
+                    
+                    if curr_node.id != prev_node_id:
+                        print(f"- New node created: {curr_node.id}")
+                    else:
+                        print(f"- Merged with existing node: {curr_node.id}")
 
                     # update node features 
                     id = curr_node.id
@@ -280,6 +333,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                             first_frame,
                             last_frame
                         ])
+                        print(f"- Updated node features: visits={num_visits}, total_frames={total_frames_visited}")
                     else:
                         one_hot = torch.zeros(len(obj_labels))
                         c = labels_to_int[curr_node.object_label]
@@ -288,6 +342,7 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
                             torch.tensor([total_frames_visited, num_visits, first_frame, last_frame, -1]), # -1 = placeholder for timestamp fraction
                             one_hot
                         ])
+                        print(f"- Created new node features")
 
                     visit = []
                     kps, descs = [], []
@@ -300,9 +355,10 @@ def build_graph(video_list, ann_file, timestamp_ratios, num_action_classes=106, 
         if print_graph:
             if num_nodes[0] > 0:
                 start_node = root.neighbors[0][0]
-                print_levels(start_node)    # TODO print this to an out file
+                print("\nFinal graph structure:")
+                print_levels(start_node)
             else:
-                print('Something went wrong... No nodes were added to the graph.\n Maybe your video is empty or no fixations occured')
+                print('\nError: No nodes were added to the graph. Video may be empty or no fixations occurred.')
 
     full_dataset = {
         'x': all_node_data,
