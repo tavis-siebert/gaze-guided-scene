@@ -17,8 +17,11 @@ fi
 python -m venv --system-site-packages venv
 source venv/bin/activate
 
-# Only install pip packages if internet connection is available
-if nc -zw1 8.8.8.8 443 2>/dev/null; then
+check_internet_connectivity() {
+    nc -zw1 8.8.8.8 443 2>/dev/null
+}
+
+if check_internet_connectivity; then
     echo "Internet connection available, installing/upgrading packages..."
     pip3 install -r requirements.txt --upgrade
 else
