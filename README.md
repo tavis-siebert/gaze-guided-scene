@@ -27,7 +27,7 @@ Note: Always use `source scripts/setup_env.sh` rather than `sh scripts/setup_env
 
 #### Create a Dropbox Access Token
 
-To download the Egtea Gaze dataset and allow the `setup_scratch.py` script to automatically download the dataset directly to the scratch directory, you need a Dropbox access token.
+To download the Egtea Gaze dataset and allow automatic dataset download to the scratch directory, you need a Dropbox access token.
 
 1. Make sure you are logged in to Dropbox in your browser.
 
@@ -54,5 +54,24 @@ The script will download both the raw videos and the cropped video clips and pla
 
 1. Run the setup script:
     ```bash
-    python main.py setup-egtea-scratch
+    python main.py setup-scratch
     ```
+
+### Usage
+
+The project provides a command-line interface through `main.py`. All commands support using a custom configuration file (default: `config/default_config.yaml`):
+```bash
+python main.py --config path/to/config.yaml <command>
+```
+
+Available commands:
+- `setup-scratch`: Setup scratch directories and download required files
+- `build`: Build the dataset
+
+For detailed usage of each command, run:
+```bash
+python main.py --help
+python main.py <command> --help
+```
+
+Note: Make sure you have activated the virtual environment before running the commands (see [Setup the Python Environment](#setup-the-python-environment)).
