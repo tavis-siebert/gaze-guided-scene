@@ -1,22 +1,21 @@
 import csv
 from pathlib import Path
 from collections import defaultdict
+from typing import Dict, List, Tuple
+from config.config_utils import DotDict
 
-#TODO move from hardcoded paths to pathlib or something. 
-# each person will have to edit this according to their directories though, so maybe not worth it
-SCRATCH = '/cluster/scratch/tsiebert'
-EGTEA_DIR = '/cluster/home/tsiebert/egocentric_vision/egtea_gaze'
 resolution = (640,480)
-fps = 24
 
 # Clip-level utils
-def get_action_clip_maps():
+def get_action_clip_maps(config: DotDict) -> Tuple[Dict[str, List[str]], Dict[str, str]]:
     """
-    Returns two maps
+    Returns two maps:
         action_to_clips: maps action label to all clip names with that action
         clips_to_action: maps all clip names to their corresponding action
     """
-    with open(EGTEA_DIR + "/action_annotation/raw_annotations/action_labels.csv") as f:
+    action_labels_path = Path(config.paths.egtea_dir) / "action_annotation/raw_annotations/action_labels.csv"
+    
+    with open(action_labels_path) as f:
         csv_reader = csv.reader(f, delimiter=';')
         next(csv_reader, None)  # skip header
 
@@ -29,18 +28,20 @@ def get_action_clip_maps():
         
         return action_to_clips, clips_to_action
 
-def get_all_clips_from_video(video_name, sort_temporally=False):
+def get_all_clips_from_video(video_name: str, config: DotDict, sort_temporally: bool = False) -> List[Path]:
     """
-    Given a video name (e.g. OP01-R01-PastaSalad)) returns all clips cropped from the video
+    Given a video name (e.g. OP01-R01-PastaSalad) returns all clips cropped from the video.
     Raw videos can be found at https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0 
-    Crooped clips can be found at https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0 
+    Cropped clips can be found at https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0 
 
     Args:
-        video_name (str): name of the full video (e.g. OP01-R01-PastaSalad)
-        sort_temporally (bool): if True, sorts all clips temporally based on frame number in original video. Helpful for tasks like predicting the next action from a series of action clips
+        video_name: Name of the full video (e.g. OP01-R01-PastaSalad)
+        config: Configuration dictionary
+        sort_temporally: If True, sorts all clips temporally based on frame number in original video
     """
-    clips_dir = Path(SCRATCH + '/egtea_gaze/cropped_clips/' + video_name).glob('*.mp4')
-    all_clips = [clip for clip in clips_dir]
+    clips_path = Path(config.paths.scratch_dir) / 'egtea_gaze/cropped_clips' / video_name
+    all_clips = list(clips_path.glob('*.mp4'))
+    
     if sort_temporally:
         all_clips.sort()
     return all_clips
