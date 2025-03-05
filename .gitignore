@@ -1,0 +1,7 @@
+.env
+.vscode/
+venv/
+__pycache__/
+out/
+run.sh
+*.pth

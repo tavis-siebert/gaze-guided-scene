@@ -3,17 +3,12 @@ import os
 import multiprocessing as mp
 import torch
 from itertools import islice
+from pathlib import Path
+from tqdm import tqdm
 
-from egtea_gaze.utils import SCRATCH, EGTEA_DIR
 from graph.build_graph import build_graph
-
-#TODO make these argparsed
-ann_file_train = SCRATCH + '/ego-topo/data/gtea/split/train_S1.csv'
-ann_file_val = SCRATCH + '/ego-topo/data/gtea/split/val_S1.csv'
-train_timestamps = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-val_timestamps = [0.25, 0.5, 0.75]
-num_action_classes = 106
-save_dir = os.path.dirname(os.path.realpath(__file__))
+from egtea_gaze.constants import NUM_ACTION_CLASSES
+from config.config_utils import DotDict
 
 def split_list(lst, n):
     """Splits a list into n roughly equal parts."""
@@ -23,57 +18,107 @@ def split_list(lst, n):
     it = iter(lst)
     return [list(islice(it, size)) for size in split_sizes]
 
-def build_dataset(train_vids, val_vids, gpu_id, result_queue):
-    torch.cuda.set_device(gpu_id)
-    train_data = build_graph(train_vids, ann_file_train, train_timestamps, num_action_classes)
-    val_data = build_graph(val_vids, ann_file_val, val_timestamps, num_action_classes)
+def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, result_queue, use_gpu: bool = False):
+    """Build dataset subset using specified device (GPU or CPU)."""
+    if use_gpu:
+        torch.cuda.set_device(device_id)
+    
+    device_name = f"GPU {device_id}" if use_gpu else f"CPU {device_id}"
+    
+    # Create progress bars for each split
+    train_data = build_graph(
+        video_list=train_vids,
+        config=config,
+        split='train',
+        desc=f"{device_name} - Training"
+    )
+    
+    val_data = build_graph(
+        video_list=val_vids,
+        config=config,
+        split='val',
+        desc=f"{device_name} - Validation"
+    )
+    
     data = {
         'train': train_data,
         'val': val_data
     }
 
-    # save to disk because pickling in process kills it
-    out_file = save_dir + f'/data_subset_{gpu_id}.pth'
+    # Save to disk because pickling in process kills it
+    save_dir = Path(__file__).parent
+    out_file = save_dir / f'data_subset_{device_id}.pth'
     torch.save(data, out_file)
+    result_queue.put(str(out_file))
 
-    result_queue.put(out_file)
-
-if __name__ == '__main__':
-    with open(SCRATCH + '/ego-topo/data/gtea/train_test_splits.json') as f:
+def build_dataset(config: DotDict, debug: bool = False):
+    """Build dataset using all available GPUs or CPU. Set debug=True to process only one video per split."""
+    print("Starting dataset building process...")
+    
+    with open(config.dataset.splits.train_test_splits) as f:
         split = json.load(f)
 
-    train_videos = split['train_vids']
-    val_videos = split['val_vids']
+    # In debug mode, take only one video from each split
+    train_videos = split['train_vids'][:1] if debug else split['train_vids']
+    val_videos = split['val_vids'][:1] if debug else split['val_vids']
     
-    num_gpus = torch.cuda.device_count()
-    train_splits = split_list(train_videos, num_gpus)
-    val_splits = split_list(val_videos, num_gpus)
+    # In debug mode, force single CPU processing
+    if debug:
+        num_devices = 1
+        use_gpu = False
+        device_type = "CPU"
+    else:
+        use_gpu = torch.cuda.is_available()
+        num_devices = torch.cuda.device_count() if use_gpu else config.dataset.n_cores
+        device_type = "GPU" if use_gpu else "CPU"
+    
+    print(f"Using {num_devices} {device_type}(s) for dataset building")
+    print(f"Total videos to process - Train: {len(train_videos)}, Val: {len(val_videos)}")
+    
+    train_splits = split_list(train_videos, num_devices)
+    val_splits = split_list(val_videos, num_devices)
 
     processes, result_queue = [], mp.Queue()
-    for gpu_id in range(num_gpus):
-        train_subset = train_splits[gpu_id]
-        val_subset = val_splits[gpu_id]
-        
-        p = mp.Process(target=build_dataset, args=(train_subset, val_subset, gpu_id, result_queue))
-        p.start()
-        processes.append(p)
+    
+    with tqdm(total=num_devices, desc="Launching processes") as pbar:
+        for device_id in range(num_devices):
+            train_subset = train_splits[device_id]
+            val_subset = val_splits[device_id]
+            
+            p = mp.Process(
+                target=build_dataset_subset, 
+                args=(train_subset, val_subset, device_id, config, result_queue, use_gpu)
+            )
+            p.start()
+            processes.append(p)
+            pbar.update(1)
 
-    saved_subsets = [result_queue.get() for _ in range(num_gpus)]
+    saved_subsets = []
+    with tqdm(total=num_devices, desc="Collecting results") as pbar:
+        for _ in range(num_devices):
+            saved_subsets.append(result_queue.get())
+            pbar.update(1)
 
     for p in processes:
         p.join()
 
-    # merge 
+    # Merge subsets
     dataset = {
-        'train': {'x': [],  'edge_index': [], 'edge_attr': [], 'y': []},
-        'test': {'x': [],  'edge_index': [], 'edge_attr': [], 'y': []}
+        'train': {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []},
+        'val': {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
     }
 
-    for subset_path in saved_subsets:
+    print("Merging dataset subsets...")
+    for subset_path in tqdm(saved_subsets, desc="Merging subsets"):
         data_subset = torch.load(subset_path, map_location='cpu')
         for split, tensor_dict in data_subset.items():
             for data_type, tensor_list in tensor_dict.items():
                 dataset[split][data_type].extend(tensor_list)
 
-    # save
-    torch.save(dataset, save_dir + '/dataset.pth')
+    # Save final dataset
+    save_path = Path(__file__).parent / 'dataset.pth'
+    print(f"Saving complete dataset to {save_path}")
+    torch.save(dataset, save_path)
+    
+    print("Dataset building completed successfully!")
+    return dataset

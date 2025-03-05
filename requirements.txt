@@ -1,0 +1,6 @@
+dropbox
+python-dotenv
+transformers
+torch
+torchvision
+optree>=0.13.0
