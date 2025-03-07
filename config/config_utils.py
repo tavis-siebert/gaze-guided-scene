@@ -124,7 +124,7 @@ def load_config(config_path: str = None) -> DotDict:
         DotDict: Configuration object that supports both dictionary and dot notation access
     """
     if config_path is None:
-        config_path = Path(__file__).parent / "default_config.yaml"
+        config_path = Path(__file__).parent / "student_cluster_config.yaml"
     
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
