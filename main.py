@@ -8,8 +8,8 @@ from config.config_utils import load_config, DotDict
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Gaze-guided scene understanding toolkit")
-    parser.add_argument("--config", type=str, default="config/default_config.yaml",
-                       help="Path to custom config file. Defaults to config/default_config.yaml")
+    parser.add_argument("--config", type=str, default="config/student_cluster_config.yaml",
+                       help="Path to custom config file. Defaults to config/student_cluster_config.yaml")
     
     subparsers = parser.add_subparsers(dest="command", required=True)
     
