@@ -59,7 +59,7 @@ The script will download both the raw videos and the cropped video clips and pla
 
 ### Usage
 
-The project provides a command-line interface through `main.py`. All commands support using a custom configuration file (default: `config/default_config.yaml`):
+The project provides a command-line interface through `main.py`. All commands support using a custom configuration file (default: `config/student_cluster_config.yaml`):
 ```bash
 python main.py --config path/to/config.yaml <command>
 ```
