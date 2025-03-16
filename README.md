@@ -1,10 +1,26 @@
 ## Gaze-Guided Scene Graphs for Egocentric Action Prediction
+
 ### Directory Structure
 
 - **datasets/**: Contains scripts for processing datasets as well as dataset files.
 - **egtea_gaze/**: Annotations and processing for actions and gaze
 - **graph/**: Handles scene graph construction and related operations.
-- **models/**: Includes model definitions (TODO).
+- **models/**: Includes model definitions for feature extraction (SIFT) and object detection (CLIP).
+
+### Scene Graph Construction
+
+The project builds scene graphs from video data and gaze information. The graph construction process follows these steps:
+
+1. Load object labels and dataset information
+2. Initialize CLIP model for object detection
+3. For each video:
+   - Load gaze data and video frames
+   - Process fixations and saccades to identify objects
+   - Build a scene graph by creating nodes for objects and edges for transitions
+   - Extract and normalize features at specified timestamps
+   - Save graph state for downstream tasks
+
+The resulting graph structure captures the spatial and temporal relationships between objects in the scene, which can be used for tasks like action anticipation.
 
 ### Setup
 
