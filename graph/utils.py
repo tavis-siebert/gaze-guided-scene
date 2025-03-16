@@ -85,8 +85,17 @@ class GraphTraversal:
     """Utilities for traversing and exploring graph structures."""
     
     @staticmethod
-    def dfs(start_node, visited=None):
-        """Depth-first search traversal of a graph starting from a given node."""
+    def dfs(start_node: Node, visited: Optional[Set[Node]] = None) -> Set[Node]:
+        """
+        Depth-first search traversal of a graph starting from a given node.
+        
+        Args:
+            start_node: Node to start traversal from
+            visited: Set of already visited nodes
+            
+        Returns:
+            Set of all visited nodes
+        """
         if visited is None:
             visited = set()
         
@@ -98,8 +107,17 @@ class GraphTraversal:
         return visited
 
     @staticmethod
-    def get_all_nodes(start_node, mode: str = 'dfs') -> List:
-        """Returns all nodes in the graph using the specified traversal method."""
+    def get_all_nodes(start_node: Node, mode: str = 'dfs') -> List[Node]:
+        """
+        Returns all nodes in the graph using the specified traversal method.
+        
+        Args:
+            start_node: Node to start traversal from
+            mode: Traversal mode ('dfs' for depth-first search)
+            
+        Returns:
+            List of all nodes in the graph
+        """
         if mode == 'dfs':
             return list(GraphTraversal.dfs(start_node))
         else:
@@ -111,7 +129,16 @@ class FeatureMatcher:
     
     @staticmethod
     def match_features(des1: Any, des2: Any) -> List:
-        """Match descriptors between two sets of features using brute force matching."""
+        """
+        Match descriptors between two sets of features using brute force matching.
+        
+        Args:
+            des1: First set of descriptors
+            des2: Second set of descriptors
+            
+        Returns:
+            List of matches sorted by distance
+        """
         if des1 is None or des2 is None:
             return []
             
@@ -141,17 +168,30 @@ class FeatureMatcher:
         if len(matches) < 10:
             return None, []
 
+        # Extract matched points
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
+        # Find homography using RANSAC
         H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, ransac_threshold)
+        
+        # Extract inliers
         inliers = [matches[i] for i in range(len(matches)) if mask[i]]
 
         return H, inliers
     
     @staticmethod
     def calculate_inlier_ratio(inliers: List, matches: List) -> float:
-        """Calculate the ratio of inliers to total matches."""
+        """
+        Calculate the ratio of inliers to total matches.
+        
+        Args:
+            inliers: List of inlier matches
+            matches: List of all matches
+            
+        Returns:
+            Ratio of inliers to total matches
+        """
         if not matches:
             return 0.0
         return len(inliers) / len(matches)
