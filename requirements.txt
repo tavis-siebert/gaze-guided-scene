@@ -6,3 +6,4 @@ torchvision
 optree>=0.13.0
 opencv-python
 av
+tqdm

@@ -2,16 +2,22 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 import torch
 import numpy as np
 from collections import deque
+import math
+from collections import defaultdict
 
 from graph.node import Node, VisitRecord, NodeManager
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 from egtea_gaze.utils import resolution
+from logger import get_logger
 
 # Type aliases for better readability
 Position = Tuple[int, int]
 EdgeFeature = torch.Tensor
 EdgeIndex = List[List[int]]
+
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 class Graph:
     """
@@ -289,10 +295,10 @@ class Graph:
             use_degrees: Whether to display angles in degrees (True) or radians (False)
         """
         if self.num_nodes == 0:
-            print("Graph is empty.")
+            logger.info("Graph is empty.")
             return
             
-        print(f"Graph with {self.num_nodes} nodes:")
+        logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees)
     
     def extract_features(

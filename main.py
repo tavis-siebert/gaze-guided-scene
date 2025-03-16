@@ -5,11 +5,19 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from config.config_utils import load_config, DotDict
+from logger import setup_logger
+
+# Initialize the root logger
+logger = setup_logger("main")
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Gaze-guided scene understanding toolkit")
     parser.add_argument("--config", type=str, default="config/student_cluster_config.yaml",
                        help="Path to custom config file. Defaults to config/student_cluster_config.yaml")
+    parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                       help="Set the logging level")
+    parser.add_argument("--log-file", type=str,
+                       help="Path to log file. If not specified, logs to console only")
     
     subparsers = parser.add_subparsers(dest="command", required=True)
     
@@ -62,19 +70,26 @@ def get_dropbox_token(args: argparse.Namespace) -> str:
     
     token = os.environ.get("DROPBOX_TOKEN")
     if not token:
-        raise ValueError(
+        logger.error(
             "Dropbox token not found, which is required for downloading the EGTEA Gaze+ dataset (see README). "
             "Either set DROPBOX_TOKEN in .env file "
             "or provide --dropbox-token argument"
         )
+        raise ValueError("Dropbox token not found")
     return token
 
 def main():
     parser = setup_parser()
     args = parser.parse_args()
     
+    # Configure logger based on command line arguments
+    if args.log_level or args.log_file:
+        setup_logger(log_level=args.log_level, log_file=args.log_file)
+        logger.info(f"Logging configured with level: {args.log_level or 'INFO'}, file: {args.log_file or 'console only'}")
+    
     # Load config
     config = load_config(args.config)
+    logger.info(f"Loaded configuration from {args.config}")
     
     # Update config with command line arguments
     config = update_config_with_args(config, args)
@@ -82,9 +97,11 @@ def main():
     if args.command == "setup-scratch":
         from scripts.setup_scratch import setup_scratch
         dropbox_token = get_dropbox_token(args)
+        logger.info("Starting scratch setup process")
         setup_scratch(config, access_token=dropbox_token)
     elif args.command == "build":
         from datasets.build_dataset import build_dataset
+        logger.info("Starting dataset building process")
         build_dataset(config, debug=args.debug)
 
 if __name__ == "__main__":
