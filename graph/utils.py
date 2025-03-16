@@ -3,15 +3,14 @@ import torch
 import numpy as np
 from collections import deque
 from typing import Optional, Tuple, List, Set, Dict, Any
-from egtea_gaze.utils import resolution
 
-from graph.node import Node
+from egtea_gaze.utils import resolution
+from graph.node import Node, VisitRecord, NeighborInfo
 
 # Type aliases for better readability
 NodeSet = Set[Node]
 NodeList = List[Node]
 FeatureList = List[Any]
-VisitRecord = List[int]
 Position = Tuple[int, int]
 EdgeFeature = torch.Tensor
 EdgeIndex = List[List[int]]
@@ -40,8 +39,6 @@ class GraphTraversal:
         """Returns all nodes in the graph using the specified traversal method."""
         if mode == 'dfs':
             return list(GraphTraversal.dfs(start_node))
-        elif mode == 'bfs':
-            raise NotImplementedError("BFS traversal not yet implemented")
         else:
             raise ValueError(f"Unknown traversal mode: {mode}")
 
@@ -345,80 +342,6 @@ class EdgeManager:
             EdgeManager.update_edge_indices(edge_index, curr_node.id, next_node.id)
 
 
-class GraphBuilder:
-    """Main utilities for building and updating the scene graph."""
-    
-    @staticmethod
-    def update_graph(
-        curr_node: Node, 
-        label_counts: Dict[str, int], 
-        visit: VisitRecord, 
-        keypoints: FeatureList, 
-        descriptors: FeatureList, 
-        prev_gaze_pos: Position, 
-        curr_gaze_pos: Position, 
-        edge_data: List[EdgeFeature],
-        edge_index: EdgeIndex,
-        num_nodes: List[int], 
-        num_bins: int = 8, 
-        inlier_thresh: float = 0.3
-    ) -> Node:
-        """
-        Update the scene graph with a new observation.
-        
-        This function either finds a matching existing node or creates a new one,
-        then connects it to the current node in the graph.
-        
-        Args:
-            curr_node: Current node in the graph
-            label_counts: Dictionary of object labels and their counts
-            visit: First and last frame of the object fixation
-            keypoints: SIFT keypoints for the object
-            descriptors: SIFT descriptors for the object
-            prev_gaze_pos: Previous gaze position (x,y)
-            curr_gaze_pos: Current gaze position (x,y)
-            edge_data: List to store edge features
-            edge_index: List to store edge indices
-            num_nodes: List containing the current node count
-            num_bins: Number of angle bins
-            inlier_thresh: Inlier threshold for RANSAC
-            
-        Returns:
-            The next node (either existing or newly created)
-        """
-        # Calculate edge features
-        angle, distance = EdgeManager.calculate_edge_features(prev_gaze_pos, curr_gaze_pos, num_bins)
-        
-        # Find most likely object label
-        most_likely_label = max(label_counts, key=label_counts.get)
-        
-        # Try to find matching node
-        matching_node = NodeManager.find_matching_node(
-            curr_node, keypoints, descriptors, most_likely_label, inlier_thresh
-        )
-        next_node = NodeManager.merge_node(visit, matching_node)
-        
-        # Create new node if no match found
-        if next_node is None:
-            next_node = NodeManager.create_node(num_nodes[0], most_likely_label, visit, keypoints, descriptors)
-            num_nodes[0] += 1
-        
-        # Connect nodes if not already connected and not self-loop
-        if next_node != curr_node and not curr_node.has_neighbor(next_node):
-            EdgeManager.add_bidirectional_edge(
-                curr_node, 
-                next_node, 
-                angle, 
-                distance, 
-                edge_data, 
-                edge_index,
-                prev_gaze_pos,
-                curr_gaze_pos
-            )
-        
-        return next_node
-
-
 class GraphVisualizer:
     """Utilities for visualizing graph structures."""
     
@@ -505,11 +428,37 @@ def update_graph(
     inlier_thresh: float = 0.3
 ) -> Node:
     """Update the scene graph with a new observation."""
-    return GraphBuilder.update_graph(
-        curr_node, label_counts, visit, keypoints, descriptors,
-        prev_gaze_pos, curr_gaze_pos, edge_data, edge_index,
-        num_nodes, num_bins, inlier_thresh
+    # Calculate edge features
+    angle, distance = EdgeManager.calculate_edge_features(prev_gaze_pos, curr_gaze_pos, num_bins)
+    
+    # Find most likely object label
+    most_likely_label = max(label_counts, key=label_counts.get)
+    
+    # Try to find matching node
+    matching_node = NodeManager.find_matching_node(
+        curr_node, keypoints, descriptors, most_likely_label, inlier_thresh
     )
+    next_node = NodeManager.merge_node(visit, matching_node)
+    
+    # Create new node if no match found
+    if next_node is None:
+        next_node = NodeManager.create_node(num_nodes[0], most_likely_label, visit, keypoints, descriptors)
+        num_nodes[0] += 1
+    
+    # Connect nodes if not already connected and not self-loop
+    if next_node != curr_node and not curr_node.has_neighbor(next_node):
+        EdgeManager.add_bidirectional_edge(
+            curr_node, 
+            next_node, 
+            angle, 
+            distance, 
+            edge_data, 
+            edge_index,
+            prev_gaze_pos,
+            curr_gaze_pos
+        )
+    
+    return next_node
 
 def print_levels(start_node: Node, use_degrees: bool = True) -> None:
     """Print graph structure by levels, showing node relationships."""

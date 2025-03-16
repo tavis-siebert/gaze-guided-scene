@@ -7,6 +7,7 @@ from transformers import CLIPProcessor, CLIPModel
 from pathlib import Path
 from tqdm import tqdm
 
+from graph.graph import Graph
 from graph.node import Node
 from graph.utils import update_graph, print_levels
 from egtea_gaze.constants import NUM_ACTION_CLASSES
@@ -181,12 +182,10 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
         gaze_path = Path(config.paths.egtea_dir) / "gaze_data/gaze_data" / f"{video_name}.txt"
         gaze = parse_gtea_gaze(str(gaze_path))
         
-        # Build graph
-        # ===========
-        # for every frame
-        # if gaze is 1 (fixation), run CLIP, increase counter, append keypoints
-        # if gaze is 2 (saccade), create new Node, link, reset stuff
-        #   linking = check duplicates (BFS + filter by label & keypoints) & label edge via gaze shift
+        # Initialize scene graph
+        scene_graph = Graph()
+        
+        # Video processing setup
         video_path = Path(config.paths.scratch_dir) / "egtea_gaze/raw_videos" / f"{video_name}.mp4"
         stream = tv.io.VideoReader(str(video_path), 'video')
 
@@ -198,14 +197,9 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
         visit = []  # the first and last frame gaze was fixated on a given object
         frame_num, relative_frame_num = 0, 0  # first is wrt actual video, second is for graph purposes / avoiding black frames
 
-        num_nodes = [0]  # aka the graph size. Allows us to properly index new nodes in the adjacency list
-        node_data = {}  # used to update node features in real time instead of searching through graph each timestamp: keys = Node.id, values = feature tensor
-        edge_data = []  # used to update edge features in real time
-        edge_index = [[],[]] # essentially PyG compatible version of an adjacency list
-
-        # Root is used to clean up the loop. 
-        # To handle it in downstream tasks (e.g. BFS), filter via label == 'root'
-        root = curr_node = Node(id=-1, object_label='root')
+        # Node feature tracking
+        node_data = {}  # maps Node.id to feature tensor
+        
         print(f"\nProcessing video: {video_name}")
         print(f"Total frames: {vid_length}, Timestamps: {timestamps}")
         
@@ -218,40 +212,64 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
                 if potential_labels:
                     print(f"- Final fixation detected, updating graph...")
                     visit.append(relative_frame_num - 1)
-                    curr_node = update_graph(
-                        curr_node,
+                    scene_graph.update_graph(
                         potential_labels,
                         visit, 
                         kps,
                         descs,
                         (prev_x, prev_y),
-                        (x, y),
-                        edge_data,
-                        edge_index,
-                        num_nodes
+                        (x, y)
                     )
 
                 break
 
             # Save graph states dynamically at each timestamp if a graph exists
-            if (frame_num in timestamps or frame_num >= len(gaze)) and edge_data:
+            if (frame_num in timestamps or frame_num >= len(gaze)) and scene_graph.edge_data:
                 action_labels_t = get_future_action_labels(records_for_vid, frame_num, int_to_idx)
                 if action_labels_t.numel() == 0:   # insufficient data
                     print(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
                     continue 
 
                 print(f"\n[Frame {frame_num}] Saving graph state:")
-                print(f"- Current nodes: {num_nodes[0]}")
-                print(f"- Edge count: {len(edge_data)}")
+                print(f"- Current nodes: {scene_graph.num_nodes}")
+                print(f"- Edge count: {len(scene_graph.edge_data)}")
                 
+                # Update node features
+                for node in scene_graph.get_all_nodes():
+                    if node.id >= 0:  # Skip root
+                        id = node.id
+                        num_visits = len(node.visits)
+                        total_frames_visited = node.get_visit_duration()
+                        first_frame = node.get_first_visit_frame() / (vid_length - frame_num + relative_frame_num)
+                        last_frame = node.get_last_visit_frame() / (vid_length - frame_num + relative_frame_num)
+                        timestamp_fraction = timestamp_ratios[timestamps.index(frame_num)] if frame_num < len(gaze) else frame_num / vid_length
+                        
+                        if id in node_data:
+                            node_data[id][:4] = torch.tensor([
+                                total_frames_visited,
+                                num_visits,
+                                first_frame,
+                                last_frame
+                            ])
+                            node_data[id][4] = timestamp_fraction
+                        else:
+                            one_hot = torch.zeros(len(obj_labels))
+                            c = labels_to_int.get(node.object_label, 0)
+                            one_hot[c] = 1
+                            node_data[id] = torch.cat([
+                                torch.tensor([total_frames_visited, num_visits, first_frame, last_frame, timestamp_fraction]),
+                                one_hot
+                            ])
+                
+                # Normalize node features
                 node_data_t = torch.stack(list(node_data.values()))
-                # normalize 1st, 2nd column and update 5th column
                 node_data_t[:,0] /= relative_frame_num
                 node_data_t[:,1] /= node_data_t[:,1].max()
                 node_data_t[:,4] = timestamp_ratios[timestamps.index(frame_num)] if frame_num < len(gaze) else frame_num / vid_length
 
-                edge_data_t = torch.stack(edge_data)
-                edge_index_t = torch.tensor(edge_index, dtype=torch.long)
+                # Convert graph to PyTorch Geometric format
+                edge_data_t = torch.stack(scene_graph.edge_data) if scene_graph.edge_data else torch.tensor([])
+                edge_index_t = torch.tensor(scene_graph.edge_index, dtype=torch.long) if scene_graph.edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
     
                 all_node_data.append(node_data_t)
                 all_labels.append(action_labels_t)
@@ -300,31 +318,27 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
                     print(f"- Visit duration: {visit[-1] - visit[0] + 1} frames")
 
                     # update graph (create new nodes or merge to existing) and edge features
-                    prev_node_id = curr_node.id
-                    curr_node = update_graph(
-                        curr_node,
+                    prev_node_id = scene_graph.current_node.id
+                    next_node = scene_graph.update_graph(
                         potential_labels,
                         visit, 
                         kps,
                         descs,
                         (prev_x, prev_y),
-                        (x, y),
-                        edge_data,
-                        edge_index,
-                        num_nodes,
+                        (x, y)
                     )
                     
-                    if curr_node.id != prev_node_id:
-                        print(f"- New node created: {curr_node.id}")
+                    if next_node.id != prev_node_id:
+                        print(f"- New node created: {next_node.id}")
                     else:
-                        print(f"- Merged with existing node: {curr_node.id}")
+                        print(f"- Merged with existing node: {next_node.id}")
 
                     # update node features 
-                    id = curr_node.id
-                    num_visits = len(curr_node.visits)
-                    total_frames_visited = sum([visit[1] - visit[0] + 1 for visit in curr_node.visits])
-                    first_frame = curr_node.visits[0][0] / (vid_length - frame_num + relative_frame_num)    # normalized + accounts for black frames
-                    last_frame = curr_node.visits[-1][-1] / (vid_length - frame_num + relative_frame_num)  
+                    id = next_node.id
+                    num_visits = len(next_node.visits)
+                    total_frames_visited = sum([visit[1] - visit[0] + 1 for visit in next_node.visits])
+                    first_frame = next_node.visits[0][0] / (vid_length - frame_num + relative_frame_num)    # normalized + accounts for black frames
+                    last_frame = next_node.visits[-1][-1] / (vid_length - frame_num + relative_frame_num)  
 
                     if id in node_data:
                         node_data[id][:4] = torch.tensor([
@@ -336,7 +350,7 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
                         print(f"- Updated node features: visits={num_visits}, total_frames={total_frames_visited}")
                     else:
                         one_hot = torch.zeros(len(obj_labels))
-                        c = labels_to_int[curr_node.object_label]
+                        c = labels_to_int.get(next_node.object_label, 0)
                         one_hot[c] = 1
                         node_data[id] = torch.cat([
                             torch.tensor([total_frames_visited, num_visits, first_frame, last_frame, -1]), # -1 = placeholder for timestamp fraction
@@ -353,10 +367,9 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
             frame_num += 1
 
         if print_graph:
-            if num_nodes[0] > 0:
-                start_node = root.neighbors[0][0]
+            if scene_graph.num_nodes > 0:
                 print("\nFinal graph structure:")
-                print_levels(start_node)
+                scene_graph.print_graph()
             else:
                 print('\nError: No nodes were added to the graph. Video may be empty or no fixations occurred.')
 
