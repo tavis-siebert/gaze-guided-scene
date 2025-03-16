@@ -7,6 +7,10 @@ from collections import deque
 
 from graph.node import Node
 from graph.utils import AngleUtils
+from logger import get_logger
+
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 class GraphVisualizer:
     """Utilities for visualizing graph structures."""
@@ -28,11 +32,11 @@ class GraphVisualizer:
     @staticmethod
     def print_node_info(node_info: Dict[str, Any]) -> None:
         """Print formatted node information."""
-        print('-----------------')
-        print(f'Object: {node_info["object"]}')
-        print(f'Visited at: {node_info["visits"]}')
-        print(f'Visited from: {node_info["from"]}')
-        print(f'Angle from prev: {node_info["angle"]}')
+        logger.info('-----------------')
+        logger.info(f'Object: {node_info["object"]}')
+        logger.info(f'Visited at: {node_info["visits"]}')
+        logger.info(f'Visited from: {node_info["from"]}')
+        logger.info(f'Angle from prev: {node_info["angle"]}')
     
     @staticmethod
     def print_levels(start_node: Node, use_degrees: bool = True) -> None:
@@ -49,7 +53,7 @@ class GraphVisualizer:
         curr_depth = 0
         while queue:
             level_size = len(queue)
-            print(f'Depth: {curr_depth}')
+            logger.info(f'Depth: {curr_depth}')
             
             for _ in range(level_size):
                 node, prev_obj, theta = queue.popleft()
@@ -58,7 +62,7 @@ class GraphVisualizer:
                 
                 GraphVisualizer._queue_unvisited_neighbors(node, visited, queue)
                     
-            print('================')
+            logger.info('================')
             curr_depth += 1
     
     @staticmethod

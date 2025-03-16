@@ -16,7 +16,10 @@ from models.clip import ClipModel
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from config.config_utils import DotDict
+from logger import get_logger
 
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 class GraphBuilder:
     """
@@ -99,7 +102,7 @@ class GraphBuilder:
         Returns:
             Dictionary with node data, edge indices, edge attributes, and labels
         """
-        print(f"\nProcessing video: {video_name}")
+        logger.info(f"\nProcessing video: {video_name}")
         
         # Get video-specific data and setup
         records_for_vid = self.records_by_vid[video_name]
@@ -144,7 +147,7 @@ class GraphBuilder:
         """Calculate frame timestamps based on configuration ratios."""
         timestamp_ratios = self.config.dataset[f"{self.split}_timestamps"]
         timestamps = [int(frac*vid_length) for frac in sorted(timestamp_ratios)]
-        print(f"Total frames: {vid_length}, Timestamps: {timestamps}")
+        logger.info(f"Total frames: {vid_length}, Timestamps: {timestamps}")
         return timestamps
     
     def _load_gaze_data(self, video_name: str) -> Any:
@@ -202,7 +205,7 @@ class GraphBuilder:
                 
                 # Exit if we've reached the final timestamp
                 if self._reached_end_condition(tracking_data['frame_num'], timestamps, gaze):
-                    print(f"[Frame {tracking_data['frame_num']}] Reached final timestamp or end of gaze data")
+                    logger.info(f"[Frame {tracking_data['frame_num']}] Reached final timestamp or end of gaze data")
                     break
             
             # Process gaze data
@@ -267,12 +270,12 @@ class GraphBuilder:
         if not tracking_data['visit']:
             tracking_data['visit'].append(tracking_data['relative_frame_num'])
             x, y = gaze_pos
-            print(f"\n[Frame {tracking_data['frame_num']}] New fixation started at ({x:.1f}, {y:.1f})")
+            logger.info(f"\n[Frame {tracking_data['frame_num']}] New fixation started at ({x:.1f}, {y:.1f})")
         
         # Get object label from CLIP
         label = self.process_fixation(frame, gaze_pos)
         tracking_data['potential_labels'][label] += 1
-        print(f"[Frame {tracking_data['frame_num']}] CLIP detected: {label} (count: {tracking_data['potential_labels'][label]})")
+        logger.info(f"[Frame {tracking_data['frame_num']}] CLIP detected: {label} (count: {tracking_data['potential_labels'][label]})")
         
         # Extract features using SIFT
         kp, desc = self.sift.extract_features(frame)
@@ -291,9 +294,9 @@ class GraphBuilder:
         
         # Get most likely object label
         most_likely_label = max(tracking_data['potential_labels'].items(), key=lambda x: x[1])[0]
-        print(f"\n[Frame {tracking_data['frame_num']}] Saccade detected:")
-        print(f"- Most likely object: {most_likely_label}")
-        print(f"- Visit duration: {tracking_data['visit'][-1] - tracking_data['visit'][0] + 1} frames")
+        logger.info(f"\n[Frame {tracking_data['frame_num']}] Saccade detected:")
+        logger.info(f"- Most likely object: {most_likely_label}")
+        logger.info(f"- Visit duration: {tracking_data['visit'][-1] - tracking_data['visit'][0] + 1} frames")
         
         # Update graph
         prev_node_id = scene_graph.current_node.id
@@ -307,9 +310,9 @@ class GraphBuilder:
         )
         
         if next_node.id != prev_node_id:
-            print(f"- New node created: {next_node.id}")
+            logger.info(f"- New node created: {next_node.id}")
         else:
-            print(f"- Merged with existing node: {next_node.id}")
+            logger.info(f"- Merged with existing node: {next_node.id}")
         
         # Update node features
         next_node.update_features(
@@ -323,10 +326,10 @@ class GraphBuilder:
         )
         
         if next_node.id in tracking_data['node_data']:
-            print(f"- Updated node features: visits={len(next_node.visits)}, "
+            logger.info(f"- Updated node features: visits={len(next_node.visits)}, "
                   f"total_frames={next_node.get_visit_duration()}")
         else:
-            print(f"- Created new node features")
+            logger.info(f"- Created new node features")
     
     def _get_current_video_name(self, tracking_data: Dict[str, Any]) -> str:
         """Get the current video name from tracking data (placeholder implementation)."""
@@ -344,7 +347,7 @@ class GraphBuilder:
         gaze: Any
     ) -> None:
         """Process the final fixation if the video ends during a fixation."""
-        print(f"- Final fixation detected, updating graph...")
+        logger.info(f"- Final fixation detected, updating graph...")
         tracking_data['visit'].append(tracking_data['relative_frame_num'] - 1)
         scene_graph.update_graph(
             tracking_data['potential_labels'],
@@ -370,12 +373,12 @@ class GraphBuilder:
         frame_num = tracking_data['frame_num']
         action_labels = get_future_action_labels(records_for_vid, frame_num, self.action_to_idx)
         if action_labels.numel() == 0:
-            print(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
+            logger.info(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
             return
         
-        print(f"\n[Frame {frame_num}] Saving graph state:")
-        print(f"- Current nodes: {scene_graph.num_nodes}")
-        print(f"- Edge count: {len(scene_graph.edge_data)}")
+        logger.info(f"\n[Frame {frame_num}] Saving graph state:")
+        logger.info(f"- Current nodes: {scene_graph.num_nodes}")
+        logger.info(f"- Edge count: {len(scene_graph.edge_data)}")
         
         # Calculate timestamp fraction
         timestamp_ratios = self.config.dataset[f"{self.split}_timestamps"]
@@ -425,10 +428,10 @@ class GraphBuilder:
     def _print_final_graph(self, scene_graph: Graph) -> None:
         """Print the final graph structure if requested."""
         if scene_graph.num_nodes > 0:
-            print("\nFinal graph structure:")
+            logger.info("\nFinal graph structure:")
             scene_graph.print_graph()
         else:
-            print('\nError: No nodes were added to the graph. Video may be empty or no fixations occurred.')
+            logger.info('\nError: No nodes were added to the graph. Video may be empty or no fixations occurred.')
 
 
 def build_graph(video_list: List[str], config: DotDict, split: str, print_graph: bool = False, desc: Optional[str] = None) -> Dict:
@@ -445,7 +448,7 @@ def build_graph(video_list: List[str], config: DotDict, split: str, print_graph:
     Returns:
         Dictionary with node features, edge indices, edge attributes, and labels
     """
-    print(f"Building graph for {len(video_list)} videos in {split} split")
+    logger.info(f"Building graph for {len(video_list)} videos in {split} split")
     
     # Initialize graph builder
     builder = GraphBuilder(config, split)

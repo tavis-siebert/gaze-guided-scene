@@ -6,6 +6,7 @@
 - **egtea_gaze/**: Annotations and processing for actions and gaze
 - **graph/**: Handles scene graph construction and related operations.
 - **models/**: Includes model definitions for feature extraction (SIFT) and object detection (CLIP).
+- **logger.py**: Centralized logging configuration for the entire project.
 
 ### Scene Graph Construction
 
@@ -21,6 +22,20 @@ The project builds scene graphs from video data and gaze information. The graph 
    - Save graph state for downstream tasks
 
 The resulting graph structure captures the spatial and temporal relationships between objects in the scene, which can be used for tasks like action anticipation.
+
+### Logging System
+
+The project uses a centralized logging system that provides consistent logging across all modules:
+
+- **Configuration**: Logging is configured in `logger.py` and initialized in `main.py`
+- **Log Levels**: Supports standard Python logging levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- **Command Line Control**: Log level and output file can be specified via command line arguments:
+  ```bash
+  python main.py --log-level DEBUG --log-file logs/debug.log [other arguments]
+  ```
+- **Environment Variables**: Log level can also be set using the `LOG_LEVEL` environment variable
+
+Each module gets its own logger instance with the module name, allowing for fine-grained log filtering and organization.
 
 ### Setup
 

@@ -6,6 +6,10 @@ import dropbox
 from typing import Optional, List
 import subprocess
 from transformers import CLIPProcessor, CLIPModel
+from logger import get_logger
+
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: Path) -> None:
     try:
@@ -27,7 +31,7 @@ def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: P
                         pbar.update(size)
             else:
                 # Fallback for when content length is unknown
-                print(f"Downloading {target_path.name}...")
+                logger.info(f"Downloading {target_path.name}...")
                 for data in response.iter_content(1024 * 1024):
                     f.write(data)
     except Exception as e:
@@ -46,13 +50,13 @@ def download_raw_videos(dbx: dropbox.Dropbox, links_file_path: Path, raw_videos_
         target_path = raw_videos_dir / video_name
         
         if target_path.exists():
-            print(f"Skipping {video_name} - already exists")
+            logger.info(f"Skipping {video_name} - already exists")
             continue
             
         try:
             download_from_dropbox(dbx, link, target_path)
         except Exception as e:
-            print(f"Failed to download {video_name}: {e}")
+            logger.error(f"Failed to download {video_name}: {e}")
 
 class ScratchDirectories:
     def __init__(self, scratch_dir: Path):
@@ -66,6 +70,7 @@ class ScratchDirectories:
     def create_all(self) -> None:
         for directory in [self.egtea_dir, self.raw_videos_dir, self.cropped_videos_dir, self.tmp_dir]:
             directory.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Created directory: {directory}")
 
     def is_cropped_videos_empty(self) -> bool:
         return not any(self.cropped_videos_dir.iterdir()) if self.cropped_videos_dir.exists() else True
@@ -73,16 +78,16 @@ class ScratchDirectories:
 def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> None:
     """Download and extract cropped video clips."""
     if not directories.is_cropped_videos_empty():
-        print("Cropped videos directory not empty, skipping download...")
+        logger.info("Cropped videos directory not empty, skipping download...")
         return
 
     cropped_clips_shared_link = "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar"
     cropped_clips_tar_path = directories.tmp_dir / "video_clips.tar"
 
-    print("Downloading cropped video clips...")
+    logger.info("Downloading cropped video clips...")
     download_from_dropbox(dbx, cropped_clips_shared_link, cropped_clips_tar_path)
 
-    print("Extracting cropped video clips...")
+    logger.info("Extracting cropped video clips...")
     temp_dir = directories.tmp_dir / "extract"
     # Extract to temp directory
     shutil.unpack_archive(cropped_clips_tar_path, temp_dir)
@@ -90,7 +95,7 @@ def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) 
     for file_path in (temp_dir / "cropped_clips").iterdir():
         shutil.move(str(file_path), str(directories.cropped_videos_dir / file_path.name))
     
-    print("Cleaning up temporary files...")
+    logger.info("Cleaning up temporary files...")
     cropped_clips_tar_path.unlink()
     shutil.rmtree(temp_dir)
 
@@ -99,29 +104,30 @@ def setup_raw_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> N
     video_links_url = "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt"
     video_links_path = directories.tmp_dir / "video_links.txt"
 
-    print("Downloading video links file...")
+    logger.info("Downloading video links file...")
     download_from_dropbox(dbx, video_links_url, video_links_path)
 
-    print("Downloading raw videos...")
+    logger.info("Downloading raw videos...")
     download_raw_videos(dbx, video_links_path, directories.raw_videos_dir)
 
-    print("Cleaning up temporary files...")
+    logger.info("Cleaning up temporary files...")
     video_links_path.unlink()
 
 def setup_ego_topo(directories: ScratchDirectories) -> None:
     """Clone ego-topo repository and download train/val splits."""
     if not directories.ego_topo_dir.exists():
-        print("Cloning ego-topo repository...")
+        logger.info("Cloning ego-topo repository...")
         subprocess.run(
             ["git", "clone", "https://github.com/facebookresearch/ego-topo.git", str(directories.ego_topo_dir)],
             check=True
         )
     else:
-        print("ego-topo repository already exists, skipping clone...")
+        logger.info("ego-topo repository already exists, skipping clone...")
 
     # Make the download script executable and run it from the correct directory
     download_script = Path("scripts/download_splits.sh")
     if not download_script.exists():
+        logger.error("download_splits.sh script not found in scripts directory")
         raise FileNotFoundError("download_splits.sh script not found in scripts directory")
 
     subprocess.run(["chmod", "+x", str(download_script)], check=True)
@@ -130,7 +136,7 @@ def setup_ego_topo(directories: ScratchDirectories) -> None:
     data_dir = directories.ego_topo_dir / "data"
     data_dir.mkdir(exist_ok=True)
     
-    print("Downloading train/val splits...")
+    logger.info("Downloading train/val splits...")
     subprocess.run(
         [str(download_script.absolute())],
         cwd=str(directories.ego_topo_dir),
@@ -142,7 +148,7 @@ def setup_clip_model(directories: ScratchDirectories) -> None:
     model_dir = directories.egtea_dir / "clip_model"
     model_dir.mkdir(exist_ok=True)
     
-    print("Downloading CLIP model and processor...")
+    logger.info("Downloading CLIP model and processor...")
     model_id = "openai/clip-vit-base-patch16"
     
     # Download and save model
@@ -151,7 +157,7 @@ def setup_clip_model(directories: ScratchDirectories) -> None:
     
     model.save_pretrained(model_dir)
     processor.save_pretrained(model_dir)
-    print(f"CLIP model and processor saved to {model_dir}")
+    logger.info(f"CLIP model and processor saved to {model_dir}")
 
 def setup_scratch(config, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
@@ -175,4 +181,4 @@ def setup_scratch(config, access_token: Optional[str] = None) -> None:
     # Step 4: Download CLIP model for offline use
     setup_clip_model(directories)
     
-    print("Setup complete!")
+    logger.info("Setup complete!")

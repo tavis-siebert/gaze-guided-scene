@@ -2,6 +2,10 @@ import torch
 from pathlib import Path
 from typing import Dict, List, Optional
 from transformers import CLIPProcessor, CLIPModel as HFCLIPModel
+from logger import get_logger
+
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 class ClipModel:
     """
@@ -29,18 +33,18 @@ class ClipModel:
         """
         try:
             if local_model_dir:
-                print(f"Loading CLIP model from local directory: {local_model_dir}")
+                logger.info(f"Loading CLIP model from local directory: {local_model_dir}")
                 self.processor = CLIPProcessor.from_pretrained(str(local_model_dir))
                 self.model = HFCLIPModel.from_pretrained(str(local_model_dir))
             else:
                 raise FileNotFoundError("No local model directory provided")
         except Exception as e:
-            print(f"Failed to load local model, downloading from {self.model_id}: {e}")
+            logger.warning(f"Failed to load local model, downloading from {self.model_id}: {e}")
             self.processor = CLIPProcessor.from_pretrained(self.model_id)
             self.model = HFCLIPModel.from_pretrained(self.model_id)
             
         self.model = self.model.to(self.device)
-        print(f"Using device: {self.device} for CLIP model")
+        logger.info(f"Using device: {self.device} for CLIP model")
     
     def run_inference(self, frame: torch.Tensor, text_labels: List[str], obj_labels: Dict[int, str]) -> str:
         """

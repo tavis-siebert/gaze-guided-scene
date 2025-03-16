@@ -9,6 +9,10 @@ from tqdm import tqdm
 from graph.build_graph import build_graph
 from egtea_gaze.constants import NUM_ACTION_CLASSES
 from config.config_utils import DotDict
+from logger import get_logger
+
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 def split_list(lst, n):
     """Splits a list into n roughly equal parts."""
@@ -20,10 +24,14 @@ def split_list(lst, n):
 
 def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, result_queue, use_gpu: bool = False):
     """Build dataset subset using specified device (GPU or CPU)."""
+    # Get a logger for the subprocess
+    subprocess_logger = get_logger(f"{__name__}.device{device_id}")
+    
     if use_gpu:
         torch.cuda.set_device(device_id)
     
     device_name = f"GPU {device_id}" if use_gpu else f"CPU {device_id}"
+    subprocess_logger.info(f"Starting dataset building on {device_name}")
     
     # Create progress bars for each split
     train_data = build_graph(
@@ -49,11 +57,12 @@ def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, resul
     save_dir = Path(__file__).parent
     out_file = save_dir / f'data_subset_{device_id}.pth'
     torch.save(data, out_file)
+    subprocess_logger.info(f"Saved dataset subset to {out_file}")
     result_queue.put(str(out_file))
 
 def build_dataset(config: DotDict, debug: bool = False):
     """Build dataset using all available GPUs or CPU. Set debug=True to process only one video per split."""
-    print("Starting dataset building process...")
+    logger.info("Starting dataset building process...")
     
     with open(config.dataset.splits.train_test_splits) as f:
         split = json.load(f)
@@ -67,13 +76,14 @@ def build_dataset(config: DotDict, debug: bool = False):
         num_devices = 1
         use_gpu = False
         device_type = "CPU"
+        logger.debug("Debug mode enabled: using single CPU and processing only one video per split")
     else:
         use_gpu = torch.cuda.is_available()
         num_devices = torch.cuda.device_count() if use_gpu else config.dataset.n_cores
         device_type = "GPU" if use_gpu else "CPU"
     
-    print(f"Using {num_devices} {device_type}(s) for dataset building")
-    print(f"Total videos to process - Train: {len(train_videos)}, Val: {len(val_videos)}")
+    logger.info(f"Using {num_devices} {device_type}(s) for dataset building")
+    logger.info(f"Total videos to process - Train: {len(train_videos)}, Val: {len(val_videos)}")
     
     train_splits = split_list(train_videos, num_devices)
     val_splits = split_list(val_videos, num_devices)
@@ -108,7 +118,7 @@ def build_dataset(config: DotDict, debug: bool = False):
         'val': {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
     }
 
-    print("Merging dataset subsets...")
+    logger.info("Merging dataset subsets...")
     for subset_path in tqdm(saved_subsets, desc="Merging subsets"):
         data_subset = torch.load(subset_path, map_location='cpu')
         for split, tensor_dict in data_subset.items():
@@ -117,8 +127,8 @@ def build_dataset(config: DotDict, debug: bool = False):
 
     # Save final dataset
     save_path = Path(__file__).parent / 'dataset.pth'
-    print(f"Saving complete dataset to {save_path}")
+    logger.info(f"Saving complete dataset to {save_path}")
     torch.save(dataset, save_path)
     
-    print("Dataset building completed successfully!")
+    logger.info("Dataset building completed successfully!")
     return dataset

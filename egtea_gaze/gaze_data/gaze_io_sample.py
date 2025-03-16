@@ -1,7 +1,11 @@
 import glob
 import os
 import numpy as np
+from typing import Dict, Tuple, Optional, Any
+from logger import get_logger
 
+# Initialize logger for this module
+logger = get_logger(__name__)
 
 def _str2frame(frame_str, fps=None):
     if fps==None:
@@ -127,9 +131,9 @@ if __name__== "__main__":
     # old version
     test_file_01 = './gaze_data/OP01-R01-PastaSalad.txt'
     test_data_01 = parse_gtea_gaze(test_file_01)
-    # print the loaded gaze
-    print('Loaded gaze data from {:s}'.format(test_file_01))
-    print('Frame {:d}, Gaze Point ({:02f}, {:0.2f}), Gaze Type: {:s}'.format(
+    # Log the loaded gaze
+    logger.info('Loaded gaze data from {:s}'.format(test_file_01))
+    logger.info('Frame {:d}, Gaze Point ({:02f}, {:0.2f}), Gaze Type: {:s}'.format(
             1000, 
             test_data_01[1000, 0], 
             test_data_01[1000, 1], 
@@ -139,9 +143,9 @@ if __name__== "__main__":
     # new version
     test_file_02 = './gaze_data/P16-r03-BaconAndEggs.txt'
     test_data_02 = parse_gtea_gaze(test_file_02)
-    # print the loaded gaze
-    print('Loaded gaze data from {:s}'.format(test_file_02))
-    print('Frame {:d}, Gaze Point ({:02f}, {:0.2f}), Gaze Type: {:s}'.format(
+    # Log the loaded gaze
+    logger.info('Loaded gaze data from {:s}'.format(test_file_02))
+    logger.info('Frame {:d}, Gaze Point ({:02f}, {:0.2f}), Gaze Type: {:s}'.format(
             1000, 
             test_data_02[1000, 0], 
             test_data_02[1000, 1], 
