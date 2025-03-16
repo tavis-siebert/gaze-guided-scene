@@ -96,7 +96,37 @@ class Graph:
         self.num_nodes += 1
         return node
     
-    def calculate_edge_features(
+    def add_edge(
+        self, 
+        source_node: Node, 
+        target_node: Node, 
+        prev_pos: Position, 
+        curr_pos: Position, 
+        num_bins: int = 8
+    ) -> None:
+        """
+        Add an edge between two nodes.
+        
+        Args:
+            source_node: The source node
+            target_node: The target node
+            prev_pos: The previous position (x,y)
+            curr_pos: The current position (x,y)
+            num_bins: The number of angle bins
+        """
+        angle, distance = self._calculate_edge_features(prev_pos, curr_pos, num_bins)
+        
+        if not source_node.has_neighbor(target_node):
+            self._add_bidirectional_edge(
+                source_node,
+                target_node,
+                angle,
+                distance,
+                prev_pos,
+                curr_pos
+            )
+    
+    def _calculate_edge_features(
         self, 
         prev_pos: Position, 
         curr_pos: Position, 
@@ -122,7 +152,7 @@ class Graph:
         
         return angle, distance
     
-    def normalize_positions(
+    def _normalize_positions(
         self, 
         prev_pos: Position, 
         curr_pos: Position
@@ -138,7 +168,7 @@ class Graph:
             curr_y / resolution[1]
         )
     
-    def create_edge_feature(
+    def _create_edge_feature(
         self, 
         prev_x: float, 
         prev_y: float, 
@@ -148,7 +178,7 @@ class Graph:
         """Create an edge feature tensor from normalized positions."""
         return torch.tensor([prev_x, prev_y, curr_x, curr_y])
     
-    def update_edge_indices(
+    def _update_edge_indices(
         self, 
         source_id: int, 
         target_id: int
@@ -157,7 +187,7 @@ class Graph:
         self.edge_index[0].extend([source_id, target_id])
         self.edge_index[1].extend([target_id, source_id])
     
-    def add_bidirectional_edge(
+    def _add_bidirectional_edge(
         self, 
         curr_node: Node, 
         next_node: Node, 
@@ -187,45 +217,15 @@ class Graph:
             next_node.add_neighbor(curr_node, opposite_angle, distance)
             
             # Normalize positions and create edge feature
-            norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y = self.normalize_positions(prev_pos, curr_pos)
-            edge_feature = self.create_edge_feature(norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y)
+            norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y = self._normalize_positions(prev_pos, curr_pos)
+            edge_feature = self._create_edge_feature(norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y)
             
             # Add edge features for both directions (same feature for both)
             self.edge_data.append(edge_feature)
             self.edge_data.append(edge_feature)
             
             # Update edge indices
-            self.update_edge_indices(curr_node.id, next_node.id)
-    
-    def add_edge(
-        self, 
-        source_node: Node, 
-        target_node: Node, 
-        prev_pos: Position, 
-        curr_pos: Position, 
-        num_bins: int = 8
-    ) -> None:
-        """
-        Add an edge between two nodes.
-        
-        Args:
-            source_node: The source node
-            target_node: The target node
-            prev_pos: The previous position (x,y)
-            curr_pos: The current position (x,y)
-            num_bins: The number of angle bins
-        """
-        angle, distance = self.calculate_edge_features(prev_pos, curr_pos, num_bins)
-        
-        if not source_node.has_neighbor(target_node):
-            self.add_bidirectional_edge(
-                source_node,
-                target_node,
-                angle,
-                distance,
-                prev_pos,
-                curr_pos
-            )
+            self._update_edge_indices(curr_node.id, next_node.id)
     
     def update_graph(
         self, 
@@ -312,19 +312,16 @@ class Graph:
         Returns:
             Tuple of (node_features, edge_indices, edge_features)
         """
-        # Stack node features and normalize
+        # Handle empty graph case
         if not node_data:
             return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
             
+        # Stack node features and normalize
         node_features = torch.stack(list(node_data.values()))
-        
-        # Normalize features
         normalized = Node.normalize_features(node_features, relative_frame, timestamp_fraction)
         
-        # Extract edge features
+        # Extract edge features and indices
         edge_features = torch.stack(self.edge_data) if self.edge_data else torch.tensor([])
-        
-        # Extract edge indices
         edge_indices = torch.tensor(
             self.edge_index, dtype=torch.long
         ) if self.edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
@@ -339,6 +336,19 @@ class Graph:
             Dictionary with node features, edge indices, and edge features
         """
         # Collect node features
+        node_features = self._collect_node_features()
+        
+        if not node_features:
+            return {"x": None, "edge_index": None, "edge_attr": None}
+            
+        return {
+            "x": torch.stack(node_features) if node_features else None,
+            "edge_index": torch.tensor(self.edge_index, dtype=torch.long) if self.edge_index[0] else None,
+            "edge_attr": torch.stack(self.edge_data) if self.edge_data else None
+        }
+    
+    def _collect_node_features(self) -> List[torch.Tensor]:
+        """Collect features for all nodes in the graph."""
         node_features = []
         for node in sorted(self.get_all_nodes(), key=lambda n: n.id):
             if node.id >= 0:  # Skip root node
@@ -356,11 +366,4 @@ class Graph:
                 node_feature = torch.tensor([visit_duration, num_visits, first_frame, last_frame])
                 node_features.append(torch.cat([node_feature, label_feature]))
         
-        if not node_features:
-            return {"x": None, "edge_index": None, "edge_attr": None}
-            
-        return {
-            "x": torch.stack(node_features) if node_features else None,
-            "edge_index": torch.tensor(self.edge_index, dtype=torch.long) if self.edge_index[0] else None,
-            "edge_attr": torch.stack(self.edge_data) if self.edge_data else None
-        } 
+        return node_features 
