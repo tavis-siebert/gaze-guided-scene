@@ -33,6 +33,10 @@ def setup_logger(name=None, log_level=None, log_file=None):
     
     logger.setLevel(numeric_level)
     
+    # Prevent propagation to the root logger to avoid duplicate logs
+    if name is not None:
+        logger.propagate = False
+    
     # Create formatter
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
