@@ -1,35 +1,40 @@
 # Graph Module
 
-This module provides functionality for building, manipulating, and visualizing scene graphs based on gaze data and object detection.
+A module for building and managing scene graphs from egocentric video and gaze data.
 
-## Overview
+## Core Components
 
-The graph module constructs scene graphs from video data and gaze information. It uses models from the `models/` directory for object detection (CLIP) and feature extraction (SIFT). The resulting graphs can be used for various downstream tasks, such as action anticipation.
+- **Graph** (`graph.py`): Scene graph representation with nodes and edges
+- **Node** (`node.py`): Object representation with feature management
+- **GraphBuilder** (`build_graph.py`): Constructs graphs from video and gaze data
 
-## Key Components
+## Key Features
 
-- **Graph**: Represents a scene graph with nodes and edges
-- **Node**: Represents an object in the scene with feature management
-- **GraphBuilder**: Builds scene graphs from video data and processes gaze fixations
-- **NodeManager**: Utilities for managing nodes in the scene graph
-- **AngleUtils**: Utilities for angle calculations and conversions
-- **FeatureMatcher**: Utilities for matching features between images
-- **GraphTraversal**: Utilities for traversing and exploring graph structures
-- **GraphVisualizer**: Utilities for visualizing graph structures
-- **VideoProcessor**: Handles video loading and frame extraction
-- **DataLoader**: Handles loading and processing of dataset files
+- Processes gaze fixations and saccades to identify objects
+- Builds scene graphs with objects as nodes and transitions as edges
+- Extracts and normalizes features at specified timestamps
+- Supports visualization and traversal of graph structures
 
-## Code Organization
+## Implementation
 
-The module is organized into several files:
+The module is organized into:
 
-- `build_graph.py`: Contains the `GraphBuilder` class for constructing scene graphs
-- `graph.py`: Contains the `Graph` class for representing scene graphs
-- `node.py`: Contains the `Node` and `NodeManager` classes for managing graph nodes
-- `utils.py`: Contains utility functions and classes for graph operations
-- `visualizer.py`: Contains the `GraphVisualizer` class for graph visualization
-- `io.py`: Contains data loading and processing utilities
+```
+build_graph.py  # Graph construction from video data
+graph.py        # Graph data structure and operations
+node.py         # Node representation and management
+utils.py        # Utility functions for graph operations
+visualizer.py   # Graph visualization tools
+io.py           # Data loading and processing utilities
+```
 
 ## Usage
 
-See the project root README.md for usage examples. 
+Import the module components to build and manipulate scene graphs:
+
+```python
+from graph.build_graph import build_graph
+from graph.graph import Graph
+from graph.node import Node
+
+# See main.py and build_dataset.py for usage examples 
