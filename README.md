@@ -20,8 +20,16 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 ### Quick Start
 
 1. **Setup environment**:
+   Choose the appropriate setup script based on your environment:
+   
+   For Student Cluster:
    ```bash
-   source scripts/setup_env.sh
+   source scripts/setup_student_cluster_env.sh
+   ```
+   
+   For Euler Cluster:
+   ```bash
+   source scripts/setup_euler_cluster_env.sh
    ```
 
 2. **Create a Dropbox token**:
@@ -29,6 +37,8 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    - Enable `sharing.read` permission
    - Generate an OAuth 2.0 token
    - Add to `.env` file: `DROPBOX_TOKEN=your_token_here`
+   
+   > **Note:** Dropbox tokens expire after a period of time. If you encounter authentication errors, you'll need to generate a new token following the steps above.
 
 3. **Download dataset**:
    ```bash
