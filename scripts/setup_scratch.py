@@ -35,6 +35,22 @@ def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: P
                 logger.info(f"Downloading {target_path.name}...")
                 for data in response.iter_content(1024 * 1024):
                     f.write(data)
+    except dropbox.exceptions.AuthError as e:
+        if target_path.exists():
+            target_path.unlink()  # Clean up partial download
+        
+        # Check if it's an expired token error
+        if 'expired_access_token' in str(e):
+            logger.error("Dropbox token has expired. Please generate a new token:")
+            logger.error("1. Go to https://www.dropbox.com/developers/apps/")
+            logger.error("2. Select your app")
+            logger.error("3. Generate a new OAuth 2.0 token")
+            logger.error("4. Update your .env file with: DROPBOX_TOKEN=your_new_token_here")
+            raise Exception("Dropbox authentication failed: Your access token has expired")
+        else:
+            logger.error(f"Dropbox authentication error: {str(e)}")
+            logger.error("Please check your Dropbox token and permissions")
+            raise Exception(f"Dropbox authentication failed: {str(e)}")
     except Exception as e:
         if target_path.exists():
             target_path.unlink()  # Clean up partial download
@@ -176,23 +192,35 @@ def setup_clip_model(directories: ScratchDirectories) -> None:
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
     if not access_token:
+        logger.error("Dropbox access token is missing. Please add it to your .env file:")
+        logger.error("1. Create an app at https://www.dropbox.com/developers/apps/")
+        logger.error("2. Enable sharing.read permission")
+        logger.error("3. Generate an OAuth 2.0 token")
+        logger.error("4. Add to .env file: DROPBOX_TOKEN=your_token_here")
         raise ValueError("Dropbox access token is required")
 
     directories = ScratchDirectories(config)
     directories.create_all()
     
-    dbx = dropbox.Dropbox(access_token)
-    
-    # Step 1: Setup cropped videos
-    setup_cropped_videos(dbx, directories)
-    
-    # Step 2: Setup raw videos
-    setup_raw_videos(dbx, directories)
-    
-    # Step 3: Setup ego-topo repository and splits
-    setup_ego_topo(directories)
-    
-    # Step 4: Download CLIP model for offline use
-    setup_clip_model(directories)
-    
-    logger.info("Setup complete!")
+    try:
+        dbx = dropbox.Dropbox(access_token)
+        
+        # Step 1: Setup cropped videos
+        setup_cropped_videos(dbx, directories)
+        
+        # Step 2: Setup raw videos
+        setup_raw_videos(dbx, directories)
+        
+        # Step 3: Setup ego-topo repository and splits
+        setup_ego_topo(directories)
+        
+        # Step 4: Download CLIP model for offline use
+        setup_clip_model(directories)
+        
+        logger.info("Setup complete!")
+    except Exception as e:
+        if "access token has expired" in str(e):
+            logger.error("Setup failed due to expired Dropbox token. Please update your token and try again.")
+        else:
+            logger.error(f"Setup failed: {str(e)}")
+        raise
