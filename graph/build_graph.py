@@ -45,23 +45,25 @@ class GraphBuilder:
     
     def _initialize_clip_model(self) -> ClipModel:
         """Initialize and load the CLIP model."""
-        model_id = "openai/clip-vit-base-patch16"
-        model_dir = Path(self.config.paths.scratch_dir) / "egtea_gaze/clip_model"
-        
-        clip_model = ClipModel(model_id)
-        clip_model.load_model(model_dir)
+        clip_model = ClipModel(self.config.models.clip.model_id)
+        clip_model.load_model(Path(self.config.models.clip.model_dir))
         
         return clip_model
     
     def _load_object_labels(self) -> None:
         """Load object labels and create CLIP-compatible label formats."""
-        noun_idx_path = Path(self.config.paths.egtea_dir) / "action_annotation/noun_idx.txt"
+        noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
         self.obj_labels, self.labels_to_int = DataLoader.load_object_labels(noun_idx_path)
         self.clip_labels = [f"a picture of a {obj}" for obj in self.obj_labels.values()]
     
     def _load_dataset_info(self) -> None:
         """Load dataset information including video lengths, records, and action indices."""
-        ann_file = self.config.dataset.splits[self.split]
+        # Use the appropriate split file based on the split name
+        if self.split == 'train':
+            ann_file = self.config.dataset.ego_topo.splits.train
+        else:  # val
+            ann_file = self.config.dataset.ego_topo.splits.val
+            
         self.vid_lengths = DataLoader.load_video_lengths(ann_file)
         self.records, self.records_by_vid = DataLoader.load_records(ann_file)
         self.action_to_idx = DataLoader.create_action_index(self.records)
@@ -145,19 +147,19 @@ class GraphBuilder:
     
     def _calculate_timestamps(self, vid_length: int) -> List[int]:
         """Calculate frame timestamps based on configuration ratios."""
-        timestamp_ratios = self.config.dataset[f"{self.split}_timestamps"]
+        timestamp_ratios = self.config.dataset.timestamps[self.split]
         timestamps = [int(frac*vid_length) for frac in sorted(timestamp_ratios)]
         logger.info(f"Total frames: {vid_length}, Timestamps: {timestamps}")
         return timestamps
     
     def _load_gaze_data(self, video_name: str) -> Any:
         """Load gaze data for the specified video."""
-        gaze_path = Path(self.config.paths.egtea_dir) / "gaze_data/gaze_data" / f"{video_name}.txt"
+        gaze_path = Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"
         return parse_gtea_gaze(str(gaze_path))
     
     def _initialize_video_processor(self, video_name: str) -> VideoProcessor:
         """Initialize video processor for the specified video."""
-        video_path = Path(self.config.paths.scratch_dir) / "egtea_gaze/raw_videos" / f"{video_name}.mp4"
+        video_path = Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4"
         return VideoProcessor(video_path)
     
     def _initialize_tracking_data(self) -> Dict[str, Any]:
@@ -381,7 +383,7 @@ class GraphBuilder:
         logger.info(f"- Edge count: {len(scene_graph.edge_data)}")
         
         # Calculate timestamp fraction
-        timestamp_ratios = self.config.dataset[f"{self.split}_timestamps"]
+        timestamp_ratios = self.config.dataset.timestamps[self.split]
         timestamp_fraction = timestamp_ratios[timestamps.index(frame_num)] if frame_num < len(gaze) else frame_num / vid_length
         
         # Update node features for all nodes

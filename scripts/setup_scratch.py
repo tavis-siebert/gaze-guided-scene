@@ -7,6 +7,7 @@ from typing import Optional, List
 import subprocess
 from transformers import CLIPProcessor, CLIPModel
 from logger import get_logger
+from config.config_utils import DotDict
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -59,20 +60,36 @@ def download_raw_videos(dbx: dropbox.Dropbox, links_file_path: Path, raw_videos_
             logger.error(f"Failed to download {video_name}: {e}")
 
 class ScratchDirectories:
-    def __init__(self, scratch_dir: Path):
-        self.scratch_dir = scratch_dir
-        self.egtea_dir = scratch_dir / "egtea_gaze"
-        self.raw_videos_dir = self.egtea_dir / "raw_videos"
-        self.cropped_videos_dir = self.egtea_dir / "cropped_videos"
-        self.tmp_dir = scratch_dir / "tmp"
-        self.ego_topo_dir = scratch_dir / "ego-topo"
+    def __init__(self, config: DotDict):
+        """
+        Initialize directory paths from configuration.
+        
+        Args:
+            config: Configuration dictionary with paths
+        """
+        # Convert all path strings to Path objects
+        self.scratch_dir = Path(config.base.scratch_dir)
+        self.scratch_egtea_dir = Path(config.directories.scratch.egtea)
+        self.raw_videos_dir = Path(config.dataset.egtea.raw_videos)
+        self.cropped_videos_dir = Path(config.dataset.egtea.cropped_videos)
+        self.tmp_dir = Path(config.directories.scratch.tmp)
+        self.ego_topo_dir = Path(config.directories.scratch.ego_topo)
+        self.clip_model_dir = Path(config.models.clip.model_dir)
+        
+        # URLs
+        self.cropped_clips_url = config.external.urls.dropbox_cropped_clips
+        self.video_links_url = config.external.urls.dropbox_video_links
+        self.ego_topo_repo_url = config.external.urls.ego_topo_repo
+        self.clip_model_id = config.models.clip.model_id
 
     def create_all(self) -> None:
-        for directory in [self.egtea_dir, self.raw_videos_dir, self.cropped_videos_dir, self.tmp_dir]:
+        """Create all required directories."""
+        for directory in [self.scratch_egtea_dir, self.raw_videos_dir, self.cropped_videos_dir, self.tmp_dir, self.clip_model_dir]:
             directory.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created directory: {directory}")
 
     def is_cropped_videos_empty(self) -> bool:
+        """Check if the cropped videos directory is empty."""
         return not any(self.cropped_videos_dir.iterdir()) if self.cropped_videos_dir.exists() else True
 
 def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> None:
@@ -81,11 +98,10 @@ def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) 
         logger.info("Cropped videos directory not empty, skipping download...")
         return
 
-    cropped_clips_shared_link = "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar"
     cropped_clips_tar_path = directories.tmp_dir / "video_clips.tar"
 
     logger.info("Downloading cropped video clips...")
-    download_from_dropbox(dbx, cropped_clips_shared_link, cropped_clips_tar_path)
+    download_from_dropbox(dbx, directories.cropped_clips_url, cropped_clips_tar_path)
 
     logger.info("Extracting cropped video clips...")
     temp_dir = directories.tmp_dir / "extract"
@@ -101,11 +117,10 @@ def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) 
 
 def setup_raw_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> None:
     """Download raw videos using links from the video_links.txt file."""
-    video_links_url = "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt"
     video_links_path = directories.tmp_dir / "video_links.txt"
 
     logger.info("Downloading video links file...")
-    download_from_dropbox(dbx, video_links_url, video_links_path)
+    download_from_dropbox(dbx, directories.video_links_url, video_links_path)
 
     logger.info("Downloading raw videos...")
     download_raw_videos(dbx, video_links_path, directories.raw_videos_dir)
@@ -118,7 +133,7 @@ def setup_ego_topo(directories: ScratchDirectories) -> None:
     if not directories.ego_topo_dir.exists():
         logger.info("Cloning ego-topo repository...")
         subprocess.run(
-            ["git", "clone", "https://github.com/facebookresearch/ego-topo.git", str(directories.ego_topo_dir)],
+            ["git", "clone", directories.ego_topo_repo_url, str(directories.ego_topo_dir)],
             check=True
         )
     else:
@@ -145,26 +160,25 @@ def setup_ego_topo(directories: ScratchDirectories) -> None:
 
 def setup_clip_model(directories: ScratchDirectories) -> None:
     """Download CLIP model and processor for offline use."""
-    model_dir = directories.egtea_dir / "clip_model"
+    model_dir = directories.clip_model_dir
     model_dir.mkdir(exist_ok=True)
     
     logger.info("Downloading CLIP model and processor...")
-    model_id = "openai/clip-vit-base-patch16"
     
     # Download and save model
-    model = CLIPModel.from_pretrained(model_id)
-    processor = CLIPProcessor.from_pretrained(model_id)
+    model = CLIPModel.from_pretrained(directories.clip_model_id)
+    processor = CLIPProcessor.from_pretrained(directories.clip_model_id)
     
     model.save_pretrained(model_dir)
     processor.save_pretrained(model_dir)
     logger.info(f"CLIP model and processor saved to {model_dir}")
 
-def setup_scratch(config, access_token: Optional[str] = None) -> None:
+def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
     if not access_token:
         raise ValueError("Dropbox access token is required")
 
-    directories = ScratchDirectories(Path(config.paths.scratch_dir))
+    directories = ScratchDirectories(config)
     directories.create_all()
     
     dbx = dropbox.Dropbox(access_token)

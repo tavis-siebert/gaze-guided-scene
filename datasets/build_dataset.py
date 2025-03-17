@@ -54,8 +54,7 @@ def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, resul
     }
 
     # Save to disk because pickling in process kills it
-    save_dir = Path(__file__).parent
-    out_file = save_dir / f'data_subset_{device_id}.pth'
+    out_file = Path(config.dataset.output.subset_prefix + f"{device_id}.pth")
     torch.save(data, out_file)
     subprocess_logger.info(f"Saved dataset subset to {out_file}")
     result_queue.put(str(out_file))
@@ -64,7 +63,7 @@ def build_dataset(config: DotDict, debug: bool = False):
     """Build dataset using all available GPUs or CPU. Set debug=True to process only one video per split."""
     logger.info("Starting dataset building process...")
     
-    with open(config.dataset.splits.train_test_splits) as f:
+    with open(config.dataset.ego_topo.splits.train_test) as f:
         split = json.load(f)
 
     # In debug mode, take only one video from each split
@@ -79,7 +78,7 @@ def build_dataset(config: DotDict, debug: bool = False):
         logger.debug("Debug mode enabled: using single CPU and processing only one video per split")
     else:
         use_gpu = torch.cuda.is_available()
-        num_devices = torch.cuda.device_count() if use_gpu else config.dataset.n_cores
+        num_devices = torch.cuda.device_count() if use_gpu else config.processing.n_cores
         device_type = "GPU" if use_gpu else "CPU"
     
     logger.info(f"Using {num_devices} {device_type}(s) for dataset building")
@@ -126,7 +125,7 @@ def build_dataset(config: DotDict, debug: bool = False):
                 dataset[split][data_type].extend(tensor_list)
 
     # Save final dataset
-    save_path = Path(__file__).parent / 'dataset.pth'
+    save_path = Path(config.dataset.output.dataset_file)
     logger.info(f"Saving complete dataset to {save_path}")
     torch.save(dataset, save_path)
     
