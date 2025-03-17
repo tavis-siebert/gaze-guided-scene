@@ -676,7 +676,7 @@ class InteractiveGraphVisualizer:
             debug: Whether to run in debug mode
             port: Port to run the server on
         """
-        self.app.run_server(debug=debug, port=port)
+        self.app.run(debug=debug, port=port)
 
 
 def visualize_graph_construction(
