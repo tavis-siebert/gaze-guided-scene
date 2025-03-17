@@ -4,8 +4,6 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from config.config_utils import DotDict
 
-resolution = (640,480)
-
 # Clip-level utils
 def get_action_clip_maps(config: DotDict) -> Tuple[Dict[str, List[str]], Dict[str, str]]:
     """

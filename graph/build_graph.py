@@ -82,7 +82,11 @@ def run_CLIP(model, processor, frames, CLIP_labels, obj_labels, device):
     ]
     return label
 
-def get_future_action_labels(records: list[Record], t: int, action_to_class: dict[tuple[int, int], int]):
+def get_future_action_labels(
+    records: list[Record], 
+    t: int, 
+    action_to_class: dict[tuple[int, int], int],
+):
     """
     Args:
         records (list[Record]): the action clips we pull labels from
@@ -95,21 +99,38 @@ def get_future_action_labels(records: list[Record], t: int, action_to_class: dic
 
     past_records = [record for record in records if record.end_frame <= t]
     future_records = [record for record in records if record.start_frame > t]
-    if len(past_records)< 3 or len(future_records) < 3:
-        return torch.tensor([])
-    
-    observed_future_actions = set([
-        action_to_class[(record.label[0], record.label[1])]
-        for record in future_records if (record.label[0], record.label[1]) in action_to_class
-    ])
 
-    future_action_labels = torch.zeros(1, num_action_classes)
-    future_action_labels[0, list(observed_future_actions)] = 1
-    return future_action_labels
+    # this function does not assume records are sorted
+    future_records = sorted(future_records, key=lambda record: record.end_frame)
+    future_actions = [
+        action_to_class[(record.label[0], record.label[1])] 
+        for record in future_records if (record.label[0], record.label[1]) in action_to_class
+    ]
+
+    if len(past_records)< 3 or len(future_records) < 3:
+        return None
+
+    next_action_label = torch.tensor(future_actions[0], dtype=torch.long)
+    future_action_labels_ordered = torch.tensor(future_actions, dtype=torch.long)
+    
+    future_action_labels = torch.zeros(num_action_classes, dtype=torch.long)
+    future_action_labels[list(set(future_actions))] = 1
+    
+    return {
+        'next_action': next_action_label,
+        'future_actions': future_action_labels,
+        'future_actions_ordered': future_action_labels_ordered
+    }
 
 
 ### MAIN ###
-def build_graph(video_list: list[str], config: DotDict, split: str, print_graph: bool = False, desc=None):
+def build_graph(
+    video_list: list[str], 
+    config: DotDict, 
+    split: str, 
+    print_graph: bool = False, 
+    desc=None
+):
     """Build graph representation for a list of videos.
     
     Args:
@@ -236,8 +257,7 @@ def build_graph(video_list: list[str], config: DotDict, split: str, print_graph:
             # Save graph states dynamically at each timestamp if a graph exists
             if (frame_num in timestamps or frame_num >= len(gaze)) and edge_data:
                 action_labels_t = get_future_action_labels(records_for_vid, frame_num, int_to_idx)
-                if action_labels_t.numel() == 0:   # insufficient data
-                    print(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
+                if action_labels_t is None:
                     continue 
 
                 print(f"\n[Frame {frame_num}] Saving graph state:")
