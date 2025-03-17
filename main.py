@@ -28,8 +28,10 @@ def setup_parser() -> argparse.ArgumentParser:
     
     # Dataset building command
     build_parser = subparsers.add_parser("build", help="Build the dataset")
-    build_parser.add_argument("--debug", action="store_true",
-                            help="Debug mode: process only one video per split")
+    build_parser.add_argument("--device", type=str, choices=["gpu", "cpu"], default="gpu",
+                            help="Device to use for processing (default: gpu)")
+    build_parser.add_argument("--videos", type=str, nargs="+", 
+                            help="Specific video names to process (e.g., OP01-R04-ContinentalBreakfast). If not specified, all videos will be processed.")
     
     return parser
 
@@ -72,7 +74,8 @@ def main():
     elif args.command == "build":
         from datasets.build_dataset import build_dataset
         logger.info("Starting dataset building process")
-        build_dataset(config, debug=args.debug)
+        use_gpu = args.device.lower() == "gpu"
+        build_dataset(config, use_gpu=use_gpu, videos=args.videos)
 
 if __name__ == "__main__":
     main() 
