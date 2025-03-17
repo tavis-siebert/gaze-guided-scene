@@ -17,7 +17,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                        help="Set the logging level")
     parser.add_argument("--log-file", type=str,
-                       help="Path to log file. If not specified, logs to console only")
+                       help="Path to log file. If not specified, logs to console only", default="logs/main.log")
     
     subparsers = parser.add_subparsers(dest="command", required=True)
     
