@@ -112,11 +112,6 @@ def build_dataset(config: DotDict, use_gpu: bool = True, videos: Optional[List[s
         use_gpu = False
         device_type = "CPU"
     
-    # If processing specific videos, limit to a single device for simplicity
-    if videos and (len(train_videos) + len(val_videos) <= 3):
-        num_devices = 1
-        logger.info("Processing a small number of specific videos, using a single device")
-    
     logger.info(f"Using {num_devices} {device_type}(s) for dataset building")
     logger.info(f"Total videos to process - Train: {len(train_videos)}, Val: {len(val_videos)}")
     
