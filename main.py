@@ -52,6 +52,29 @@ def get_dropbox_token(args: argparse.Namespace) -> str:
         raise ValueError("Dropbox token not found")
     return token
 
+def check_gpu_availability(device_choice):
+    """
+    Check if GPU is available when requested and log a warning if not.
+    
+    Args:
+        device_choice (str): The device choice ('gpu' or 'cpu')
+        
+    Returns:
+        bool: True if GPU is requested and available, False otherwise
+    """
+    if device_choice.lower() != 'gpu':
+        return False
+        
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            logger.warning("GPU was requested but CUDA is not available. Falling back to CPU.")
+            return False
+        return True
+    except ImportError:
+        logger.warning("GPU was requested but PyTorch is not installed. Falling back to CPU.")
+        return False
+
 def main():
     global logger
     parser = setup_parser()
@@ -79,7 +102,10 @@ def main():
     elif args.command == "build":
         from datasets.build_dataset import build_dataset
         logger.info("Starting dataset building process")
-        use_gpu = args.device.lower() == "gpu"
+        
+        # Check GPU availability if requested
+        use_gpu = check_gpu_availability(args.device)
+        
         build_dataset(config, use_gpu=use_gpu, videos=args.videos)
 
 if __name__ == "__main__":
