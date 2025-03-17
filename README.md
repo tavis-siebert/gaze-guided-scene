@@ -9,6 +9,7 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 1. Processes fixations and saccades to identify objects using CLIP
 2. Constructs a scene graph with nodes (objects) and edges (transitions)
 3. Extracts features at specified timestamps for downstream tasks
+4. Provides interactive visualization of the graph construction process
 
 ## Setup
 
@@ -49,12 +50,24 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    ```bash
    python main.py build
    ```
+   
+   To enable tracing for visualization:
+   ```bash
+   python main.py build --videos VIDEO_NAME --enable-tracing
+   ```
+
+5. **Visualize graph construction** (requires prior trace generation):
+   ```bash
+   python main.py visualize --video-name VIDEO_NAME
+   ```
 
 ## Project Structure
 
 - **datasets/**: Dataset processing scripts and files
 - **egtea_gaze/**: Action and gaze annotations/processing
-- **graph/**: Scene graph construction
+- **graph/**: Scene graph construction and visualization
+  - **Core Components**: Graph, Node, GraphBuilder, GraphTracer, GraphVisualizer
+  - **Key Features**: Processes gaze data, builds scene graphs, extracts features, visualizes construction
 - **models/**: Feature extraction (SIFT) and object detection (CLIP)
 - **config/**: Configuration files and utilities
 - **logger.py**: Centralized logging
@@ -74,17 +87,13 @@ dataset:             # Dataset settings and paths
 models:              # Model settings
 external:            # External resources
 processing:          # Processing settings
+trace_dir:           # Directory for graph construction trace files
 ```
 
 **Key features**:
 - Path references: `${path.to.reference}`
 - Environment variables: `${USER}`, `${REPO_ROOT}`
 - Configuration files: `student_cluster_config.yaml`, `euler_cluster_config.yaml`
-
-To use a custom config:
-```bash
-python main.py --config path/to/config.yaml <command>
-```
 
 ## Command-Line Interface
 
@@ -95,9 +104,19 @@ python main.py [options] <command>
 **Commands**:
 - `setup-scratch`: Download and setup dataset
 - `build`: Build the scene graph dataset
+  - Options:
+    - `--device {gpu|cpu}`: Device to use (default: gpu)
+    - `--videos VIDEO_NAME [VIDEO_NAME ...]`: Specific videos to process
+    - `--enable-tracing`: Enable graph construction tracing for visualization
+- `visualize`: Visualize the graph construction process
+  - Options:
+    - `--video-name VIDEO_NAME`: Name of the video to visualize (required)
+    - `--video-path PATH`: Path to the video file (optional)
+    - `--port PORT`: Server port (default: 8050)
+    - `--debug`: Run in debug mode
 
 **Global options**:
-- `--config`: Custom config file path
+- `--config`: Custom config file path (default: config/student_cluster_config.yaml)
 - `--log-level`: Set logging level
 - `--log-file`: Specify log file
 
@@ -106,3 +125,37 @@ For help:
 python main.py --help
 python main.py <command> --help
 ```
+
+## Graph Tracing and Visualization
+
+The project includes a tracing and visualization system for recording and analyzing the graph construction process.
+
+### Tracing System
+
+Trace files are stored in the `traces` directory (configurable via `trace_dir` in config):
+- Each video gets its own trace file named `{video_name}_trace.jsonl`
+- Each file contains events like fixations, saccades, node/edge creation
+- Rerunning a trace for the same video overwrites its previous trace file
+
+To generate traces for visualization:
+```bash
+# For a single video
+python main.py build --videos VIDEO_NAME --enable-tracing
+
+# For multiple videos (each gets its own trace file)
+python main.py build --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
+```
+
+### Visualization Dashboard
+
+The interactive dashboard displays the graph construction process:
+
+```bash
+python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
+```
+
+**Key Features**:
+- Video player with gaze position and region-of-interest overlays
+- Graph visualization showing nodes (objects) and their relationships
+- Event timeline with playback controls
+- Detailed event log

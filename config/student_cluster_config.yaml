@@ -9,6 +9,7 @@ directories:
   repo:
     egtea: ${base.repo_root}/egtea_gaze
     datasets: ${base.repo_root}/datasets
+    traces: ${base.repo_root}/traces
   
   # Scratch directories
   scratch:

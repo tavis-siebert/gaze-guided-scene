@@ -12,6 +12,7 @@ from graph.graph import Graph
 from graph.node import Node
 from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
 from graph.utils import get_roi
+from graph.graph_tracer import GraphTracer
 from models.clip import ClipModel
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
@@ -26,18 +27,21 @@ class GraphBuilder:
     Builds scene graphs from video data and gaze information.
     """
     
-    def __init__(self, config: DotDict, split: str):
+    def __init__(self, config: DotDict, split: str, enable_tracing: bool = False):
         """
         Initialize the graph builder.
         
         Args:
             config: Configuration dictionary
             split: Dataset split ('train' or 'val')
+            enable_tracing: Whether to enable graph construction tracing
         """
         self.config = config
         self.split = split
         self.clip_model = self._initialize_clip_model()
         self.sift = SIFT()
+        self.enable_tracing = enable_tracing
+        self.tracer = None
         
         # Load object labels and dataset information
         self._load_object_labels()
@@ -105,6 +109,16 @@ class GraphBuilder:
             Dictionary with node data, edge indices, edge attributes, and labels
         """
         logger.info(f"\nProcessing video: {video_name}")
+        
+        # Initialize tracer if tracing is enabled
+        if self.enable_tracing:
+            # Use the traces directory from config
+            trace_dir = self.config.directories.repo.traces
+            # GraphTracer handles directory creation internally
+            self.tracer = GraphTracer(trace_dir, video_name, enabled=True)
+            logger.info(f"Tracing enabled for {video_name}")
+        else:
+            self.tracer = None
         
         # Get video-specific data and setup
         records_for_vid = self.records_by_vid[video_name]
@@ -193,6 +207,12 @@ class GraphBuilder:
                 tracking_data['frame_num'] += 1
                 continue
                 
+            frame_num = tracking_data['frame_num']
+            
+            # Take periodic graph snapshots for visualization if tracing is enabled
+            if self.tracer and frame_num % 30 == 0:  # Every 30 frames
+                self._take_graph_snapshot(scene_graph, frame_num)
+                
             # Check if we need to save graph state at this timestamp
             if self._should_save_graph_state(tracking_data['frame_num'], timestamps, gaze, scene_graph):
                 self._save_graph_state(
@@ -212,6 +232,18 @@ class GraphBuilder:
             
             # Process gaze data
             if tracking_data['frame_num'] < len(gaze):
+                # Trace frame processing if tracing enabled
+                if self.tracer:
+                    gaze_pos = gaze[frame_num, :2]
+                    gaze_type = gaze[frame_num, 2]
+                    fixation_state = "FIXATION" if gaze_type == 1 else "SACCADE" if gaze_type == 2 else "OTHER"
+                    self.tracer.log_frame_processed(
+                        frame_num,
+                        gaze_pos.tolist() if hasattr(gaze_pos, 'tolist') else list(gaze_pos),
+                        fixation_state,
+                        None  # ROI not available here
+                    )
+                
                 self._process_gaze_frame(frame, gaze, tracking_data, scene_graph)
             
             tracking_data['relative_frame_num'] += 1
@@ -220,6 +252,10 @@ class GraphBuilder:
         # Handle final fixation if video ends during fixation
         if tracking_data['potential_labels']:
             self._process_final_fixation(scene_graph, tracking_data, gaze)
+            
+        # Take final graph snapshot if tracing is enabled
+        if self.tracer:
+            self._take_graph_snapshot(scene_graph, tracking_data['frame_num'])
     
     def _should_save_graph_state(self, frame_num: int, timestamps: List[int], gaze: Any, scene_graph: Graph) -> bool:
         """Determine if the graph state should be saved at the current frame."""
@@ -268,21 +304,43 @@ class GraphBuilder:
         tracking_data: Dict[str, Any]
     ) -> None:
         """Handle a fixation frame."""
+        frame_num = tracking_data['frame_num']
+        
         # Record start of visit if this is the first fixation
         if not tracking_data['visit']:
             tracking_data['visit'].append(tracking_data['relative_frame_num'])
             x, y = gaze_pos
-            logger.info(f"\n[Frame {tracking_data['frame_num']}] New fixation started at ({x:.1f}, {y:.1f})")
+            logger.info(f"\n[Frame {frame_num}] New fixation started at ({x:.1f}, {y:.1f})")
+            
+            # Trace fixation start
+            if self.tracer:
+                # Duration will be updated later
+                self.tracer.log_fixation(
+                    frame_num,
+                    gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
+                    0,  # Duration starts at 0
+                    None  # No node ID yet
+                )
         
         # Get object label from CLIP
+        roi, roi_coords = get_roi(frame, (int(gaze_pos[0]), int(gaze_pos[1])), 256)
         label = self.process_fixation(frame, gaze_pos)
         tracking_data['potential_labels'][label] += 1
-        logger.info(f"[Frame {tracking_data['frame_num']}] CLIP detected: {label} (count: {tracking_data['potential_labels'][label]})")
+        logger.info(f"[Frame {frame_num}] CLIP detected: {label} (count: {tracking_data['potential_labels'][label]})")
         
         # Extract features using SIFT
         kp, desc = self.sift.extract_features(frame)
         tracking_data['keypoints'].append(kp)
         tracking_data['descriptors'].append(desc)
+        
+        # Update trace with ROI information
+        if self.tracer:
+            self.tracer.log_frame_processed(
+                frame_num,
+                gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
+                "FIXATION",
+                roi_coords
+            )
     
     def _handle_saccade(
         self,
@@ -291,14 +349,31 @@ class GraphBuilder:
         curr_pos: Tuple[float, float]
     ) -> None:
         """Handle a saccade (eye movement between fixations)."""
+        frame_num = tracking_data['frame_num']
+        
         # Record end of visit
         tracking_data['visit'].append(tracking_data['relative_frame_num'] - 1)
         
+        # Calculate fixation duration
+        fixation_duration = tracking_data['visit'][-1] - tracking_data['visit'][0] + 1
+        
         # Get most likely object label
         most_likely_label = max(tracking_data['potential_labels'].items(), key=lambda x: x[1])[0]
-        logger.info(f"\n[Frame {tracking_data['frame_num']}] Saccade detected:")
+        logger.info(f"\n[Frame {frame_num}] Saccade detected:")
         logger.info(f"- Most likely object: {most_likely_label}")
-        logger.info(f"- Visit duration: {tracking_data['visit'][-1] - tracking_data['visit'][0] + 1} frames")
+        logger.info(f"- Visit duration: {fixation_duration} frames")
+        
+        prev_pos = tracking_data['prev_gaze_pos']
+        
+        # Trace saccade before updating graph
+        if self.tracer:
+            self.tracer.log_saccade(
+                frame_num,
+                prev_pos if isinstance(prev_pos, list) else list(prev_pos),
+                curr_pos if isinstance(curr_pos, list) else list(curr_pos),
+                scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None,
+                None  # Target node not known yet
+            )
         
         # Update graph
         prev_node_id = scene_graph.current_node.id
@@ -307,20 +382,40 @@ class GraphBuilder:
             tracking_data['visit'],
             tracking_data['keypoints'],
             tracking_data['descriptors'],
-            tracking_data['prev_gaze_pos'],
+            prev_pos,
             curr_pos
         )
         
         if next_node.id != prev_node_id:
             logger.info(f"- New node created: {next_node.id}")
+            # Trace node addition
+            if self.tracer:
+                features = {}  # Placeholder for node features
+                self.tracer.log_node_added(
+                    frame_num,
+                    next_node.id,
+                    next_node.object_label,
+                    list(curr_pos) if not isinstance(curr_pos, list) else curr_pos,
+                    features
+                )
         else:
             logger.info(f"- Merged with existing node: {next_node.id}")
+        
+        # Trace edge addition if it's a new node
+        if self.tracer and prev_node_id >= 0 and next_node.id != prev_node_id:
+            self.tracer.log_edge_added(
+                frame_num,
+                prev_node_id,
+                next_node.id,
+                "saccade",
+                {"angle": None}  # Placeholder for edge properties
+            )
         
         # Update node features
         next_node.update_features(
             tracking_data['node_data'],
-            self.vid_lengths[self._get_current_video_name(tracking_data)],
-            tracking_data['frame_num'],
+            self.vid_lengths[tracking_data.get('video_name', self._get_current_video_name(tracking_data))],
+            frame_num,
             tracking_data['relative_frame_num'],
             -1,  # Placeholder for timestamp fraction
             self.labels_to_int,
@@ -332,6 +427,15 @@ class GraphBuilder:
                   f"total_frames={next_node.get_visit_duration()}")
         else:
             logger.info(f"- Created new node features")
+        
+        # Update fixation trace with final duration and node ID
+        if self.tracer:
+            self.tracer.log_fixation(
+                frame_num - fixation_duration,  # Start frame of the fixation
+                prev_pos if isinstance(prev_pos, list) else list(prev_pos),
+                fixation_duration,
+                prev_node_id if prev_node_id >= 0 else None
+            )
     
     def _get_current_video_name(self, tracking_data: Dict[str, Any]) -> str:
         """Get the current video name from tracking data (placeholder implementation)."""
@@ -435,8 +539,47 @@ class GraphBuilder:
         else:
             logger.info('\nError: No nodes were added to the graph. Video may be empty or no fixations occurred.')
 
+    def _take_graph_snapshot(self, graph: Graph, frame_num: int) -> None:
+        """
+        Take a snapshot of the current graph state.
+        
+        Args:
+            graph: Graph to snapshot
+            frame_num: Current frame number
+        """
+        if not self.tracer:
+            return
+            
+        # Create a serializable representation of the graph
+        nodes = []
+        for node in graph.get_all_nodes():
+            nodes.append({
+                "id": node.id,
+                "label": node.object_label,
+                "visits": node.visits if hasattr(node, 'visits') else []
+            })
+        
+        edges = []
+        for source in graph.get_all_nodes():
+            if not hasattr(source, 'neighbors'):
+                continue
+                
+            for target, angle, edge_type in source.neighbors:
+                edges.append({
+                    "source": source.id,
+                    "target": target.id,
+                    "angle": float(angle) if isinstance(angle, (int, float)) else None,
+                    "type": edge_type
+                })
+        
+        self.tracer.log_graph_snapshot(frame_num, {
+            "nodes": nodes,
+            "edges": edges,
+            "current_node": graph.current_node.id if graph.current_node != graph.root else -1
+        })
 
-def build_graph(video_list: List[str], config: DotDict, split: str, print_graph: bool = False, desc: Optional[str] = None) -> Dict:
+
+def build_graph(video_list: List[str], config: DotDict, split: str, print_graph: bool = False, desc: Optional[str] = None, enable_tracing: bool = False) -> Dict:
     """
     Build graph representations for a list of videos.
     
@@ -446,6 +589,7 @@ def build_graph(video_list: List[str], config: DotDict, split: str, print_graph:
         split: Dataset split ('train' or 'val')
         print_graph: Whether to print graph visualization
         desc: Description for the progress bar
+        enable_tracing: Whether to enable tracing for graph construction visualization
         
     Returns:
         Dictionary with node features, edge indices, edge attributes, and labels
@@ -453,7 +597,7 @@ def build_graph(video_list: List[str], config: DotDict, split: str, print_graph:
     logger.info(f"Building graph for {len(video_list)} videos in {split} split")
     
     # Initialize graph builder
-    builder = GraphBuilder(config, split)
+    builder = GraphBuilder(config, split, enable_tracing=enable_tracing)
     
     # Process each video
     all_node_data = []
@@ -462,13 +606,18 @@ def build_graph(video_list: List[str], config: DotDict, split: str, print_graph:
     all_labels = []
     
     for video_name in tqdm(video_list, desc=desc or f"Processing {split} videos"):
+        if enable_tracing:
+            logger.info(f"Building graph with tracing for {video_name}")
+        
+        # Process the video and collect features
         result = builder.process_video(video_name, print_graph)
         
+        # Always collect features
         all_node_data.extend(result['x'])
         all_edge_indices.extend(result['edge_index'])
         all_edge_data.extend(result['edge_attr'])
         all_labels.extend(result['y'])
-    
+        
     return {
         'x': all_node_data,
         'edge_index': all_edge_indices,

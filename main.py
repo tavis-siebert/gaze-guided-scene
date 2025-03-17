@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from config.config_utils import load_config, DotDict
 from logger import get_logger, configure_root_logger
+import logging
 
 logger = None
 
@@ -31,6 +32,15 @@ def setup_parser() -> argparse.ArgumentParser:
                             help="Device to use for processing (default: gpu)")
     build_parser.add_argument("--videos", type=str, nargs="+", 
                             help="Specific video names to process (e.g., OP01-R04-ContinentalBreakfast). If not specified, all videos will be processed.")
+    build_parser.add_argument("--enable-tracing", action="store_true",
+                            help="Enable graph construction tracing for visualization")
+    
+    # Visualization command
+    visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
+    visualize_parser.add_argument("--video-name", type=str, required=True, help="Name of the video to process")
+    visualize_parser.add_argument("--video-path", type=str, help="Path to the video file (optional)")
+    visualize_parser.add_argument("--port", type=int, default=8050, help="Port to run the server on")
+    visualize_parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode")
     
     return parser
 
@@ -106,7 +116,19 @@ def main():
         # Check GPU availability if requested
         use_gpu = check_gpu_availability(args.device)
         
-        build_dataset(config, use_gpu=use_gpu, videos=args.videos)
+        build_dataset(config, use_gpu=use_gpu, videos=args.videos, enable_tracing=args.enable_tracing)
+    elif args.command == "visualize":
+        from graph.visualizer import visualize_graph_construction
+        logger.info("Starting graph visualization process")
+        
+        # Launch visualization dashboard - all checks are handled in visualize_graph_construction
+        visualize_graph_construction(
+            video_name=args.video_name,
+            config=config,
+            video_path=args.video_path,
+            port=args.port,
+            debug=args.debug
+        )
 
 if __name__ == "__main__":
     main() 

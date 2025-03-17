@@ -11,13 +11,22 @@ from graph.graph import Graph, Position, EdgeFeature, EdgeIndex
 
 # Utility functions
 from graph.utils import get_roi, AngleUtils, GraphTraversal, FeatureMatcher
-from graph.visualizer import GraphVisualizer
+from graph.visualizer import (
+    GraphVisualizer, 
+    GraphEvent, 
+    GraphPlayback, 
+    InteractiveGraphVisualizer,
+    visualize_graph_construction
+)
 
 # Data handling
 from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
 
 # Graph building
 from graph.build_graph import GraphBuilder, build_graph
+
+# Tracing
+from graph.graph_tracer import GraphTracer
 
 __all__ = [
     # Core classes
@@ -36,6 +45,13 @@ __all__ = [
     'Record',
     'DataLoader',
     'VideoProcessor',
+    
+    # Tracing and visualization
+    'GraphTracer',
+    'GraphEvent',
+    'GraphPlayback',
+    'InteractiveGraphVisualizer',
+    'visualize_graph_construction',
     
     # Type aliases
     'VisitRecord',
