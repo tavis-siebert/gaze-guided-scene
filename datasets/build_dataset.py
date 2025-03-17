@@ -23,8 +23,18 @@ def split_list(lst, n):
     it = iter(lst)
     return [list(islice(it, size)) for size in split_sizes]
 
-def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, result_queue, use_gpu: bool = False):
-    """Build dataset subset using specified device (GPU or CPU)."""
+def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, result_queue, use_gpu: bool = False, enable_tracing: bool = False):
+    """Build dataset subset using specified device (GPU or CPU).
+    
+    Args:
+        train_vids: List of training videos to process
+        val_vids: List of validation videos to process
+        device_id: Device ID for processing
+        config: Configuration dictionary
+        result_queue: Queue for returning results
+        use_gpu: Whether to use GPU for processing
+        enable_tracing: Whether to enable graph construction tracing
+    """
     # Get a logger for the subprocess
     subprocess_logger = get_logger(f"{__name__}.device{device_id}")
     
@@ -39,14 +49,16 @@ def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, resul
         video_list=train_vids,
         config=config,
         split='train',
-        desc=f"{device_name} - Training"
+        desc=f"{device_name} - Training",
+        enable_tracing=enable_tracing
     )
     
     val_data = build_graph(
         video_list=val_vids,
         config=config,
         split='val',
-        desc=f"{device_name} - Validation"
+        desc=f"{device_name} - Validation",
+        enable_tracing=enable_tracing
     )
     
     data = {
@@ -82,16 +94,23 @@ def filter_videos(video_list: List[str], filter_names: Optional[List[str]]) -> L
     logger.info(f"Filtered {len(video_list)} videos down to {len(filtered_videos)} based on specified names")
     return filtered_videos
 
-def build_dataset(config: DotDict, use_gpu: bool = True, videos: Optional[List[str]] = None):
+def build_dataset(config: DotDict, use_gpu: bool = True, videos: Optional[List[str]] = None, enable_tracing: bool = False):
     """Build dataset using specified device type and optional video filtering.
     
     Args:
         config: Configuration object
         use_gpu: Whether to use GPU for processing (if available)
         videos: Optional list of video names to process. If None, all videos will be processed.
+        enable_tracing: Whether to enable graph construction tracing
     """
     logger.info("Starting dataset building process...")
     
+    # If tracing is enabled, we need to create the trace directory
+    if enable_tracing:
+        # Log that tracing is enabled - GraphTracer will handle directory creation
+        trace_dir = config.directories.repo.traces
+        logger.info(f"Graph tracing enabled. Traces will be saved to {trace_dir}")
+        
     with open(config.dataset.ego_topo.splits.train_test) as f:
         split = json.load(f)
 
@@ -127,7 +146,7 @@ def build_dataset(config: DotDict, use_gpu: bool = True, videos: Optional[List[s
             
             p = mp.Process(
                 target=build_dataset_subset, 
-                args=(train_subset, val_subset, device_id, config, result_queue, use_gpu)
+                args=(train_subset, val_subset, device_id, config, result_queue, use_gpu, enable_tracing)
             )
             p.start()
             processes.append(p)
