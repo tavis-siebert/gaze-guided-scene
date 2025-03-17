@@ -5,17 +5,16 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from config.config_utils import load_config, DotDict
-from logger import setup_logger
+from logger import get_logger, configure_root_logger
 
-# Initialize the root logger
-logger = setup_logger("main")
+logger = None
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Gaze-guided scene understanding toolkit")
     parser.add_argument("--config", type=str, default="config/student_cluster_config.yaml",
                        help="Path to custom config file. Defaults to config/student_cluster_config.yaml")
     parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                       help="Set the logging level")
+                       help="Set the logging level", default="INFO")
     parser.add_argument("--log-file", type=str,
                        help="Path to log file. If not specified, logs to console only", default="logs/main.log")
     
@@ -54,13 +53,19 @@ def get_dropbox_token(args: argparse.Namespace) -> str:
     return token
 
 def main():
+    global logger
     parser = setup_parser()
     args = parser.parse_args()
     
-    # Configure logger based on command line arguments
-    if args.log_level or args.log_file:
-        setup_logger(log_level=args.log_level, log_file=args.log_file)
-        logger.info(f"Logging configured with level: {args.log_level or 'INFO'}, file: {args.log_file or 'console only'}")
+    # Configure root logger based on command line arguments
+    configure_root_logger(
+        log_level=args.log_level,
+        log_file=args.log_file
+    )
+    
+    # Get the main logger
+    logger = get_logger("main")
+    logger.info(f"Logging configured with level: {args.log_level}, file: {args.log_file or 'console only'}")
     
     # Load config
     config = load_config(args.config)
