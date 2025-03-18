@@ -189,13 +189,24 @@ class GraphPlayback:
         """Compute graph layout with caching."""
         if len(self.graph) == 0:
             return {}
-        
+            
         # Try to reuse previous layout as initial positions
         prev_layout = None
         if self.last_built_frame - 1 in self._cached_layouts:
             prev_layout = self._cached_layouts[self.last_built_frame - 1]
+            # Verify that prev_layout contains positions for current nodes
+            if prev_layout and not all(node in prev_layout for node in self.graph.nodes()):
+                prev_layout = None
         
-        return nx.spring_layout(self.graph, pos=prev_layout, k=1/np.sqrt(len(self.graph)))
+        try:
+            return nx.spring_layout(
+                self.graph,
+                pos=prev_layout if prev_layout else None,
+                k=1/np.sqrt(len(self.graph))
+            )
+        except (ValueError, ZeroDivisionError):
+            # Fallback to basic circular layout if spring layout fails
+            return nx.circular_layout(self.graph)
     
     def _apply_event_to_graph(self, event: GraphEvent) -> None:
         """Apply an event to update the graph state."""
