@@ -180,7 +180,8 @@ class InteractiveGraphVisualizer:
         app = dash.Dash(
             __name__, 
             external_stylesheets=[dbc.themes.BOOTSTRAP],
-            update_title=None  # Disable the "Updating..." message
+            update_title=None,  # Disable the "Updating..." message
+            suppress_callback_exceptions=True  # Allow for dynamic callbacks
         )
         
         # Enable Dash's callback queue to prevent concurrent callback execution
@@ -192,13 +193,14 @@ class InteractiveGraphVisualizer:
         
         app.layout = dbc.Container([
             # Store for play state
-            dcc.Store(id='play-state', data={'is_playing': False}),
+            dcc.Store(id='play-state', data={'is_playing': False, 'last_update': 0}),
             
             # Interval for auto-playback
             dcc.Interval(
                 id='auto-advance',
                 interval=self.play_interval_ms,
-                disabled=True
+                disabled=True,
+                max_intervals=-1  # Run indefinitely when enabled
             ),
             
             dbc.Row([
@@ -251,28 +253,46 @@ class InteractiveGraphVisualizer:
             ]),
         ], fluid=True)
         
+        # Separate callback to handle play/pause state
+        @app.callback(
+            [Output("play-state", "data"),
+             Output("auto-advance", "disabled"),
+             Output("play-pause", "children")],
+            [Input("play-pause", "n_clicks")],
+            [State("play-state", "data")]
+        )
+        def toggle_play_state(play_clicks, current_state):
+            if not play_clicks:
+                # Initial state
+                return current_state, True, "Play"
+                
+            # Toggle the play state
+            is_playing = not current_state.get('is_playing', False)
+            new_state = {
+                'is_playing': is_playing, 
+                'last_update': current_state.get('last_update', 0) + 1
+            }
+            
+            return new_state, not is_playing, "Pause" if is_playing else "Play"
+        
+        # Main callback for frame navigation and display updates
         @app.callback(
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
              Output("current-frame-display", "children"),
-             Output("frame-slider", "value"),
-             Output("play-pause", "children"),
-             Output("auto-advance", "disabled"),
-             Output("play-state", "data")],
+             Output("frame-slider", "value")],
             [Input("frame-slider", "value"),
              Input("prev-frame", "n_clicks"),
              Input("next-frame", "n_clicks"),
-             Input("play-pause", "n_clicks"),
              Input("auto-advance", "n_intervals")],
             [State("play-state", "data"),
              State("frame-slider", "value")]
         )
-        def update_displays(slider_frame, prev_clicks, next_clicks, play_clicks, 
+        def update_displays(slider_frame, prev_clicks, next_clicks, 
                           n_intervals, play_state, current_frame):
             ctx = dash.callback_context
             if not ctx.triggered:
                 frame_number = slider_frame
-                is_playing = False
             else:
                 trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
                 is_playing = play_state.get('is_playing', False)
@@ -281,9 +301,6 @@ class InteractiveGraphVisualizer:
                     frame_number = max(self.playback.min_frame, current_frame - 1)
                 elif trigger_id == "next-frame":
                     frame_number = min(self.playback.max_frame, current_frame + 1)
-                elif trigger_id == "play-pause":
-                    is_playing = not is_playing
-                    frame_number = current_frame
                 elif trigger_id == "auto-advance" and is_playing:
                     frame_number = current_frame + 1
                     if frame_number > self.playback.max_frame:
@@ -295,10 +312,7 @@ class InteractiveGraphVisualizer:
                 self._create_video_figure(frame_number),
                 self._create_graph_figure(frame_number),
                 str(frame_number),
-                frame_number,
-                "Pause" if is_playing else "Play",
-                not is_playing,
-                {'is_playing': is_playing}
+                frame_number
             )
         
         return app
