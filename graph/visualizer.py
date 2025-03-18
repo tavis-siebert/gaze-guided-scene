@@ -309,7 +309,7 @@ class InteractiveGraphVisualizer:
                                 dbc.ButtonGroup([
                                     dbc.Button("⏮️", id="btn-first-frame", n_clicks=0),
                                     dbc.Button("⏪", id="btn-prev-frame", n_clicks=0),
-                                    dbc.Button("▶️", id="btn-play-pause", n_clicks=0),
+                                    dbc.Button("▶️", id="btn-play-pause", n_clicks=0, className="play-pause-btn"),
                                     dbc.Button("⏩", id="btn-next-frame", n_clicks=0),
                                     dbc.Button("⏭️", id="btn-last-frame", n_clicks=0)
                                 ])
@@ -426,7 +426,8 @@ class InteractiveGraphVisualizer:
                 Output("frame-slider", "value", allow_duplicate=True),
                 Output("playing-state", "data", allow_duplicate=True),
                 Output("playback-interval", "disabled", allow_duplicate=True),
-                Output("playback-interval", "interval", allow_duplicate=True)
+                Output("playback-interval", "interval", allow_duplicate=True),
+                Output("btn-play-pause", "children")
             ],
             [
                 Input("btn-first-frame", "n_clicks"),
@@ -448,42 +449,52 @@ class InteractiveGraphVisualizer:
             """Handle playback control buttons and interval updates."""
             ctx = dash.callback_context
             if not ctx.triggered:
-                return current_frame, playing_state, True, 1000
+                return current_frame, playing_state, True, 1000, "▶️"
                 
             trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
             
             # Calculate the interval based on speed
             interval_ms = int(1000 / speed) if speed > 0 else 1000
             
+            # Determine play/pause button text based on playing state
+            playing = playing_state.get("playing", False)
+            
             if trigger_id == "btn-first-frame":
-                return self.playback.min_frame, {"playing": False}, True, interval_ms
+                return self.playback.min_frame, {"playing": False}, True, interval_ms, "▶️"
                 
             elif trigger_id == "btn-prev-frame":
                 prev_frame = max(self.playback.min_frame, current_frame - 1)
-                return prev_frame, {"playing": False}, True, interval_ms
+                return prev_frame, {"playing": False}, True, interval_ms, "▶️"
                 
             elif trigger_id == "btn-play-pause":
-                playing = not playing_state.get("playing", False)
-                return current_frame, {"playing": playing}, not playing, interval_ms
+                # Toggle playing state
+                playing = not playing
+                # Set the button text based on the new state
+                button_text = "⏸️" if playing else "▶️"
+                return current_frame, {"playing": playing}, not playing, interval_ms, button_text
                 
             elif trigger_id == "btn-next-frame":
                 next_frame = min(self.playback.max_frame, current_frame + 1)
-                return next_frame, {"playing": False}, True, interval_ms
+                return next_frame, {"playing": False}, True, interval_ms, "▶️"
                 
             elif trigger_id == "btn-last-frame":
-                return self.playback.max_frame, {"playing": False}, True, interval_ms
+                return self.playback.max_frame, {"playing": False}, True, interval_ms, "▶️"
                 
             elif trigger_id == "playback-interval":
-                if playing_state.get("playing", False):
+                if playing:
                     next_frame = min(self.playback.max_frame, current_frame + 1)
                     if next_frame == self.playback.max_frame:
-                        return next_frame, {"playing": False}, True, interval_ms
-                    return next_frame, playing_state, False, interval_ms
+                        # We've reached the end, stop playback
+                        return next_frame, {"playing": False}, True, interval_ms, "▶️"
+                    return next_frame, {"playing": True}, False, interval_ms, "⏸️"
                     
             elif trigger_id == "playback-speed":
-                return current_frame, playing_state, not playing_state.get("playing", False), interval_ms
+                button_text = "⏸️" if playing else "▶️"
+                return current_frame, playing_state, not playing, interval_ms, button_text
                 
-            return current_frame, playing_state, not playing_state.get("playing", False), interval_ms
+            # Default case - maintain current play/pause button state
+            button_text = "⏸️" if playing else "▶️"
+            return current_frame, playing_state, not playing, interval_ms, button_text
     
     def _get_cached_frame(self, frame_number: int) -> Optional[np.ndarray]:
         """Get a cached video frame if available."""
