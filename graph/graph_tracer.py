@@ -105,7 +105,7 @@ class GraphTracer:
             return str(data)
     
     def log_node_added(self, frame_number: int, node_id: int, label: str, 
-                      position: List[float], features: Optional[Dict[str, Any]] = None) -> None:
+                      features: Optional[Dict[str, Any]] = None) -> None:
         """
         Log a node addition event.
         
@@ -113,20 +113,11 @@ class GraphTracer:
             frame_number: Video frame number
             node_id: ID of the added node
             label: Object label of the node
-            position: [x, y] position of the node
             features: Optional node features
         """
-        # Ensure position is a list
-        if not isinstance(position, list):
-            try:
-                position = list(position)
-            except:
-                position = [0, 0]  # Fallback if conversion fails
-                
         data = {
             "node_id": node_id,
-            "label": label,
-            "position": position
+            "label": label
         }
         
         if features:
@@ -135,7 +126,7 @@ class GraphTracer:
         self.log_event("node_added", frame_number, data)
     
     def log_edge_added(self, frame_number: int, source_id: int, target_id: int, 
-                      edge_type: str, properties: Optional[Dict[str, Any]] = None) -> None:
+                      edge_type: str, features: Optional[Dict[str, Any]] = None) -> None:
         """
         Log an edge addition event.
         
@@ -144,7 +135,7 @@ class GraphTracer:
             source_id: ID of the source node
             target_id: ID of the target node
             edge_type: Type of the edge (e.g., 'saccade', 'spatial')
-            properties: Optional edge properties
+            features: Optional edge features
         """
         data = {
             "source_id": source_id,
@@ -152,8 +143,8 @@ class GraphTracer:
             "edge_type": edge_type
         }
         
-        if properties:
-            data["properties"] = properties
+        if features:
+            data["features"] = features
             
         self.log_event("edge_added", frame_number, data)
     
