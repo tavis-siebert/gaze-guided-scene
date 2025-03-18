@@ -436,19 +436,47 @@ class InteractiveGraphVisualizer:
                 # Convert BGR to RGB
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
+                # Get frame dimensions for scaling normalized coordinates
+                frame_height, frame_width = frame_rgb.shape[:2]
+                
                 # Add the frame as an image
                 fig.add_trace(go.Image(z=frame_rgb))
                 
                 # Get events for this frame to add overlays
                 events = self.playback.get_events_for_frame(frame_number)
                 
+                # Process gaze position
+                gaze_position = self._get_gaze_position_from_events(events)
+                
+                # Add current gaze position as a green dot (if available)
+                if gaze_position:
+                    # Scale normalized [0,1] coordinates to actual frame dimensions
+                    scaled_x = gaze_position[0] * frame_width
+                    scaled_y = gaze_position[1] * frame_height
+                    
+                    fig.add_trace(go.Scatter(
+                        x=[scaled_x],
+                        y=[scaled_y],
+                        mode="markers",
+                        marker=dict(
+                            size=12,
+                            color="green",
+                            symbol="circle",
+                        ),
+                        name="Gaze Position"
+                    ))
+                
                 # Add fixation points
                 for event in events:
                     if event.event_type == "fixation":
                         pos = event.data["position"]
+                        # Scale normalized position coordinates
+                        scaled_x = pos[0] * frame_width
+                        scaled_y = pos[1] * frame_height
+                        
                         fig.add_trace(go.Scatter(
-                            x=[pos[0]],
-                            y=[pos[1]],
+                            x=[scaled_x],
+                            y=[scaled_y],
                             mode="markers",
                             marker=dict(
                                 size=15,
@@ -495,6 +523,29 @@ class InteractiveGraphVisualizer:
         )
         
         return fig
+    
+    def _get_gaze_position_from_events(self, events: List[GraphEvent]) -> Optional[Tuple[float, float]]:
+        """
+        Extract the latest gaze position from a list of events.
+        
+        Args:
+            events: List of events to search through
+            
+        Returns:
+            Tuple of (x, y) normalized gaze position coordinates or None if not found
+        """
+        gaze_position = None
+        
+        for event in events:
+            if event.event_type == "frame_processed" and "gaze_position" in event.data:
+                candidate_position = event.data["gaze_position"]
+                
+                # Only update if the gaze position is valid (non-zero coordinates)
+                if (candidate_position[0] != 0.0 or candidate_position[1] != 0.0):
+                    gaze_position = candidate_position
+                    # Keep searching to find the latest valid gaze position for this frame
+        
+        return gaze_position
     
     def _create_graph_figure(self, frame_number: int) -> go.Figure:
         """
