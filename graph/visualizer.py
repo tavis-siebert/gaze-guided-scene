@@ -284,7 +284,8 @@ class InteractiveGraphVisualizer:
         fig = go.Figure()
         
         if len(G.nodes) > 0:
-            pos = nx.spring_layout(G)
+            # Use Kamada-Kawai layout for better node placement
+            pos = nx.kamada_kawai_layout(G)
             
             # Get current node from frame_processed event
             current_node_id = None
