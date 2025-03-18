@@ -11,7 +11,7 @@ import cv2
 import networkx as nx
 import dash
 from dash import dcc, html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
@@ -133,6 +133,7 @@ class InteractiveGraphVisualizer:
         self.playback = GraphPlayback(trace_file_path)
         self.video_path = video_path
         self.video_capture = None
+        self.play_interval_ms = 100  # 10 FPS playback speed
         
         if video_path and Path(video_path).exists():
             self.video_capture = cv2.VideoCapture(video_path)
@@ -144,6 +145,19 @@ class InteractiveGraphVisualizer:
         app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
         
         app.layout = dbc.Container([
+            # Store for play state
+            dcc.Store(id='play-state', data={'is_playing': False}),
+            
+            # Interval for auto-playback
+            dcc.Interval(
+                id='auto-advance',
+                interval=self.play_interval_ms,
+                disabled=True
+            ),
+            
+            # Keyboard event listener
+            html.Div(id='keyboard-listener', tabIndex=0, style={'outline': 'none'}),
+            
             dbc.Row([
                 # Left column - Video display
                 dbc.Col([
@@ -167,6 +181,7 @@ class InteractiveGraphVisualizer:
                                 dbc.Col([
                                     html.Div([
                                         dbc.Button("← Prev", id="prev-frame", n_clicks=0, color="primary", className="me-2"),
+                                        dbc.Button("Play", id="play-pause", n_clicks=0, color="success", className="me-2"),
                                         dbc.Button("Next →", id="next-frame", n_clicks=0, color="primary"),
                                     ], className="d-flex justify-content-center"),
                                 ], width=4),
@@ -187,6 +202,10 @@ class InteractiveGraphVisualizer:
                                     ),
                                 ], width=4),
                             ]),
+                            html.Div([
+                                html.Small("Keyboard controls: ←/→ arrows to navigate frames, Space to play/pause", 
+                                         className="text-muted mt-2 text-center d-block")
+                            ])
                         ])
                     ], className="mb-3"),
                 ], width=12),
@@ -197,22 +216,52 @@ class InteractiveGraphVisualizer:
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
              Output("current-frame-display", "children"),
-             Output("frame-slider", "value")],
+             Output("frame-slider", "value"),
+             Output("play-pause", "children"),
+             Output("auto-advance", "disabled"),
+             Output("play-state", "data")],
             [Input("frame-slider", "value"),
              Input("prev-frame", "n_clicks"),
-             Input("next-frame", "n_clicks")],
-            [dash.State("frame-slider", "value")]
+             Input("next-frame", "n_clicks"),
+             Input("play-pause", "n_clicks"),
+             Input("auto-advance", "n_intervals"),
+             Input("keyboard-listener", "n_keydowns")],
+            [State("play-state", "data"),
+             State("frame-slider", "value"),
+             State("keyboard-listener", "keydown")]
         )
-        def update_displays(slider_frame, prev_clicks, next_clicks, current_frame):
+        def update_displays(slider_frame, prev_clicks, next_clicks, play_clicks, 
+                          n_intervals, n_keydowns, play_state, current_frame, keyboard_event):
             ctx = dash.callback_context
             if not ctx.triggered:
                 frame_number = slider_frame
+                is_playing = False
             else:
                 trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-                if trigger_id == "prev-frame":
+                is_playing = play_state.get('is_playing', False)
+                
+                if trigger_id == "keyboard-listener" and keyboard_event is not None:
+                    key = keyboard_event.get('key', '')
+                    if key == 'ArrowLeft':
+                        frame_number = max(self.playback.min_frame, current_frame - 1)
+                    elif key == 'ArrowRight':
+                        frame_number = min(self.playback.max_frame, current_frame + 1)
+                    elif key == ' ':  # Space key
+                        is_playing = not is_playing
+                        frame_number = current_frame
+                    else:
+                        frame_number = current_frame
+                elif trigger_id == "prev-frame":
                     frame_number = max(self.playback.min_frame, current_frame - 1)
                 elif trigger_id == "next-frame":
                     frame_number = min(self.playback.max_frame, current_frame + 1)
+                elif trigger_id == "play-pause":
+                    is_playing = not is_playing
+                    frame_number = current_frame
+                elif trigger_id == "auto-advance" and is_playing:
+                    frame_number = current_frame + 1
+                    if frame_number > self.playback.max_frame:
+                        frame_number = self.playback.min_frame
                 else:
                     frame_number = slider_frame
             
@@ -220,8 +269,27 @@ class InteractiveGraphVisualizer:
                 self._create_video_figure(frame_number),
                 self._create_graph_figure(frame_number),
                 str(frame_number),
-                frame_number
+                frame_number,
+                "Pause" if is_playing else "Play",
+                not is_playing,
+                {'is_playing': is_playing}
             )
+        
+        # Add keyboard event listener
+        app.clientside_callback(
+            """
+            function(n_clicks) {
+                document.addEventListener('keydown', function(e) {
+                    if (['ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                        e.preventDefault();
+                    }
+                });
+                return window.dash_clientside.no_update;
+            }
+            """,
+            Output("keyboard-listener", "n_keydowns"),
+            [Input("keyboard-listener", "n_clicks")],
+        )
         
         return app
     
