@@ -55,8 +55,8 @@ models:
 # External resources
 external:
   urls:
-    dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar"
-    dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt"
+    dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
+    dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
     ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
 
 # Processing settings
