@@ -145,31 +145,83 @@ class InteractiveGraphVisualizer:
         
         app.layout = dbc.Container([
             dbc.Row([
+                # Left column - Video display
                 dbc.Col([
+                    html.H4("Video Feed", className="text-center"),
                     dcc.Graph(id="video-display"),
+                ], width=6),
+                
+                # Right column - Graph display
+                dbc.Col([
+                    html.H4("Graph Visualization", className="text-center"),
                     dcc.Graph(id="graph-display"),
-                    dcc.Slider(
-                        id="frame-slider",
-                        min=self.playback.min_frame,
-                        max=self.playback.max_frame,
-                        value=self.playback.min_frame,
-                        marks={i: str(i) for i in range(
-                            self.playback.min_frame,
-                            self.playback.max_frame + 1,
-                            max(1, (self.playback.max_frame - self.playback.min_frame) // 10)
-                        )}
-                    )
-                ])
-            ])
+                ], width=6),
+            ]),
+            
+            # Navigation controls
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div([
+                                        dbc.Button("← Prev", id="prev-frame", n_clicks=0, color="primary", className="me-2"),
+                                        dbc.Button("Next →", id="next-frame", n_clicks=0, color="primary"),
+                                    ], className="d-flex justify-content-center"),
+                                ], width=4),
+                                dbc.Col([
+                                    html.Div([
+                                        html.Span("Current Frame: ", className="me-2"),
+                                        html.Strong(id="current-frame-display"),
+                                    ], className="d-flex justify-content-center align-items-center h-100"),
+                                ], width=4),
+                                dbc.Col([
+                                    dcc.Slider(
+                                        id="frame-slider",
+                                        min=self.playback.min_frame,
+                                        max=self.playback.max_frame,
+                                        value=self.playback.min_frame,
+                                        marks=None,
+                                        tooltip={"placement": "bottom", "always_visible": True}
+                                    ),
+                                ], width=4),
+                            ]),
+                        ])
+                    ], className="mb-3"),
+                ], width=12),
+            ]),
         ], fluid=True)
         
         @app.callback(
             [Output("video-display", "figure"),
-             Output("graph-display", "figure")],
-            [Input("frame-slider", "value")]
+             Output("graph-display", "figure"),
+             Output("current-frame-display", "children"),
+             Output("frame-slider", "value")],
+            [Input("frame-slider", "value"),
+             Input("prev-frame", "n_clicks"),
+             Input("next-frame", "n_clicks")],
+            [dash.State("frame-slider", "value")]
         )
-        def update_displays(frame_number):
-            return self._create_video_figure(frame_number), self._create_graph_figure(frame_number)
+        def update_displays(slider_frame, prev_clicks, next_clicks, current_frame):
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                frame_number = slider_frame
+            else:
+                trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+                if trigger_id == "prev-frame":
+                    frame_number = max(self.playback.min_frame, current_frame - 1)
+                elif trigger_id == "next-frame":
+                    frame_number = min(self.playback.max_frame, current_frame + 1)
+                else:
+                    frame_number = slider_frame
+            
+            return (
+                self._create_video_figure(frame_number),
+                self._create_graph_figure(frame_number),
+                str(frame_number),
+                frame_number
+            )
         
         return app
     
