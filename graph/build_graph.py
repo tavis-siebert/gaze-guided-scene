@@ -132,6 +132,7 @@ class GraphBuilder:
         
         # Initialize tracking variables
         tracking_data = self._initialize_tracking_data()
+        tracking_data['video_name'] = video_name
         
         # Results storage
         results = {
@@ -186,7 +187,8 @@ class GraphBuilder:
             'visit': [],  # [start_frame, end_frame]
             'frame_num': 0,
             'relative_frame_num': 0,
-            'node_data': {}
+            'node_data': {},
+            'video_name': ""
         }
     
     def _process_frames(
@@ -202,16 +204,26 @@ class GraphBuilder:
     ) -> None:
         """Process all frames in the video to build the scene graph."""
         for frame, _, is_black_frame in video_processor:
-            # Skip black frames
-            if is_black_frame:
-                tracking_data['frame_num'] += 1
-                continue
-                
             frame_num = tracking_data['frame_num']
             
             # Take periodic graph snapshots for visualization if tracing is enabled
             if self.tracer and frame_num % 30 == 0:  # Every 30 frames
                 self._take_graph_snapshot(scene_graph, frame_num)
+                
+            # Skip black frames but still log them
+            if is_black_frame:
+                if self.tracer and frame_num < len(gaze):
+                    # Log black frame with gaze type -1 (special value for black frames)
+                    gaze_pos = gaze[frame_num, :2] if frame_num < len(gaze) else (-1, -1)
+                    self.tracer.log_frame_processed(
+                        frame_num,
+                        gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
+                        -1,  # Special value for black frames
+                        None,  # No ROI
+                        scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
+                    )
+                tracking_data['frame_num'] += 1
+                continue
                 
             # Check if we need to save graph state at this timestamp
             if self._should_save_graph_state(tracking_data['frame_num'], timestamps, gaze, scene_graph):
@@ -231,20 +243,18 @@ class GraphBuilder:
                     break
             
             # Process gaze data
-            if tracking_data['frame_num'] < len(gaze):
-                # Trace frame processing if tracing enabled
+            if frame_num < len(gaze):
+                self._process_gaze_frame(frame, gaze, tracking_data, scene_graph)
+            else:
+                # Log frames beyond gaze data with type 0 (no gaze data)
                 if self.tracer:
-                    gaze_pos = gaze[frame_num, :2]
-                    gaze_type = gaze[frame_num, 2]
-                    fixation_state = "FIXATION" if gaze_type == 1 else "SACCADE" if gaze_type == 2 else "OTHER"
                     self.tracer.log_frame_processed(
                         frame_num,
-                        gaze_pos.tolist() if hasattr(gaze_pos, 'tolist') else list(gaze_pos),
-                        fixation_state,
-                        None  # ROI not available here
+                        (-1, -1),  # No valid gaze position
+                        0,  # Type 0 = no gaze data
+                        None,  # No ROI
+                        scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
                     )
-                
-                self._process_gaze_frame(frame, gaze, tracking_data, scene_graph)
             
             tracking_data['relative_frame_num'] += 1
             tracking_data['frame_num'] += 1
@@ -274,12 +284,14 @@ class GraphBuilder:
     ) -> None:
         """Process a single frame of gaze data."""
         frame_num = tracking_data['frame_num']
-        gaze_type = gaze[frame_num, 2]
+        gaze_type = int(gaze[frame_num, 2])
+        gaze_pos = gaze[frame_num, :2]
         
         if gaze_type == 1:  # Fixation
             self._handle_fixation(
                 frame,
-                gaze[frame_num, :2],
+                gaze_pos,
+                gaze_type,
                 tracking_data
             )
             
@@ -288,19 +300,41 @@ class GraphBuilder:
                 self._handle_saccade(
                     scene_graph,
                     tracking_data,
-                    gaze[frame_num, :2]
+                    gaze_pos,
+                    gaze_type
                 )
                 
                 # Reset tracking variables
                 tracking_data['visit'] = []
                 tracking_data['keypoints'], tracking_data['descriptors'] = [], []
-                tracking_data['prev_gaze_pos'] = gaze[frame_num, :2]
+                tracking_data['prev_gaze_pos'] = gaze_pos
                 tracking_data['potential_labels'] = defaultdict(int)
+            else:
+                # Log saccade frame without fixation data
+                if self.tracer:
+                    self.tracer.log_frame_processed(
+                        frame_num,
+                        gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
+                        gaze_type,
+                        None,  # No ROI for saccade without previous fixation
+                        scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
+                    )
+        else:
+            # Any other gaze type (0, 3, etc.)
+            if self.tracer:
+                self.tracer.log_frame_processed(
+                    frame_num,
+                    gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
+                    gaze_type,
+                    None,  # No ROI
+                    scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
+                )
     
     def _handle_fixation(
         self,
         frame: torch.Tensor,
         gaze_pos: Tuple[float, float],
+        gaze_type: int,
         tracking_data: Dict[str, Any]
     ) -> None:
         """Handle a fixation frame."""
@@ -311,16 +345,6 @@ class GraphBuilder:
             tracking_data['visit'].append(tracking_data['relative_frame_num'])
             x, y = gaze_pos
             logger.info(f"\n[Frame {frame_num}] New fixation started at ({x:.1f}, {y:.1f})")
-            
-            # Trace fixation start
-            if self.tracer:
-                # Duration will be updated later
-                self.tracer.log_fixation(
-                    frame_num,
-                    gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
-                    0,  # Duration starts at 0
-                    None  # No node ID yet
-                )
         
         # Get object label from CLIP
         roi, roi_coords = get_roi(frame, (int(gaze_pos[0]), int(gaze_pos[1])), 256)
@@ -333,20 +357,22 @@ class GraphBuilder:
         tracking_data['keypoints'].append(kp)
         tracking_data['descriptors'].append(desc)
         
-        # Update trace with ROI information
+        # Log frame processing with fixation info
         if self.tracer:
             self.tracer.log_frame_processed(
                 frame_num,
                 gaze_pos if isinstance(gaze_pos, list) else list(gaze_pos),
-                "FIXATION",
-                roi_coords
+                gaze_type,
+                roi_coords,
+                None  # Node ID not assigned until saccade
             )
     
     def _handle_saccade(
         self,
         scene_graph: Graph,
         tracking_data: Dict[str, Any],
-        curr_pos: Tuple[float, float]
+        curr_pos: Tuple[float, float],
+        gaze_type: int
     ) -> None:
         """Handle a saccade (eye movement between fixations)."""
         frame_num = tracking_data['frame_num']
@@ -414,7 +440,7 @@ class GraphBuilder:
         # Update node features
         next_node.update_features(
             tracking_data['node_data'],
-            self.vid_lengths[tracking_data.get('video_name', self._get_current_video_name(tracking_data))],
+            self.vid_lengths[tracking_data['video_name']],
             frame_num,
             tracking_data['relative_frame_num'],
             -1,  # Placeholder for timestamp fraction
@@ -428,23 +454,15 @@ class GraphBuilder:
         else:
             logger.info(f"- Created new node features")
         
-        # Update fixation trace with final duration and node ID
+        # Log frame processing with saccade info and current node
         if self.tracer:
-            self.tracer.log_fixation(
-                frame_num - fixation_duration,  # Start frame of the fixation
-                prev_pos if isinstance(prev_pos, list) else list(prev_pos),
-                fixation_duration,
-                prev_node_id if prev_node_id >= 0 else None
+            self.tracer.log_frame_processed(
+                frame_num,
+                curr_pos if isinstance(curr_pos, list) else list(curr_pos),
+                gaze_type,
+                None,  # No ROI for saccade frame
+                next_node.id
             )
-    
-    def _get_current_video_name(self, tracking_data: Dict[str, Any]) -> str:
-        """Get the current video name from tracking data (placeholder implementation)."""
-        # This is a placeholder - in a real implementation, you'd need to track the current video name
-        # or pass it as a parameter to the relevant methods
-        for video_name, length in self.vid_lengths.items():
-            if tracking_data['frame_num'] < length:
-                return video_name
-        return list(self.vid_lengths.keys())[0]
     
     def _process_final_fixation(
         self,
@@ -455,14 +473,28 @@ class GraphBuilder:
         """Process the final fixation if the video ends during a fixation."""
         logger.info(f"- Final fixation detected, updating graph...")
         tracking_data['visit'].append(tracking_data['relative_frame_num'] - 1)
+        
+        # Get last valid gaze position
+        last_gaze_pos = gaze[min(tracking_data['frame_num'], len(gaze)-1), :2]
+        
         scene_graph.update_graph(
             tracking_data['potential_labels'],
             tracking_data['visit'], 
             tracking_data['keypoints'],
             tracking_data['descriptors'],
             tracking_data['prev_gaze_pos'],
-            gaze[min(tracking_data['frame_num'], len(gaze)-1), :2]
+            last_gaze_pos
         )
+        
+        # Log final frame
+        if self.tracer:
+            self.tracer.log_frame_processed(
+                tracking_data['frame_num'],
+                last_gaze_pos if isinstance(last_gaze_pos, list) else list(last_gaze_pos),
+                1,  # Assume it's a fixation
+                None,  # No ROI
+                scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
+            )
     
     def _save_graph_state(
         self,
@@ -523,7 +555,7 @@ class GraphBuilder:
             if node.id >= 0:  # Skip root
                 node.update_features(
                     node_data,
-                    self.vid_lengths[self._get_current_video_name({'frame_num': frame_num})],
+                    self.vid_lengths[tracking_data['video_name']],
                     frame_num,
                     relative_frame_num,
                     timestamp_fraction,
