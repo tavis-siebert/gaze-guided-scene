@@ -121,11 +121,29 @@ def main():
         from graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
         
-        # Launch visualization dashboard - all checks are handled in visualize_graph_construction
+        # Construct full paths
+        trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
+        if not trace_file.exists():
+            logger.error(f"No trace file found at: {trace_file}")
+            logger.error("To generate a trace file, run:")
+            logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+            sys.exit(1)
+            
+        # If video path not provided, try to find it in the default location
+        video_path = args.video_path
+        if video_path is None and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
+            possible_video_path = Path(config.dataset.egtea.raw_videos) / f"{args.video_name}.mp4"
+            if possible_video_path.exists():
+                video_path = str(possible_video_path)
+                logger.info(f"Found video file at {video_path}")
+            else:
+                logger.warning(f"Could not find video file at expected location: {possible_video_path}")
+                logger.warning("Visualization will proceed without video display")
+        
+        # Launch visualization dashboard
         visualize_graph_construction(
-            video_name=args.video_name,
-            config=config,
-            video_path=args.video_path,
+            trace_file=str(trace_file),
+            video_path=video_path,
             port=args.port,
             debug=args.debug
         )
