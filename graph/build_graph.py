@@ -243,8 +243,7 @@ class GraphBuilder:
             logger.info(f"- New node created: {next_node.id}")
             
             # Log node and edge addition
-            pos_list = list(curr_pos) if not isinstance(curr_pos, list) else curr_pos
-            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, pos_list, {})
+            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, {})
             
             # Log edge addition if applicable
             if prev_node_id >= 0:
