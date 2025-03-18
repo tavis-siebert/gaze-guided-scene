@@ -22,7 +22,7 @@ class GraphTracer:
     Records and logs graph construction events for later visualization and analysis.
     
     This class captures significant events during graph construction such as node creation,
-    edge addition, fixations, and saccades, storing them in a structured format for
+    edge addition, and saccades, storing them in a structured format for
     later playback and visualization.
     """
     
@@ -56,7 +56,7 @@ class GraphTracer:
         Log a graph construction event.
         
         Args:
-            event_type: Type of event (e.g., 'node_added', 'edge_added', 'fixation')
+            event_type: Type of event (e.g., 'node_added', 'edge_added', 'frame_processed')
             frame_number: Video frame number when the event occurred
             data: Event-specific data
         """
@@ -167,34 +167,6 @@ class GraphTracer:
             
         self.log_event("edge_added", frame_number, data)
     
-    def log_fixation(self, frame_number: int, position: Union[List[float], Tuple[float, float]], 
-                    duration: float, node_id: Optional[int] = None) -> None:
-        """
-        Log a fixation event.
-        
-        Args:
-            frame_number: Video frame number
-            position: [x, y] position of the fixation
-            duration: Duration of the fixation in milliseconds or frames
-            node_id: Optional ID of the node being fixated on
-        """
-        # Ensure position is a list
-        if not isinstance(position, list):
-            try:
-                position = list(position)
-            except:
-                position = [0, 0]  # Fallback if conversion fails
-                
-        data = {
-            "position": position,
-            "duration": float(duration)
-        }
-        
-        if node_id is not None:
-            data["node_id"] = node_id
-            
-        self.log_event("fixation", frame_number, data)
-    
     def log_saccade(self, frame_number: int, start_pos: Union[List[float], Tuple[float, float]], 
                    end_pos: Union[List[float], Tuple[float, float]], source_id: Optional[int] = None, 
                    target_id: Optional[int] = None) -> None:
@@ -235,15 +207,17 @@ class GraphTracer:
         self.log_event("saccade", frame_number, data)
     
     def log_frame_processed(self, frame_number: int, gaze_position: Union[List[float], Tuple[float, float]], 
-                           fixation_state: str, roi: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None) -> None:
+                           gaze_type: int, roi: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None,
+                           node_id: Optional[int] = None) -> None:
         """
         Log a frame processing event.
         
         Args:
             frame_number: Video frame number
             gaze_position: [x, y] gaze position
-            fixation_state: Current fixation state
+            gaze_type: Type of gaze (1 for fixation, 2 for saccade, etc.)
             roi: Optional region of interest in format ((x1, y1), (x2, y2))
+            node_id: Optional ID of the associated node
         """
         # Ensure gaze_position is a list
         if not isinstance(gaze_position, list):
@@ -254,11 +228,14 @@ class GraphTracer:
                 
         data = {
             "gaze_position": gaze_position,
-            "fixation_state": fixation_state
+            "gaze_type": gaze_type
         }
         
         if roi:
             data["roi"] = roi
+            
+        if node_id is not None:
+            data["node_id"] = node_id
             
         self.log_event("frame_processed", frame_number, data)
     
