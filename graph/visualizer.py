@@ -464,8 +464,8 @@ class InteractiveGraphVisualizer:
                         roi = event.data["roi"]
                         fig.add_shape(
                             type="rect",
-                            x0=roi[0], y0=roi[1],
-                            x1=roi[2], y1=roi[3],
+                            x0=roi[0][0], y0=roi[0][1],
+                            x1=roi[1][0], y1=roi[1][1],
                             line=dict(color="green", width=2),
                             name="ROI"
                         )
