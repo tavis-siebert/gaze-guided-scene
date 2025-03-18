@@ -88,10 +88,27 @@ class GraphBuilder:
             'node_data': {}
         }
         results = {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
-        
+
         # Process video frames
-        self._process_frames(video_processor, scene_graph, tracking, timestamps, 
-                           gaze_data, records, vid_length, results)
+        for frame, _, is_black_frame in video_processor:
+            frame_num = tracking['frame_num']
+            
+            # Process current frame
+            should_continue = self._process_frame(
+                frame, is_black_frame, frame_num, scene_graph, tracking,
+                timestamps, gaze_data, records, vid_length, results
+            )
+            
+            if not should_continue:
+                break
+            
+            # Update frame counters
+            tracking['relative_frame_num'] += 1
+            tracking['frame_num'] += 1
+
+        # Handle final fixation if video ends during fixation
+        if tracking['potential_labels']:
+            self._finish_final_fixation(scene_graph, tracking, gaze_data)
         
         # Print final graph if requested
         if print_graph and scene_graph.num_nodes > 0:
@@ -99,10 +116,12 @@ class GraphBuilder:
             scene_graph.print_graph()
         
         return results
-    
-    def _process_frames(
+
+    def _process_frame(
         self, 
-        video_processor: VideoProcessor,
+        frame: torch.Tensor,
+        is_black_frame: bool,
+        frame_num: int,
         scene_graph: Graph,
         tracking: Dict[str, Any],
         timestamps: List[int],
@@ -110,48 +129,50 @@ class GraphBuilder:
         records: List[Record],
         vid_length: int,
         results: Dict[str, List]
-    ) -> None:
-        """Process all frames in a video to build the scene graph."""
-        for frame, _, is_black_frame in video_processor:
-            frame_num = tracking['frame_num']
-                
-            # Skip black frames
-            if is_black_frame:
-                self._log_frame(frame_num, gaze_data, -1, None, scene_graph)
-                tracking['frame_num'] += 1
-                continue
-                
-            # Check if we need to save graph state at this timestamp
-            if scene_graph.edge_data and (frame_num in timestamps or frame_num >= len(gaze_data)):
-                self._save_graph_state(scene_graph, tracking, records, frame_num, 
-                                     timestamps, gaze_data, vid_length, results)
-                
-                # Exit if we've reached the final condition
-                if frame_num == timestamps[-1] or frame_num >= len(gaze_data):
-                    logger.info(f"[Frame {frame_num}] Reached final timestamp or end of gaze data")
-                    break
-            
-            # Process current frame
-            if frame_num < len(gaze_data):
-                gaze_type = int(gaze_data[frame_num, 2])
-                gaze_pos = gaze_data[frame_num, :2]
-                
-                if gaze_type == 1:  # Fixation
-                    self._handle_fixation(frame, frame_num, gaze_pos, tracking, scene_graph)
-                elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
-                    self._handle_saccade(frame_num, scene_graph, tracking, gaze_pos)
-                else:
-                    self._log_frame(frame_num, gaze_data, gaze_type, None, scene_graph)
-            else:
-                self._log_frame(frame_num, None, 0, None, scene_graph)
-            
-            # Update frame counters
-            tracking['relative_frame_num'] += 1
-            tracking['frame_num'] += 1
+    ) -> bool:
+        """Process a single frame and update the scene graph accordingly.
         
-        # Handle final fixation if video ends during fixation
-        if tracking['potential_labels']:
-            self._finish_final_fixation(scene_graph, tracking, gaze_data)
+        Returns:
+            bool: False if processing should stop, True to continue
+        """
+        # Skip black frames without tracing
+        if is_black_frame:
+            return True
+
+        # Check if we need to save graph state at this timestamp
+        if scene_graph.edge_data and (frame_num in timestamps or frame_num >= len(gaze_data)):
+            self._save_graph_state(scene_graph, tracking, records, frame_num, 
+                                 timestamps, gaze_data, vid_length, results)
+            
+            # Exit if we've reached the final condition
+            if frame_num == timestamps[-1] or frame_num >= len(gaze_data):
+                logger.info(f"[Frame {frame_num}] Reached final timestamp or end of gaze data")
+                return False
+
+        # Only process and trace frames with valid gaze data
+        if frame_num < len(gaze_data):
+            self._process_frame_with_gaze(frame, frame_num, gaze_data, tracking, scene_graph)
+            
+        return True
+
+    def _process_frame_with_gaze(
+        self,
+        frame: torch.Tensor,
+        frame_num: int,
+        gaze_data: Any,
+        tracking: Dict[str, Any],
+        scene_graph: Graph
+    ) -> None:
+        """Process a frame using available gaze data."""
+        gaze_type = int(gaze_data[frame_num, 2])
+        gaze_pos = gaze_data[frame_num, :2]
+        
+        if gaze_type == 1:  # Fixation
+            self._handle_fixation(frame, frame_num, gaze_pos, tracking, scene_graph)
+        elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
+            self._handle_saccade(frame_num, scene_graph, tracking, gaze_pos)
+        else:
+            self._log_frame(frame_num, gaze_data, gaze_type, None, scene_graph)
     
     def _handle_fixation(
         self,
