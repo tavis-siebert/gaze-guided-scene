@@ -139,7 +139,7 @@ class InteractiveGraphVisualizer:
         self.playback = GraphPlayback(trace_file_path)
         self.video_path = video_path
         self.video_capture = None
-        self.play_interval_ms = 100  # 10 FPS playback speed
+        self.play_interval_ms = 1000 // 24  # 24 FPS playback speed
         self.video_lock = threading.Lock()
         self.frame_cache = {}
         self.max_cache_size = 100  # Maximum number of frames to keep in memory
