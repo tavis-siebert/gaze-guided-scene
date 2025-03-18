@@ -157,72 +157,21 @@ class GraphTracer:
             
         self.log_event("edge_added", frame_number, data)
     
-    def log_saccade(self, frame_number: int, start_pos: Union[List[float], Tuple[float, float]], 
-                   end_pos: Union[List[float], Tuple[float, float]], source_id: Optional[int] = None, 
-                   target_id: Optional[int] = None) -> None:
+    def log_frame(self, frame_number: int, gaze_position: Optional[List[float]], 
+                 gaze_type: int, node_id: Optional[int] = None) -> None:
         """
-        Log a saccade event.
+        Log a frame event.
         
         Args:
             frame_number: Video frame number
-            start_pos: [x, y] starting position of the saccade
-            end_pos: [x, y] ending position of the saccade
-            source_id: Optional ID of the source node
-            target_id: Optional ID of the target node
-        """
-        # Ensure positions are lists
-        if not isinstance(start_pos, list):
-            try:
-                start_pos = list(start_pos)
-            except:
-                start_pos = [0, 0]  # Fallback if conversion fails
-                
-        if not isinstance(end_pos, list):
-            try:
-                end_pos = list(end_pos)
-            except:
-                end_pos = [0, 0]  # Fallback if conversion fails
-                
-        data = {
-            "start_position": start_pos,
-            "end_position": end_pos
-        }
-        
-        if source_id is not None:
-            data["source_id"] = source_id
-            
-        if target_id is not None:
-            data["target_id"] = target_id
-            
-        self.log_event("saccade", frame_number, data)
-    
-    def log_frame_processed(self, frame_number: int, gaze_position: Union[List[float], Tuple[float, float]], 
-                           gaze_type: int, roi: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None,
-                           node_id: Optional[int] = None) -> None:
-        """
-        Log a frame processing event.
-        
-        Args:
-            frame_number: Video frame number
-            gaze_position: [x, y] gaze position
+            gaze_position: Optional [x, y] gaze position
             gaze_type: Type of gaze (1 for fixation, 2 for saccade, etc.)
-            roi: Optional region of interest in format ((x1, y1), (x2, y2))
             node_id: Optional ID of the associated node
         """
-        # Ensure gaze_position is a list
-        if not isinstance(gaze_position, list):
-            try:
-                gaze_position = list(gaze_position)
-            except:
-                gaze_position = [0, 0]  # Fallback if conversion fails
-                
         data = {
             "gaze_position": gaze_position,
             "gaze_type": gaze_type
         }
-        
-        if roi:
-            data["roi"] = roi
             
         if node_id is not None:
             data["node_id"] = node_id

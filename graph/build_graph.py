@@ -135,6 +135,17 @@ class GraphBuilder:
         Returns:
             bool: False if processing should stop, True to continue
         """
+        # Get current gaze data if available
+        gaze_pos = None
+        gaze_type = None
+        if frame_num < len(gaze_data):
+            gaze_pos = gaze_data[frame_num, :2].tolist()
+            gaze_type = int(gaze_data[frame_num, 2])
+
+        # Log frame processing
+        node_id = scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
+        self.tracer.log_frame(frame_num, gaze_pos, gaze_type, node_id)
+
         # Skip black frames without tracing
         if is_black_frame:
             return True
@@ -151,7 +162,7 @@ class GraphBuilder:
 
         # Only process and trace frames with valid gaze data
         if frame_num < len(gaze_data):
-            self._process_frame_with_gaze(frame, frame_num, gaze_data, tracking, scene_graph)
+            self._process_frame_with_gaze(frame, frame_num, gaze_data, tracking)
             
         return True
 
@@ -160,27 +171,23 @@ class GraphBuilder:
         frame: torch.Tensor,
         frame_num: int,
         gaze_data: Any,
-        tracking: Dict[str, Any],
-        scene_graph: Graph
+        tracking: Dict[str, Any]
     ) -> None:
         """Process a frame using available gaze data."""
         gaze_type = int(gaze_data[frame_num, 2])
         gaze_pos = gaze_data[frame_num, :2]
         
         if gaze_type == 1:  # Fixation
-            self._handle_fixation(frame, frame_num, gaze_pos, tracking, scene_graph)
+            self._handle_fixation(frame, frame_num, gaze_pos, tracking)
         elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
-            self._handle_saccade(frame_num, scene_graph, tracking, gaze_pos)
-        else:
-            self._log_frame(frame_num, gaze_data, gaze_type, None, scene_graph)
-    
+            self._handle_saccade(frame_num, tracking, gaze_pos)
+
     def _handle_fixation(
         self,
         frame: torch.Tensor,
         frame_num: int,
         gaze_pos: Tuple[float, float],
-        tracking: Dict[str, Any],
-        scene_graph: Graph
+        tracking: Dict[str, Any]
     ) -> None:
         """Handle a fixation frame."""
         # Record start of visit if this is the first fixation
@@ -199,14 +206,10 @@ class GraphBuilder:
         tracking['descriptors'].append(desc)
         
         logger.info(f"[Frame {frame_num}] CLIP detected: {label} (count: {tracking['potential_labels'][label]})")
-        
-        # Log frame with fixation data
-        self._log_frame(frame_num, None, 1, roi_coords, scene_graph)
     
     def _handle_saccade(
         self,
         frame_num: int,
-        scene_graph: Graph,
         tracking: Dict[str, Any],
         curr_pos: Tuple[float, float]
     ) -> None:
@@ -221,16 +224,6 @@ class GraphBuilder:
         logger.info(f"\n[Frame {frame_num}] Saccade detected:")
         logger.info(f"- Most likely object: {most_likely_label}")
         logger.info(f"- Visit duration: {fixation_duration} frames")
-        
-        # Log saccade for tracing
-        prev_pos = tracking['prev_gaze_pos']
-        self.tracer.log_saccade(
-            frame_num,
-            list(prev_pos) if not isinstance(prev_pos, list) else prev_pos,
-            list(curr_pos) if not isinstance(curr_pos, list) else curr_pos,
-            scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None,
-            None  # Target node not known yet
-        )
         
         # Update graph with new observation
         prev_node_id = scene_graph.current_node.id
@@ -280,9 +273,6 @@ class GraphBuilder:
         tracking['keypoints'], tracking['descriptors'] = [], []
         tracking['prev_gaze_pos'] = curr_pos
         tracking['potential_labels'] = defaultdict(int)
-        
-        # Log frame with updated node
-        self._log_frame(frame_num, None, 2, None, scene_graph)
     
     def _finish_final_fixation(
         self,
@@ -309,9 +299,6 @@ class GraphBuilder:
             tracking['prev_gaze_pos'],
             last_gaze_pos
         )
-        
-        # Log final frame
-        self._log_frame(tracking['frame_num'], None, 1, None, scene_graph)
     
     def _save_graph_state(
         self,
@@ -366,34 +353,6 @@ class GraphBuilder:
         results['edge_index'].append(edge_indices)
         results['edge_attr'].append(edge_features)
         results['y'].append(action_labels)
-    
-    def _log_frame(
-        self,
-        frame_num: int,
-        gaze_data: Any,
-        gaze_type: int,
-        roi_coords: Optional[Tuple],
-        scene_graph: Graph
-    ) -> None:
-        """Log frame information for tracing."""
-        if not self.tracer:
-            return
-            
-        # Get gaze position
-        if gaze_data is not None and frame_num < len(gaze_data):
-            gaze_pos = gaze_data[frame_num, :2]
-        else:
-            gaze_pos = (-1, -1)
-            
-        # Ensure gaze position is a list
-        if not isinstance(gaze_pos, list):
-            gaze_pos = list(gaze_pos)
-            
-        # Get current node ID
-        node_id = scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
-            
-        # Log frame processing
-        self.tracer.log_frame_processed(frame_num, gaze_pos, gaze_type, roi_coords, node_id)
 
 def build_graph(
     video_list: List[str], 
