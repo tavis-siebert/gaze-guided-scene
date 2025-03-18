@@ -104,16 +104,6 @@ class GraphTracer:
             # Convert to string if not a basic type
             return str(data)
     
-    def log_graph_snapshot(self, frame_number: int, graph_data: Dict[str, Any]) -> None:
-        """
-        Log a complete snapshot of the graph state.
-        
-        Args:
-            frame_number: Video frame number when the snapshot was taken
-            graph_data: Complete graph state data
-        """
-        self.log_event("graph_snapshot", frame_number, graph_data)
-    
     def log_node_added(self, frame_number: int, node_id: int, label: str, 
                       position: List[float], features: Optional[Dict[str, Any]] = None) -> None:
         """
