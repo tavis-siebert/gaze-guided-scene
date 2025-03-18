@@ -1,11 +1,7 @@
-"""
-Graph visualization utilities for efficient construction and interaction.
-"""
-
-import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from collections import defaultdict, deque
+import json
 import numpy as np
 import cv2
 import networkx as nx
@@ -24,11 +20,8 @@ from egtea_gaze.constants import (
 )
 
 class GraphVisualizer:
-    """Static utilities for basic graph visualization."""
-    
     @staticmethod
     def format_node_info(node: Any, prev_obj: str, theta: Any) -> Dict[str, Any]:
-        """Format node information for display."""
         return {
             'object': getattr(node, 'object_label', str(node)),
             'from': prev_obj,
@@ -37,7 +30,6 @@ class GraphVisualizer:
     
     @staticmethod
     def print_node_info(node_info: Dict[str, Any]) -> None:
-        """Print formatted node information."""
         print('-----------------')
         print(f'Object: {node_info["object"]}')
         print(f'Visited from: {node_info["from"]}')
@@ -45,7 +37,6 @@ class GraphVisualizer:
     
     @staticmethod
     def print_levels(start_node: Any) -> None:
-        """Print graph structure by levels."""
         visited = set([start_node])
         queue = deque([(start_node, 'none', 'none')])
         
@@ -59,7 +50,6 @@ class GraphVisualizer:
                 node_info = GraphVisualizer.format_node_info(node, prev_obj, theta)
                 GraphVisualizer.print_node_info(node_info)
                 
-                # Add unvisited neighbors
                 if hasattr(node, 'neighbors'):
                     for neighbor, angle, _ in node.neighbors:
                         if neighbor not in visited:
@@ -70,8 +60,6 @@ class GraphVisualizer:
             curr_depth += 1
 
 class GraphEvent:
-    """Represents a single graph construction event from the trace file."""
-    
     def __init__(self, event_data: Dict[str, Any]):
         self.event_type = event_data["event_type"]
         self.frame_number = event_data["frame_number"]
@@ -80,8 +68,6 @@ class GraphEvent:
         self.data = event_data["data"]
 
 class GraphPlayback:
-    """Manages the playback of graph construction events."""
-    
     def __init__(self, trace_file_path: str):
         self.trace_file_path = Path(trace_file_path)
         self.graph = nx.DiGraph()
@@ -91,7 +77,6 @@ class GraphPlayback:
         self._load_events()
     
     def _load_events(self) -> None:
-        """Load and index events from the trace file."""
         self.events = []
         self.frame_to_events = defaultdict(list)
         
@@ -107,11 +92,9 @@ class GraphPlayback:
         self.max_frame = max(frames) if frames else 0
     
     def get_events_for_frame(self, frame_number: int) -> List[GraphEvent]:
-        """Get all events for a specific frame."""
         return self.frame_to_events.get(frame_number, [])
     
     def _process_event(self, event: GraphEvent) -> None:
-        """Process a single event and update the graph accordingly."""
         if event.event_type == "node_added":
             self.graph.add_node(
                 event.data["node_id"],
@@ -130,7 +113,6 @@ class GraphPlayback:
             self.last_added_edge = (source_id, target_id)
     
     def build_graph_until_frame(self, frame_number: int) -> nx.DiGraph:
-        """Build the graph state up to a specific frame."""
         if frame_number < self.last_built_frame:
             self.graph = nx.DiGraph()
             self.last_built_frame = -1
@@ -146,18 +128,15 @@ class GraphPlayback:
         return self.graph
 
 class InteractiveGraphVisualizer:
-    """Interactive dashboard for visualizing graph construction."""
-    
     def __init__(self, trace_file_path: str, video_path: Optional[str] = None):
         self.playback = GraphPlayback(trace_file_path)
         self.video_path = video_path
         self.video_capture = None
-        self.play_interval_ms = 1000 // 24  # 24 FPS playback speed
+        self.play_interval_ms = 1000 // 24
         self.video_lock = threading.Lock()
         self.frame_cache = {}
-        self.max_cache_size = 100  # Maximum number of frames to keep in memory
+        self.max_cache_size = 100
         
-        # Define gaze type mappings
         self.gaze_type_info = {
             GAZE_TYPE_UNTRACKED: {"color": "gray", "label": "Untracked"},
             GAZE_TYPE_FIXATION: {"color": "blue", "label": "Fixation"},
@@ -166,32 +145,27 @@ class InteractiveGraphVisualizer:
             GAZE_TYPE_TRUNCATED: {"color": "orange", "label": "Truncated"}
         }
         
-        # Define node styling
         self.node_background = {
             "default": "gray",
             "last_added": "blue"
         }
         self.node_border = {
             "default": "black",
-            "current": self.gaze_type_info[GAZE_TYPE_FIXATION]["color"]  # Use fixation color (blue) for active node
+            "current": self.gaze_type_info[GAZE_TYPE_FIXATION]["color"]
         }
         
         self._setup_video_capture()
         self.app = self._create_dashboard()
     
     def _setup_video_capture(self) -> None:
-        """Set up video capture if a valid path is provided."""
         if self.video_path and Path(self.video_path).exists():
             self.video_capture = cv2.VideoCapture(self.video_path)
-            # Set OpenCV to use a single thread for video decoding
             cv2.setNumThreads(1)
     
     def _get_video_frame(self, frame_number: int) -> Optional[np.ndarray]:
-        """Thread-safe method to get a video frame."""
         if self.video_capture is None:
             return None
             
-        # Check cache first
         if frame_number in self.frame_cache:
             return self.frame_cache[frame_number]
             
@@ -202,12 +176,9 @@ class InteractiveGraphVisualizer:
             if not success:
                 return None
                 
-            # Convert to RGB
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Update cache
             if len(self.frame_cache) >= self.max_cache_size:
-                # Remove oldest frame
                 oldest_frame = min(self.frame_cache.keys())
                 del self.frame_cache[oldest_frame]
             
@@ -215,65 +186,48 @@ class InteractiveGraphVisualizer:
             return frame_rgb
     
     def _create_dashboard(self) -> dash.Dash:
-        """Create the Dash application."""
         app = dash.Dash(
             __name__, 
             external_stylesheets=[dbc.themes.BOOTSTRAP],
-            update_title=None,  # Disable the "Updating..." message
-            suppress_callback_exceptions=True  # Allow for dynamic callbacks
+            update_title=None,
+            suppress_callback_exceptions=True
         )
         
-        # Enable Dash's callback queue to prevent concurrent callback execution
         app.enable_dev_tools(
             dev_tools_hot_reload=False,
             dev_tools_ui=False,
             dev_tools_serve_dev_bundles=False
         )
         
-        # Build layout
         app.layout = self._create_layout()
-        
-        # Register callbacks
         self._register_callbacks(app)
         
         return app
     
     def _create_layout(self) -> dbc.Container:
-        """Create the application layout."""
         return dbc.Container([
-            # Store for play state
             dcc.Store(id='play-state', data={'is_playing': False, 'last_update': 0}),
-            
-            # Interval for auto-playback
             dcc.Interval(
                 id='auto-advance',
                 interval=self.play_interval_ms,
                 disabled=True,
-                max_intervals=-1  # Run indefinitely when enabled
+                max_intervals=-1
             ),
-            
-            # Visualization panels
             dbc.Row([
-                # Left column - Video display
                 dbc.Col([
                     html.H4("Video Feed", className="text-center"),
                     dcc.Graph(id="video-display"),
                 ], width=6),
-                
-                # Right column - Graph display
                 dbc.Col([
                     html.H4("Graph Visualization", className="text-center"),
                     dcc.Graph(id="graph-display"),
                 ], width=6),
             ]),
-            
-            # Navigation controls
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
                             dbc.Row([
-                                # Playback controls
                                 dbc.Col([
                                     html.Div([
                                         dbc.Button("← Prev", id="prev-frame", n_clicks=0, color="primary", className="me-2"),
@@ -281,16 +235,12 @@ class InteractiveGraphVisualizer:
                                         dbc.Button("Next →", id="next-frame", n_clicks=0, color="primary"),
                                     ], className="d-flex justify-content-center"),
                                 ], width=4),
-                                
-                                # Current frame display
                                 dbc.Col([
                                     html.Div([
                                         html.Span("Current Frame: ", className="me-2"),
                                         html.Strong(id="current-frame-display"),
                                     ], className="d-flex justify-content-center align-items-center h-100"),
                                 ], width=4),
-                                
-                                # Frame slider
                                 dbc.Col([
                                     dcc.Slider(
                                         id="frame-slider",
@@ -309,8 +259,6 @@ class InteractiveGraphVisualizer:
         ], fluid=True)
     
     def _register_callbacks(self, app: dash.Dash) -> None:
-        """Register all necessary callbacks."""
-        # Callback for play/pause toggling
         @app.callback(
             [Output("play-state", "data"),
              Output("auto-advance", "disabled"),
@@ -320,10 +268,8 @@ class InteractiveGraphVisualizer:
         )
         def toggle_play_state(play_clicks, current_state):
             if not play_clicks:
-                # Initial state
                 return current_state, True, "Play"
                 
-            # Toggle the play state
             is_playing = not current_state.get('is_playing', False)
             new_state = {
                 'is_playing': is_playing, 
@@ -332,7 +278,6 @@ class InteractiveGraphVisualizer:
             
             return new_state, not is_playing, "Pause" if is_playing else "Play"
         
-        # Callback for frame navigation and display updates
         @app.callback(
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
@@ -362,7 +307,6 @@ class InteractiveGraphVisualizer:
             )
     
     def _determine_frame_number(self, ctx, slider_frame, current_frame, play_state) -> int:
-        """Determine the current frame number based on user interaction."""
         if not ctx.triggered:
             return slider_frame
         
@@ -382,7 +326,6 @@ class InteractiveGraphVisualizer:
             return slider_frame
     
     def _create_empty_figure(self, height: int = 400) -> go.Figure:
-        """Create an empty figure with standard layout."""
         fig = go.Figure()
         fig.update_layout(
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
@@ -393,7 +336,6 @@ class InteractiveGraphVisualizer:
         return fig
 
     def _add_gaze_overlay(self, fig: go.Figure, frame_number: int, frame_width: int, frame_height: int) -> None:
-        """Add gaze position overlay to the figure."""
         events = self.playback.get_events_for_frame(frame_number)
         for event in events:
             if event.event_type == "frame_processed":
@@ -403,8 +345,6 @@ class InteractiveGraphVisualizer:
                     
                 x, y = pos[0] * frame_width, pos[1] * frame_height
                 gaze_type = event.data["gaze_type"]
-                
-                # Get gaze type info from mapping dictionary with default fallback
                 gaze_info = self.gaze_type_info.get(gaze_type, {
                     "color": "black", 
                     "label": f"Other ({gaze_type})"
@@ -420,7 +360,6 @@ class InteractiveGraphVisualizer:
                 ))
 
     def _create_video_figure(self, frame_number: int) -> go.Figure:
-        """Create video frame figure with gaze overlay."""
         fig = self._create_empty_figure()
         
         frame = self._get_video_frame(frame_number)
@@ -428,15 +367,9 @@ class InteractiveGraphVisualizer:
             return fig
             
         frame_height, frame_width = frame.shape[:2]
-        
-        # Add frame image
         fig.add_trace(go.Image(z=frame))
-        
-        # Add gaze overlay
         self._add_gaze_overlay(fig, frame_number, frame_width, frame_height)
         
-        # Explicitly set fixed axes ranges to prevent figure resizing
-        # Set y-axis range to [frame_height, 0] to match image coordinates (0 at top)
         fig.update_layout(
             xaxis=dict(
                 range=[0, frame_width],
@@ -446,7 +379,7 @@ class InteractiveGraphVisualizer:
                 constrain="domain"
             ),
             yaxis=dict(
-                range=[frame_height, 0],  # Reversed to match image coordinates
+                range=[frame_height, 0],
                 showgrid=False, 
                 zeroline=False, 
                 visible=False,
@@ -463,7 +396,6 @@ class InteractiveGraphVisualizer:
         return fig
     
     def _get_current_node_id(self, frame_number: int) -> Optional[Any]:
-        """Extract current node ID from frame events."""
         events = self.playback.get_events_for_frame(frame_number)
         for event in events:
             if event.event_type == "frame_processed" and 'node_id' in event.data:
@@ -471,8 +403,6 @@ class InteractiveGraphVisualizer:
         return None
     
     def _add_edges_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
-        """Add edges to the graph figure."""
-        # Process regular edges and last added edge separately
         regular_edge_x, regular_edge_y = [], []
         last_edge_x, last_edge_y = [], []
         
@@ -480,7 +410,6 @@ class InteractiveGraphVisualizer:
             x0, y0 = pos[edge[0]]
             x1, y1 = pos[edge[1]]
             
-            # Check if this is the last added edge
             if edge == self.playback.last_added_edge:
                 last_edge_x.extend([x0, x1, None])
                 last_edge_y.extend([y0, y1, None])
@@ -488,7 +417,6 @@ class InteractiveGraphVisualizer:
                 regular_edge_x.extend([x0, x1, None])
                 regular_edge_y.extend([y0, y1, None])
         
-        # Add regular edges
         if regular_edge_x:
             fig.add_trace(go.Scatter(
                 x=regular_edge_x, y=regular_edge_y,
@@ -498,7 +426,6 @@ class InteractiveGraphVisualizer:
                 showlegend=False
             ))
         
-        # Add highlighted last edge
         if last_edge_x:
             fig.add_trace(go.Scatter(
                 x=last_edge_x, y=last_edge_y,
@@ -509,13 +436,11 @@ class InteractiveGraphVisualizer:
             ))
 
     def _format_node_label(self, label: str) -> str:
-        """Format node label by splitting on underscore, capitalizing each word, and joining with line breaks."""
         words = label.split('_')
         capitalized_words = [word.capitalize() for word in words]
-        return '<br>'.join(capitalized_words)  # Use HTML line break for Plotly text
+        return '<br>'.join(capitalized_words)
 
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, current_node_id: Any) -> None:
-        """Add nodes to the graph figure."""
         node_x, node_y, node_text, node_hover_text = [], [], [], []
         node_colors, node_border_colors = [], []
         
@@ -524,26 +449,19 @@ class InteractiveGraphVisualizer:
             node_x.append(x)
             node_y.append(y)
             
-            # Get the label and format it
             raw_label = G.nodes[node]['label']
             formatted_label = self._format_node_label(raw_label)
             node_text.append(formatted_label)
             
-            # Full information for hover text (use space-separated version for hover)
             hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
             node_hover_text.append(f"Node {node}: {hover_label}")
             
-            # Apply different styling for special nodes
             is_current = node == current_node_id
             is_last_added = node == self.playback.last_added_node
             
-            # Set node border color
             node_border_colors.append(self.node_border["current"] if is_current else self.node_border["default"])
-            
-            # Set node background color
             node_colors.append(self.node_background["last_added"] if is_last_added else self.node_background["default"])
         
-        # Larger node size to fit formatted text with line breaks
         base_size = 60
         
         fig.add_trace(go.Scatter(
@@ -556,34 +474,29 @@ class InteractiveGraphVisualizer:
             ),
             text=node_text,
             textposition="middle center",
-            textfont=dict(size=11, color='white'),  # White text for better visibility on blue nodes
+            textfont=dict(size=11, color='white'),
             hovertext=node_hover_text,
             hoverinfo='text',
             showlegend=False
         ))
     
     def _create_graph_figure(self, frame_number: int) -> go.Figure:
-        """Create graph visualization figure."""
         G = self.playback.build_graph_until_frame(frame_number)
         fig = go.Figure()
         
         if len(G.nodes) > 0:
-            # Use Kamada-Kawai layout for better node placement
             pos = nx.kamada_kawai_layout(G)
-            
-            # Get current node ID
             current_node_id = self._get_current_node_id(frame_number)
             
-            # Add edges and nodes to figure
             self._add_edges_to_figure(fig, G, pos)
             self._add_nodes_to_figure(fig, G, pos, current_node_id)
         
         fig.update_layout(
             showlegend=False,
-            margin=dict(l=20, r=20, t=20, b=20),  # Added some margin for better visualization
+            margin=dict(l=20, r=20, t=20, b=20),
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
             yaxis=dict(showgrid=False, zeroline=False, visible=False),
-            height=450,  # Increased height to accommodate better spacing
+            height=450,
             plot_bgcolor='white',
             paper_bgcolor='white'
         )
@@ -591,7 +504,6 @@ class InteractiveGraphVisualizer:
         return fig
     
     def run_server(self, debug: bool = False, port: int = 8050) -> None:
-        """Run the visualization server."""
         self.app.run(debug=debug, port=port)
 
 def visualize_graph_construction(
@@ -600,6 +512,5 @@ def visualize_graph_construction(
     port: int = 8050,
     debug: bool = False
 ) -> None:
-    """Launch the interactive visualization dashboard."""
     visualizer = InteractiveGraphVisualizer(trace_file, video_path)
-    visualizer.run_server(debug=debug, port=port) 
+    visualizer.run_server(debug=debug, port=port)
