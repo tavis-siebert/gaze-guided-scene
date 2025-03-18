@@ -4,8 +4,8 @@ Simplified graph visualization utilities focusing on core functionality.
 
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from collections import defaultdict
+from typing import Dict, List, Any, Optional, Set
+from collections import defaultdict, deque
 import numpy as np
 import cv2
 import networkx as nx
@@ -13,6 +13,52 @@ import dash
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
+
+class GraphVisualizer:
+    """Static utilities for basic graph visualization."""
+    
+    @staticmethod
+    def format_node_info(node: Any, prev_obj: str, theta: Any, use_degrees: bool = True) -> Dict[str, Any]:
+        """Format node information for display."""
+        return {
+            'object': getattr(node, 'object_label', str(node)),
+            'from': prev_obj,
+            'angle': theta
+        }
+    
+    @staticmethod
+    def print_node_info(node_info: Dict[str, Any]) -> None:
+        """Print formatted node information."""
+        print('-----------------')
+        print(f'Object: {node_info["object"]}')
+        print(f'Visited from: {node_info["from"]}')
+        print(f'Angle from prev: {node_info["angle"]}')
+    
+    @staticmethod
+    def print_levels(start_node: Any, use_degrees: bool = True) -> None:
+        """Print graph structure by levels."""
+        visited = set([start_node])
+        queue = deque([(start_node, 'none', 'none')])
+        
+        curr_depth = 0
+        while queue:
+            level_size = len(queue)
+            print(f'Depth: {curr_depth}')
+            
+            for _ in range(level_size):
+                node, prev_obj, theta = queue.popleft()
+                node_info = GraphVisualizer.format_node_info(node, prev_obj, theta, use_degrees)
+                GraphVisualizer.print_node_info(node_info)
+                
+                # Add unvisited neighbors
+                if hasattr(node, 'neighbors'):
+                    for neighbor, angle, _ in node.neighbors:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append((neighbor, getattr(node, 'object_label', str(node)), angle))
+            
+            print('================')
+            curr_depth += 1
 
 class GraphEvent:
     """Represents a single graph construction event from the trace file."""
@@ -238,6 +284,13 @@ def visualize_graph_construction(
     port: int = 8050,
     debug: bool = False
 ) -> None:
-    """Launch the interactive visualization dashboard."""
+    """Launch the interactive visualization dashboard.
+    
+    Args:
+        trace_file: Full path to the trace file
+        video_path: Full path to the video file (optional)
+        port: Port to run the server on
+        debug: Whether to run in debug mode
+    """
     visualizer = InteractiveGraphVisualizer(trace_file, video_path)
     visualizer.run_server(debug=debug, port=port) 
