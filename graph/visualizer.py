@@ -372,12 +372,11 @@ class InteractiveGraphVisualizer:
                 x, y = pos[0] * frame_width, pos[1] * frame_height
                 gaze_type = event.data["gaze_type"]
                 color = "blue" if gaze_type == 1 else "red" if gaze_type == 2 else "gray"
-                size = 15 if gaze_type in [1, 2] else 10
                 
                 fig.add_trace(go.Scatter(
                     x=[x], y=[y],
                     mode="markers",
-                    marker=dict(size=size, color=color),
+                    marker=dict(size=15, color=color),
                     showlegend=False
                 ))
 
@@ -391,8 +390,36 @@ class InteractiveGraphVisualizer:
             
         frame_height, frame_width = frame.shape[:2]
         
+        # Add frame image
         fig.add_trace(go.Image(z=frame))
+        
+        # Add gaze overlay
         self._add_gaze_overlay(fig, frame_number, frame_width, frame_height)
+        
+        # Explicitly set fixed axes ranges to prevent figure resizing
+        # Set y-axis range to [frame_height, 0] to match image coordinates (0 at top)
+        fig.update_layout(
+            xaxis=dict(
+                range=[0, frame_width],
+                showgrid=False, 
+                zeroline=False, 
+                visible=False,
+                constrain="domain"
+            ),
+            yaxis=dict(
+                range=[frame_height, 0],  # Reversed to match image coordinates
+                showgrid=False, 
+                zeroline=False, 
+                visible=False,
+                scaleanchor="x", 
+                scaleratio=1,
+                constrain="domain"
+            ),
+            margin=dict(l=0, r=0, t=0, b=0),
+            autosize=False,
+            width=frame_width,
+            height=frame_height
+        )
         
         return fig
     
