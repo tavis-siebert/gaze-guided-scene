@@ -14,6 +14,8 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
+import threading
+from functools import lru_cache
 
 class GraphVisualizer:
     """Static utilities for basic graph visualization."""
@@ -134,15 +136,59 @@ class InteractiveGraphVisualizer:
         self.video_path = video_path
         self.video_capture = None
         self.play_interval_ms = 100  # 10 FPS playback speed
+        self.video_lock = threading.Lock()
+        self.frame_cache = {}
+        self.max_cache_size = 100  # Maximum number of frames to keep in memory
         
         if video_path and Path(video_path).exists():
             self.video_capture = cv2.VideoCapture(video_path)
+            # Set OpenCV to use a single thread for video decoding
+            cv2.setNumThreads(1)
         
         self.app = self._create_dashboard()
     
+    def _get_video_frame(self, frame_number: int) -> Optional[np.ndarray]:
+        """Thread-safe method to get a video frame."""
+        if self.video_capture is None:
+            return None
+            
+        # Check cache first
+        if frame_number in self.frame_cache:
+            return self.frame_cache[frame_number]
+            
+        with self.video_lock:
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+            success, frame = self.video_capture.read()
+            
+            if not success:
+                return None
+                
+            # Convert to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Update cache
+            if len(self.frame_cache) >= self.max_cache_size:
+                # Remove oldest frame
+                oldest_frame = min(self.frame_cache.keys())
+                del self.frame_cache[oldest_frame]
+            
+            self.frame_cache[frame_number] = frame_rgb
+            return frame_rgb
+    
     def _create_dashboard(self) -> dash.Dash:
         """Create the Dash application."""
-        app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+        app = dash.Dash(
+            __name__, 
+            external_stylesheets=[dbc.themes.BOOTSTRAP],
+            update_title=None  # Disable the "Updating..." message
+        )
+        
+        # Enable Dash's callback queue to prevent concurrent callback execution
+        app.enable_dev_tools(
+            dev_tools_hot_reload=False,
+            dev_tools_ui=False,
+            dev_tools_serve_dev_bundles=False
+        )
         
         app.layout = dbc.Container([
             # Store for play state
@@ -329,19 +375,13 @@ class InteractiveGraphVisualizer:
         """Create video frame figure with gaze overlay."""
         fig = self._create_empty_figure()
         
-        if self.video_capture is None:
+        frame = self._get_video_frame(frame_number)
+        if frame is None:
             return fig
             
-        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-        success, frame = self.video_capture.read()
+        frame_height, frame_width = frame.shape[:2]
         
-        if not success:
-            return fig
-            
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_height, frame_width = frame_rgb.shape[:2]
-        
-        fig.add_trace(go.Image(z=frame_rgb))
+        fig.add_trace(go.Image(z=frame))
         self._add_gaze_overlay(fig, frame_number, frame_width, frame_height)
         
         return fig
