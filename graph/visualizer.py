@@ -160,6 +160,13 @@ class InteractiveGraphVisualizer:
             GAZE_TYPE_TRUNCATED: {"color": "orange", "label": "Truncated"}
         }
         
+        # Define node styling
+        self.node_background = "gray"  # Gray
+        self.node_border = {
+            "default": "black",
+            "current": self.gaze_type_info[GAZE_TYPE_FIXATION]["color"]  # Use fixation color (blue) for active node
+        }
+        
         self._setup_video_capture()
         self.app = self._create_dashboard()
     
@@ -472,20 +479,49 @@ class InteractiveGraphVisualizer:
                 showlegend=False
             ))
     
+    def _format_node_label(self, label: str) -> str:
+        """Format node label by splitting on underscore, capitalizing each word, and joining with line breaks."""
+        words = label.split('_')
+        capitalized_words = [word.capitalize() for word in words]
+        return '<br>'.join(capitalized_words)  # Use HTML line break for Plotly text
+
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, current_node_id: Any) -> None:
         """Add nodes to the graph figure."""
-        node_x, node_y, node_hover_text, node_colors = [], [], [], []
+        node_x, node_y, node_text, node_hover_text = [], [], [], []
+        node_border_colors = []
+        
         for node in G.nodes():
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
-            node_hover_text.append(f"Node {node}: {G.nodes[node]['label']}")
-            node_colors.append('#ff0000' if node == current_node_id else '#1f77b4')
+            
+            # Get the label and format it
+            raw_label = G.nodes[node]['label']
+            formatted_label = self._format_node_label(raw_label)
+            node_text.append(formatted_label)
+            
+            # Full information for hover text (use space-separated version for hover)
+            hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
+            node_hover_text.append(f"Node {node}: {hover_label}")
+            
+            # Apply different border for current node
+            is_current = node == current_node_id
+            node_border_colors.append(self.node_border["current"] if is_current else self.node_border["default"])
+        
+        # Larger node size to fit formatted text with line breaks
+        base_size = 60
         
         fig.add_trace(go.Scatter(
             x=node_x, y=node_y,
-            mode='markers',
-            marker=dict(size=20, color=node_colors),
+            mode='markers+text',
+            marker=dict(
+                size=base_size,
+                color=self.node_background,
+                line=dict(width=3, color=node_border_colors)
+            ),
+            text=node_text,
+            textposition="middle center",
+            textfont=dict(size=11, color='black'),
             hovertext=node_hover_text,
             hoverinfo='text',
             showlegend=False
@@ -512,7 +548,9 @@ class InteractiveGraphVisualizer:
             margin=dict(l=0, r=0, t=0, b=0),
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
             yaxis=dict(showgrid=False, zeroline=False, visible=False),
-            height=400
+            height=400,
+            plot_bgcolor='white',
+            paper_bgcolor='white'
         )
         
         return fig
