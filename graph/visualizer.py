@@ -15,6 +15,13 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import threading
+from egtea_gaze.constants import (
+    GAZE_TYPE_UNTRACKED,
+    GAZE_TYPE_FIXATION,
+    GAZE_TYPE_SACCADE,
+    GAZE_TYPE_UNKNOWN,
+    GAZE_TYPE_TRUNCATED
+)
 
 class GraphVisualizer:
     """Static utilities for basic graph visualization."""
@@ -143,6 +150,15 @@ class InteractiveGraphVisualizer:
         self.video_lock = threading.Lock()
         self.frame_cache = {}
         self.max_cache_size = 100  # Maximum number of frames to keep in memory
+        
+        # Define gaze type mappings
+        self.gaze_type_info = {
+            GAZE_TYPE_UNTRACKED: {"color": "gray", "label": "Untracked"},
+            GAZE_TYPE_FIXATION: {"color": "blue", "label": "Fixation"},
+            GAZE_TYPE_SACCADE: {"color": "red", "label": "Saccade"},
+            GAZE_TYPE_UNKNOWN: {"color": "purple", "label": "Unknown"},
+            GAZE_TYPE_TRUNCATED: {"color": "orange", "label": "Truncated"}
+        }
         
         self._setup_video_capture()
         self.app = self._create_dashboard()
@@ -371,12 +387,19 @@ class InteractiveGraphVisualizer:
                     
                 x, y = pos[0] * frame_width, pos[1] * frame_height
                 gaze_type = event.data["gaze_type"]
-                color = "blue" if gaze_type == 1 else "red" if gaze_type == 2 else "gray"
+                
+                # Get gaze type info from mapping dictionary with default fallback
+                gaze_info = self.gaze_type_info.get(gaze_type, {
+                    "color": "black", 
+                    "label": f"Other ({gaze_type})"
+                })
                 
                 fig.add_trace(go.Scatter(
                     x=[x], y=[y],
                     mode="markers",
-                    marker=dict(size=15, color=color),
+                    marker=dict(size=15, color=gaze_info["color"]),
+                    hovertext=gaze_info["label"],
+                    hoverinfo='text',
                     showlegend=False
                 ))
 
@@ -451,19 +474,19 @@ class InteractiveGraphVisualizer:
     
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, current_node_id: Any) -> None:
         """Add nodes to the graph figure."""
-        node_x, node_y, node_text, node_colors = [], [], [], []
+        node_x, node_y, node_hover_text, node_colors = [], [], [], []
         for node in G.nodes():
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
-            node_text.append(f"Node {node}: {G.nodes[node]['label']}")
+            node_hover_text.append(f"Node {node}: {G.nodes[node]['label']}")
             node_colors.append('#ff0000' if node == current_node_id else '#1f77b4')
         
         fig.add_trace(go.Scatter(
             x=node_x, y=node_y,
-            mode='markers+text',
+            mode='markers',
             marker=dict(size=20, color=node_colors),
-            text=node_text,
+            hovertext=node_hover_text,
             hoverinfo='text',
             showlegend=False
         ))
