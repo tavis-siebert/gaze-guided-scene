@@ -86,6 +86,8 @@ class GraphPlayback:
         self.trace_file_path = Path(trace_file_path)
         self.graph = nx.DiGraph()
         self.last_built_frame = -1
+        self.last_added_node = None
+        self.last_added_edge = None
         self._load_events()
     
     def _load_events(self) -> None:
@@ -116,12 +118,16 @@ class GraphPlayback:
                 label=event.data["label"],
                 position=event.data["position"]
             )
+            self.last_added_node = event.data["node_id"]
         elif event.event_type == "edge_added":
+            source_id = event.data["source_id"]
+            target_id = event.data["target_id"]
             self.graph.add_edge(
-                event.data["source_id"],
-                event.data["target_id"],
+                source_id,
+                target_id,
                 edge_type=event.data["edge_type"]
             )
+            self.last_added_edge = (source_id, target_id)
     
     def build_graph_until_frame(self, frame_number: int) -> nx.DiGraph:
         """Build the graph state up to a specific frame."""
@@ -161,7 +167,10 @@ class InteractiveGraphVisualizer:
         }
         
         # Define node styling
-        self.node_background = "gray"  # Gray
+        self.node_background = {
+            "default": "gray",
+            "last_added": "blue"
+        }
         self.node_border = {
             "default": "black",
             "current": self.gaze_type_info[GAZE_TYPE_FIXATION]["color"]  # Use fixation color (blue) for active node
@@ -463,22 +472,42 @@ class InteractiveGraphVisualizer:
     
     def _add_edges_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
         """Add edges to the graph figure."""
-        edge_x, edge_y = [], []
+        # Process regular edges and last added edge separately
+        regular_edge_x, regular_edge_y = [], []
+        last_edge_x, last_edge_y = [], []
+        
         for edge in G.edges():
             x0, y0 = pos[edge[0]]
             x1, y1 = pos[edge[1]]
-            edge_x.extend([x0, x1, None])
-            edge_y.extend([y0, y1, None])
+            
+            # Check if this is the last added edge
+            if edge == self.playback.last_added_edge:
+                last_edge_x.extend([x0, x1, None])
+                last_edge_y.extend([y0, y1, None])
+            else:
+                regular_edge_x.extend([x0, x1, None])
+                regular_edge_y.extend([y0, y1, None])
         
-        if edge_x:
+        # Add regular edges
+        if regular_edge_x:
             fig.add_trace(go.Scatter(
-                x=edge_x, y=edge_y,
+                x=regular_edge_x, y=regular_edge_y,
                 mode='lines',
-                line=dict(width=1, color='#888'),
+                line=dict(width=2.5, color='#888'),
                 hoverinfo='none',
                 showlegend=False
             ))
-    
+        
+        # Add highlighted last edge
+        if last_edge_x:
+            fig.add_trace(go.Scatter(
+                x=last_edge_x, y=last_edge_y,
+                mode='lines',
+                line=dict(width=4, color='blue'),
+                hoverinfo='none',
+                showlegend=False
+            ))
+
     def _format_node_label(self, label: str) -> str:
         """Format node label by splitting on underscore, capitalizing each word, and joining with line breaks."""
         words = label.split('_')
@@ -488,7 +517,7 @@ class InteractiveGraphVisualizer:
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, current_node_id: Any) -> None:
         """Add nodes to the graph figure."""
         node_x, node_y, node_text, node_hover_text = [], [], [], []
-        node_border_colors = []
+        node_colors, node_border_colors = [], []
         
         for node in G.nodes():
             x, y = pos[node]
@@ -504,9 +533,15 @@ class InteractiveGraphVisualizer:
             hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
             node_hover_text.append(f"Node {node}: {hover_label}")
             
-            # Apply different border for current node
+            # Apply different styling for special nodes
             is_current = node == current_node_id
+            is_last_added = node == self.playback.last_added_node
+            
+            # Set node border color
             node_border_colors.append(self.node_border["current"] if is_current else self.node_border["default"])
+            
+            # Set node background color
+            node_colors.append(self.node_background["last_added"] if is_last_added else self.node_background["default"])
         
         # Larger node size to fit formatted text with line breaks
         base_size = 60
@@ -516,12 +551,12 @@ class InteractiveGraphVisualizer:
             mode='markers+text',
             marker=dict(
                 size=base_size,
-                color=self.node_background,
+                color=node_colors,
                 line=dict(width=3, color=node_border_colors)
             ),
             text=node_text,
             textposition="middle center",
-            textfont=dict(size=11, color='black'),
+            textfont=dict(size=11, color='white'),  # White text for better visibility on blue nodes
             hovertext=node_hover_text,
             hoverinfo='text',
             showlegend=False
@@ -545,10 +580,10 @@ class InteractiveGraphVisualizer:
         
         fig.update_layout(
             showlegend=False,
-            margin=dict(l=0, r=0, t=0, b=0),
+            margin=dict(l=20, r=20, t=20, b=20),  # Added some margin for better visualization
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
             yaxis=dict(showgrid=False, zeroline=False, visible=False),
-            height=400,
+            height=450,  # Increased height to accommodate better spacing
             plot_bgcolor='white',
             paper_bgcolor='white'
         )
