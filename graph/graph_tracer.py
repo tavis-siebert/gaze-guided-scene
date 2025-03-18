@@ -235,7 +235,7 @@ class GraphTracer:
         self.log_event("saccade", frame_number, data)
     
     def log_frame_processed(self, frame_number: int, gaze_position: Union[List[float], Tuple[float, float]], 
-                           fixation_state: str, roi: Optional[List[int]] = None) -> None:
+                           fixation_state: str, roi: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None) -> None:
         """
         Log a frame processing event.
         
@@ -243,7 +243,7 @@ class GraphTracer:
             frame_number: Video frame number
             gaze_position: [x, y] gaze position
             fixation_state: Current fixation state
-            roi: Optional region of interest [x1, y1, x2, y2]
+            roi: Optional region of interest in format ((x1, y1), (x2, y2))
         """
         # Ensure gaze_position is a list
         if not isinstance(gaze_position, list):
