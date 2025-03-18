@@ -162,7 +162,7 @@ class GraphBuilder:
 
         # Only process and trace frames with valid gaze data
         if frame_num < len(gaze_data):
-            self._process_frame_with_gaze(frame, frame_num, gaze_data, tracking)
+            self._process_frame_with_gaze(frame, frame_num, gaze_data, tracking, scene_graph)
             
         return True
 
@@ -171,7 +171,8 @@ class GraphBuilder:
         frame: torch.Tensor,
         frame_num: int,
         gaze_data: Any,
-        tracking: Dict[str, Any]
+        tracking: Dict[str, Any],
+        scene_graph: Graph
     ) -> None:
         """Process a frame using available gaze data."""
         gaze_type = int(gaze_data[frame_num, 2])
@@ -180,7 +181,7 @@ class GraphBuilder:
         if gaze_type == 1:  # Fixation
             self._handle_fixation(frame, frame_num, gaze_pos, tracking)
         elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
-            self._handle_saccade(frame_num, tracking, gaze_pos)
+            self._handle_saccade(frame_num, tracking, gaze_pos, scene_graph)
 
     def _handle_fixation(
         self,
@@ -211,7 +212,8 @@ class GraphBuilder:
         self,
         frame_num: int,
         tracking: Dict[str, Any],
-        curr_pos: Tuple[float, float]
+        curr_pos: Tuple[float, float],
+        scene_graph: Graph
     ) -> None:
         """Handle a saccade between fixations."""
         # Record end of fixation visit
