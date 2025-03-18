@@ -173,45 +173,56 @@ class InteractiveGraphVisualizer:
         
         return app
     
-    def _create_video_figure(self, frame_number: int) -> go.Figure:
-        """Create video frame figure with gaze overlay."""
+    def _create_empty_figure(self, height: int = 400) -> go.Figure:
+        """Create an empty figure with standard layout."""
         fig = go.Figure()
-        
-        if self.video_capture is not None:
-            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-            success, frame = self.video_capture.read()
-            
-            if success:
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_height, frame_width = frame_rgb.shape[:2]
-                
-                fig.add_trace(go.Image(z=frame_rgb))
-                
-                # Add gaze position overlay
-                events = self.playback.get_events_for_frame(frame_number)
-                for event in events:
-                    if event.event_type == "frame_processed":
-                        pos = event.data["gaze_position"]
-                        gaze_type = event.data["gaze_type"]
-                        
-                        if pos[0] != 0.0 or pos[1] != 0.0:
-                            x, y = pos[0] * frame_width, pos[1] * frame_height
-                            color = "blue" if gaze_type == 1 else "red" if gaze_type == 2 else "gray"
-                            size = 15 if gaze_type in [1, 2] else 10
-                            
-                            fig.add_trace(go.Scatter(
-                                x=[x], y=[y],
-                                mode="markers",
-                                marker=dict(size=size, color=color),
-                                showlegend=False
-                            ))
-        
         fig.update_layout(
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
             yaxis=dict(showgrid=False, zeroline=False, visible=False, scaleanchor="x", scaleratio=1),
             margin=dict(l=0, r=0, t=0, b=0),
-            height=400
+            height=height
         )
+        return fig
+
+    def _add_gaze_overlay(self, fig: go.Figure, frame_number: int, frame_width: int, frame_height: int) -> None:
+        """Add gaze position overlay to the figure."""
+        events = self.playback.get_events_for_frame(frame_number)
+        for event in events:
+            if event.event_type == "frame_processed":
+                pos = event.data["gaze_position"]
+                if pos[0] == 0.0 and pos[1] == 0.0:
+                    continue
+                    
+                x, y = pos[0] * frame_width, pos[1] * frame_height
+                gaze_type = event.data["gaze_type"]
+                color = "blue" if gaze_type == 1 else "red" if gaze_type == 2 else "gray"
+                size = 15 if gaze_type in [1, 2] else 10
+                
+                fig.add_trace(go.Scatter(
+                    x=[x], y=[y],
+                    mode="markers",
+                    marker=dict(size=size, color=color),
+                    showlegend=False
+                ))
+
+    def _create_video_figure(self, frame_number: int) -> go.Figure:
+        """Create video frame figure with gaze overlay."""
+        fig = self._create_empty_figure()
+        
+        if self.video_capture is None:
+            return fig
+            
+        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        success, frame = self.video_capture.read()
+        
+        if not success:
+            return fig
+            
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_height, frame_width = frame_rgb.shape[:2]
+        
+        fig.add_trace(go.Image(z=frame_rgb))
+        self._add_gaze_overlay(fig, frame_number, frame_width, frame_height)
         
         return fig
     
