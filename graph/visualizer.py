@@ -289,7 +289,7 @@ class InteractiveGraphVisualizer:
             # Get current node from frame_processed event
             current_node_id = None
             for event in self.playback.get_events_for_frame(frame_number):
-                if event.event_type == "frame_processed":
+                if event.event_type == "frame_processed" and 'node_id' in event.data:
                     current_node_id = event.data["node_id"]
                     break
             
