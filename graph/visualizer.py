@@ -201,9 +201,6 @@ class InteractiveGraphVisualizer:
                 disabled=True
             ),
             
-            # Keyboard event listener
-            html.Div(id='keyboard-listener', tabIndex=0, style={'outline': 'none'}),
-            
             dbc.Row([
                 # Left column - Video display
                 dbc.Col([
@@ -248,10 +245,6 @@ class InteractiveGraphVisualizer:
                                     ),
                                 ], width=4),
                             ]),
-                            html.Div([
-                                html.Small("Keyboard controls: ←/→ arrows to navigate frames, Space to play/pause", 
-                                         className="text-muted mt-2 text-center d-block")
-                            ])
                         ])
                     ], className="mb-3"),
                 ], width=12),
@@ -270,14 +263,12 @@ class InteractiveGraphVisualizer:
              Input("prev-frame", "n_clicks"),
              Input("next-frame", "n_clicks"),
              Input("play-pause", "n_clicks"),
-             Input("auto-advance", "n_intervals"),
-             Input("keyboard-listener", "n_keydowns")],
+             Input("auto-advance", "n_intervals")],
             [State("play-state", "data"),
-             State("frame-slider", "value"),
-             State("keyboard-listener", "keydown")]
+             State("frame-slider", "value")]
         )
         def update_displays(slider_frame, prev_clicks, next_clicks, play_clicks, 
-                          n_intervals, n_keydowns, play_state, current_frame, keyboard_event):
+                          n_intervals, play_state, current_frame):
             ctx = dash.callback_context
             if not ctx.triggered:
                 frame_number = slider_frame
@@ -286,18 +277,7 @@ class InteractiveGraphVisualizer:
                 trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
                 is_playing = play_state.get('is_playing', False)
                 
-                if trigger_id == "keyboard-listener" and keyboard_event is not None:
-                    key = keyboard_event.get('key', '')
-                    if key == 'ArrowLeft':
-                        frame_number = max(self.playback.min_frame, current_frame - 1)
-                    elif key == 'ArrowRight':
-                        frame_number = min(self.playback.max_frame, current_frame + 1)
-                    elif key == ' ':  # Space key
-                        is_playing = not is_playing
-                        frame_number = current_frame
-                    else:
-                        frame_number = current_frame
-                elif trigger_id == "prev-frame":
+                if trigger_id == "prev-frame":
                     frame_number = max(self.playback.min_frame, current_frame - 1)
                 elif trigger_id == "next-frame":
                     frame_number = min(self.playback.max_frame, current_frame + 1)
@@ -320,22 +300,6 @@ class InteractiveGraphVisualizer:
                 not is_playing,
                 {'is_playing': is_playing}
             )
-        
-        # Add keyboard event listener
-        app.clientside_callback(
-            """
-            function(n_clicks) {
-                document.addEventListener('keydown', function(e) {
-                    if (['ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-                        e.preventDefault();
-                    }
-                });
-                return window.dash_clientside.no_update;
-            }
-            """,
-            Output("keyboard-listener", "n_keydowns"),
-            [Input("keyboard-listener", "n_clicks")],
-        )
         
         return app
     
