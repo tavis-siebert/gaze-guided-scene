@@ -39,7 +39,7 @@ class GraphBuilder:
         self.config = config
         self.split = split
         self.enable_tracing = enable_tracing
-        self.tracer = None
+        self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
         
         # Initialize models
         self.clip_model = ClipModel(self.config.models.clip.model_id)
@@ -62,9 +62,9 @@ class GraphBuilder:
         """Process a video to build its scene graph."""
         logger.info(f"\nProcessing video: {video_name}")
         
-        # Setup tracing if enabled
+        # Update tracer with new video name
+        self.tracer = GraphTracer(self.config.directories.repo.traces, video_name, enabled=self.enable_tracing)
         if self.enable_tracing:
-            self.tracer = GraphTracer(self.config.directories.repo.traces, video_name, enabled=True)
             logger.info(f"Tracing enabled for {video_name}")
         
         # Load video data
@@ -117,8 +117,7 @@ class GraphBuilder:
                 
             # Skip black frames
             if is_black_frame:
-                if self.tracer:
-                    self._log_frame(frame_num, gaze_data, -1, None, scene_graph)
+                self._log_frame(frame_num, gaze_data, -1, None, scene_graph)
                 tracking['frame_num'] += 1
                 continue
                 
@@ -141,9 +140,9 @@ class GraphBuilder:
                     self._handle_fixation(frame, frame_num, gaze_pos, tracking, scene_graph)
                 elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
                     self._handle_saccade(frame_num, scene_graph, tracking, gaze_pos)
-                elif self.tracer:
+                else:
                     self._log_frame(frame_num, gaze_data, gaze_type, None, scene_graph)
-            elif self.tracer:
+            else:
                 self._log_frame(frame_num, None, 0, None, scene_graph)
             
             # Update frame counters
@@ -181,8 +180,7 @@ class GraphBuilder:
         logger.info(f"[Frame {frame_num}] CLIP detected: {label} (count: {tracking['potential_labels'][label]})")
         
         # Log frame with fixation data
-        if self.tracer:
-            self._log_frame(frame_num, None, 1, roi_coords, scene_graph)
+        self._log_frame(frame_num, None, 1, roi_coords, scene_graph)
     
     def _handle_saccade(
         self,
@@ -204,15 +202,14 @@ class GraphBuilder:
         logger.info(f"- Visit duration: {fixation_duration} frames")
         
         # Log saccade for tracing
-        if self.tracer:
-            prev_pos = tracking['prev_gaze_pos']
-            self.tracer.log_saccade(
-                frame_num,
-                list(prev_pos) if not isinstance(prev_pos, list) else prev_pos,
-                list(curr_pos) if not isinstance(curr_pos, list) else curr_pos,
-                scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None,
-                None  # Target node not known yet
-            )
+        prev_pos = tracking['prev_gaze_pos']
+        self.tracer.log_saccade(
+            frame_num,
+            list(prev_pos) if not isinstance(prev_pos, list) else prev_pos,
+            list(curr_pos) if not isinstance(curr_pos, list) else curr_pos,
+            scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None,
+            None  # Target node not known yet
+        )
         
         # Update graph with new observation
         prev_node_id = scene_graph.current_node.id
@@ -229,15 +226,13 @@ class GraphBuilder:
         if next_node.id != prev_node_id:
             logger.info(f"- New node created: {next_node.id}")
             
-            # Log node and edge addition if tracing enabled
-            if self.tracer:
-                # Log node addition
-                pos_list = list(curr_pos) if not isinstance(curr_pos, list) else curr_pos
-                self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, pos_list, {})
-                
-                # Log edge addition if applicable
-                if prev_node_id >= 0:
-                    self.tracer.log_edge_added(frame_num, prev_node_id, next_node.id, "saccade", {"angle": None})
+            # Log node and edge addition
+            pos_list = list(curr_pos) if not isinstance(curr_pos, list) else curr_pos
+            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, pos_list, {})
+            
+            # Log edge addition if applicable
+            if prev_node_id >= 0:
+                self.tracer.log_edge_added(frame_num, prev_node_id, next_node.id, "saccade", {"angle": None})
         else:
             logger.info(f"- Merged with existing node: {next_node.id}")
         
@@ -266,8 +261,7 @@ class GraphBuilder:
         tracking['potential_labels'] = defaultdict(int)
         
         # Log frame with updated node
-        if self.tracer:
-            self._log_frame(frame_num, None, 2, None, scene_graph)
+        self._log_frame(frame_num, None, 2, None, scene_graph)
     
     def _finish_final_fixation(
         self,
@@ -296,8 +290,7 @@ class GraphBuilder:
         )
         
         # Log final frame
-        if self.tracer:
-            self._log_frame(tracking['frame_num'], None, 1, None, scene_graph)
+        self._log_frame(tracking['frame_num'], None, 1, None, scene_graph)
     
     def _save_graph_state(
         self,
