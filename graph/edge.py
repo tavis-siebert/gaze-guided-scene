@@ -2,13 +2,13 @@ from typing import Tuple, List, Optional, Any, Dict
 import torch
 import numpy as np
 
-from graph.node import Node
 from graph.utils import AngleUtils
 from egtea_gaze.utils import resolution
 
 # Type aliases for better readability
 Position = Tuple[int, int]
 EdgeFeature = torch.Tensor
+NodeId = int
 
 class Edge:
     """
@@ -18,16 +18,16 @@ class Edge:
     relationship between them, such as angle, distance, and relative positions.
     
     Attributes:
-        source: The source node
-        target: The target node
+        source_id: The ID of the source node
+        target_id: The ID of the target node
         angle: The angle between source and target
         distance: The distance between source and target
         features: Normalized position features as a tensor
     """
     def __init__(
         self,
-        source: Node,
-        target: Node,
+        source_id: NodeId,
+        target_id: NodeId,
         angle: float,
         distance: float,
         prev_pos: Position,
@@ -37,15 +37,15 @@ class Edge:
         Initialize a new Edge.
         
         Args:
-            source: The source node
-            target: The target node
+            source_id: The ID of the source node
+            target_id: The ID of the target node
             angle: The angle between source and target
             distance: The distance between source and target
             prev_pos: Previous position (x,y)
             curr_pos: Current position (x,y)
         """
-        self.source = source
-        self.target = target
+        self.source_id = source_id
+        self.target_id = target_id
         self.angle = angle
         self.distance = distance
         self.features = self._compute_features(prev_pos, curr_pos)
@@ -78,8 +78,9 @@ class Edge:
     
     @staticmethod
     def create_bidirectional_edges(
-        source: Node,
-        target: Node,
+        source_id: NodeId,
+        target_id: NodeId,
+        is_root: bool,
         prev_pos: Position,
         curr_pos: Position,
         num_bins: int = 8
@@ -88,8 +89,9 @@ class Edge:
         Create bidirectional edges between two nodes.
         
         Args:
-            source: Source node
-            target: Target node
+            source_id: ID of the source node
+            target_id: ID of the target node
+            is_root: Whether the source node is the root node
             prev_pos: Previous position (x,y)
             curr_pos: Current position (x,y)
             num_bins: Number of angle bins
@@ -101,14 +103,46 @@ class Edge:
         angle, distance = Edge.calculate_edge_features(prev_pos, curr_pos, num_bins)
         
         # Create forward edge
-        forward_edge = Edge(source, target, angle, distance, prev_pos, curr_pos)
+        forward_edge = Edge(source_id, target_id, angle, distance, prev_pos, curr_pos)
         
         # Create backward edge only if not connecting to root
         backward_edge = None
-        if source.object_label != 'root':
-            backward_edge = forward_edge.get_opposite()
+        if not is_root:
+            backward_edge = Edge.create_opposite(
+                source_id=target_id,
+                target_id=source_id,
+                angle=AngleUtils.get_opposite_angle(angle),
+                distance=distance,
+                prev_pos=curr_pos,  # Swapped for opposite direction
+                curr_pos=prev_pos   # Swapped for opposite direction
+            )
         
         return forward_edge, backward_edge
+    
+    @staticmethod
+    def create_opposite(
+        source_id: NodeId,
+        target_id: NodeId,
+        angle: float,
+        distance: float,
+        prev_pos: Position,
+        curr_pos: Position
+    ) -> 'Edge':
+        """
+        Create an edge in the opposite direction.
+        
+        Args:
+            source_id: ID of the source node
+            target_id: ID of the target node
+            angle: The angle for the new edge
+            distance: The distance for the new edge
+            prev_pos: Previous position for the new edge
+            curr_pos: Current position for the new edge
+            
+        Returns:
+            A new Edge object representing the opposite direction
+        """
+        return Edge(source_id, target_id, angle, distance, prev_pos, curr_pos)
     
     def _compute_features(self, prev_pos: Position, curr_pos: Position) -> EdgeFeature:
         """
@@ -141,16 +175,6 @@ class Edge:
         """
         return self.features
     
-    @property
-    def source_id(self) -> int:
-        """Get the source node ID."""
-        return self.source.id
-    
-    @property
-    def target_id(self) -> int:
-        """Get the target node ID."""
-        return self.target.id
-    
     def get_opposite(self) -> 'Edge':
         """
         Create an edge in the opposite direction.
@@ -159,14 +183,18 @@ class Edge:
             A new Edge object with source and target swapped and opposite angle
         """
         opposite_angle = AngleUtils.get_opposite_angle(self.angle)
+        
+        # Extract positions from features
+        prev_pos = self._get_position_from_features(True)  # curr_pos becomes prev_pos
+        curr_pos = self._get_position_from_features(False) # prev_pos becomes curr_pos
+        
         return Edge(
-            self.target, 
-            self.source, 
+            self.target_id, 
+            self.source_id, 
             opposite_angle, 
             self.distance,
-            # We reuse the same positions but swap direction for consistency
-            self._get_position_from_features(True),  # curr_pos becomes prev_pos
-            self._get_position_from_features(False)  # prev_pos becomes curr_pos
+            prev_pos,
+            curr_pos
         )
     
     def _get_position_from_features(self, is_prev: bool) -> Position:

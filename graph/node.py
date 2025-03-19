@@ -7,14 +7,13 @@ VisitRecord = List[int]
 NodeSet = Set['Node']
 NodeList = List['Node']
 FeatureList = List[Any]
-EdgeList = List['Edge']  # Forward reference to Edge class
 
 class Node:
     """
     Represents a node in the scene graph.
     
     Each node corresponds to an object in the scene and maintains information about
-    when it was visited, its visual features, and connections to other nodes.
+    when it was visited and its visual features.
     
     Attributes:
         id: Unique identifier for the node
@@ -22,7 +21,6 @@ class Node:
         visits: List of visit periods, each containing [start_frame, end_frame]
         keypoints: List of keypoints per frame returned by feature detector (e.g., SIFT)
         descriptors: List of descriptors per frame returned by feature detector
-        outgoing_edges: List of outgoing Edge objects from this node
     """
     def __init__(
         self, 
@@ -47,7 +45,6 @@ class Node:
         self.visits = [] if visits is None else visits
         self.keypoints = [] if keypoints is None else keypoints
         self.descriptors = [] if descriptors is None else descriptors
-        self.outgoing_edges: EdgeList = []
 
     @staticmethod
     def create(
@@ -80,6 +77,7 @@ class Node:
 
     @staticmethod
     def find_matching(
+        graph: 'Graph', 
         curr_node: 'Node', 
         keypoints: FeatureList, 
         descriptors: FeatureList, 
@@ -91,6 +89,7 @@ class Node:
         Find a matching node in the graph for the given keypoints and label.
         
         Args:
+            graph: The Graph instance to search in
             curr_node: Current node to start search from
             keypoints: List of keypoints for the potential new node
             descriptors: List of descriptors for the potential new node
@@ -106,14 +105,18 @@ class Node:
         if curr_node.object_label == 'root':
             return None
 
-        visited = set([curr_node])
-        queue = deque([curr_node])
+        visited = set([curr_node.id])
+        queue = deque([curr_node.id])
         
         # Use first frame's features for matching
         kp1, des1 = keypoints[0], descriptors[0]
         
         while queue:
-            node = queue.popleft()
+            node_id = queue.popleft()
+            node = graph.get_node_by_id(node_id)
+            
+            if not node:
+                continue
 
             if node.object_label == label:
                 # If we assume only one instance of each object class, return first match
@@ -133,19 +136,13 @@ class Node:
                 if H is not None and inlier_ratio > inlier_thresh:
                     return node
 
-            # Continue BFS
-            Node._add_unvisited_neighbors_to_queue(node, visited, queue)
+            # Continue BFS using graph's adjacency information
+            for neighbor_id in graph.get_node_neighbors(node_id):
+                if neighbor_id not in visited:
+                    visited.add(neighbor_id)
+                    queue.append(neighbor_id)
 
         return None
-    
-    @staticmethod
-    def _add_unvisited_neighbors_to_queue(node: 'Node', visited: NodeSet, queue: deque) -> None:
-        """Add unvisited neighbors to the BFS queue."""
-        for edge in node.outgoing_edges:
-            neighbor = edge.target
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append(neighbor)
 
     @staticmethod
     def merge(visit: VisitRecord, matching_node: Optional['Node']) -> Optional['Node']:
@@ -187,27 +184,6 @@ class Node:
         """
         self.keypoints.append(keypoint)
         self.descriptors.append(descriptor)
-
-    def add_edge(self, edge: 'Edge') -> None:
-        """
-        Add an outgoing edge from this node.
-        
-        Args:
-            edge: The Edge object to add
-        """
-        self.outgoing_edges.append(edge)
-
-    def has_neighbor(self, node: 'Node') -> bool:
-        """
-        Check if a node is already a neighbor of this node.
-        
-        Args:
-            node: The node to check
-            
-        Returns:
-            True if the node is a neighbor, False otherwise
-        """
-        return any(edge.target == node for edge in self.outgoing_edges)
     
     def get_visit_duration(self) -> int:
         """
