@@ -102,49 +102,17 @@ class Edge:
             Tuple of (forward_edge, backward_edge)
             backward_edge is None if source is the root node
         """
-        angle, distance = Edge.calculate_edge_features(prev_pos, curr_pos, num_bins)
-        
         # Create forward edge
+        angle, distance = Edge.calculate_edge_features(prev_pos, curr_pos, num_bins)
         forward_edge = Edge(source_id, target_id, angle, distance, prev_pos, curr_pos)
         
         # Create backward edge only if not connecting to root
         backward_edge = None
         if not is_root:
-            backward_edge = Edge.create_opposite(
-                source_id=target_id,
-                target_id=source_id,
-                angle=AngleUtils.get_opposite_angle(angle),
-                distance=distance,
-                prev_pos=curr_pos,  # Swapped for opposite direction
-                curr_pos=prev_pos   # Swapped for opposite direction
-            )
+            opposite_angle = AngleUtils.get_opposite_angle(angle)
+            backward_edge = Edge(target_id, source_id, opposite_angle, distance, curr_pos, prev_pos)
         
         return forward_edge, backward_edge
-    
-    @staticmethod
-    def create_opposite(
-        source_id: NodeId,
-        target_id: NodeId,
-        angle: float,
-        distance: float,
-        prev_pos: Position,
-        curr_pos: Position
-    ) -> 'Edge':
-        """
-        Create an edge in the opposite direction.
-        
-        Args:
-            source_id: ID of the source node
-            target_id: ID of the target node
-            angle: The angle for the new edge
-            distance: The distance for the new edge
-            prev_pos: Previous position for the new edge
-            curr_pos: Current position for the new edge
-            
-        Returns:
-            A new Edge object representing the opposite direction
-        """
-        return Edge(source_id, target_id, angle, distance, prev_pos, curr_pos)
     
     def get_features(self) -> Dict[str, float]:
         """
