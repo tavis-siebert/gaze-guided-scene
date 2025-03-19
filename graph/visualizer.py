@@ -642,9 +642,6 @@ class InteractiveGraphVisualizer:
         )
         
         return fig
-    
-    def run_server(self, debug: bool = False, port: int = 8050) -> None:
-        self.app.run(debug=debug, port=port)
 
 def visualize_graph_construction(
     trace_file: str,
@@ -653,4 +650,4 @@ def visualize_graph_construction(
     debug: bool = False
 ) -> None:
     visualizer = InteractiveGraphVisualizer(trace_file, video_path)
-    visualizer.run_server(debug=debug, port=port)
+    visualizer.app.run(debug=debug, port=port, use_reloader=False)
