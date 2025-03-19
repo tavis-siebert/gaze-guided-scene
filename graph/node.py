@@ -94,45 +94,6 @@ class Node:
         """
         return any(edge.target == node for edge in self.outgoing_edges)
     
-    def get_neighbor_by_id(self, node_id: int) -> Optional['Node']:
-        """
-        Find a neighbor by its ID.
-        
-        Args:
-            node_id: The ID of the neighbor to find
-            
-        Returns:
-            The neighbor node if found, None otherwise
-        """
-        for edge in self.outgoing_edges:
-            if edge.target.id == node_id:
-                return edge.target
-        return None
-    
-    def get_edge_to_neighbor(self, node: 'Node') -> Optional['Edge']:
-        """
-        Find the edge connecting to a specific neighbor.
-        
-        Args:
-            node: The neighbor node
-            
-        Returns:
-            The edge if found, None otherwise
-        """
-        for edge in self.outgoing_edges:
-            if edge.target == node:
-                return edge
-        return None
-    
-    def get_neighbors(self) -> List['Node']:
-        """
-        Get all neighbor nodes.
-        
-        Returns:
-            List of all neighbor nodes
-        """
-        return [edge.target for edge in self.outgoing_edges]
-    
     def get_visit_duration(self) -> int:
         """
         Calculate the total number of frames this node was visited.
