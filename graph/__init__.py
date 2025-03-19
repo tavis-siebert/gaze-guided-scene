@@ -12,14 +12,13 @@ from graph.graph import Graph
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 
+# Dashboard imports
+from graph.dashboard.graph_event import GraphEvent
+from graph.dashboard.graph_playback import GraphPlayback
+
 # Utility functions
 from graph.utils import get_roi, FeatureMatcher
-from graph.visualizer import (
-    GraphEvent, 
-    GraphPlayback, 
-    InteractiveGraphVisualizer,
-    visualize_graph_construction
-)
+from graph.visualizer import visualize_graph_construction
 
 # Data handling
 from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
@@ -41,25 +40,20 @@ __all__ = [
     
     # Utility classes
     'FeatureMatcher',
-    'NodeManager',
     
     # Data handling
     'Record',
     'DataLoader',
     'VideoProcessor',
     
+    # Graph building
+    'GraphBuilder',
+    
     # Tracing and visualization
     'GraphTracer',
     'GraphEvent',
     'GraphPlayback',
-    'InteractiveGraphVisualizer',
     'visualize_graph_construction',
-    
-    # Type aliases
-    'NeighborInfo',
-    'Position',
-    'EdgeFeature',
-    'EdgeIndex',
     
     # Functions
     'get_future_action_labels',
