@@ -196,9 +196,14 @@ class GraphBuilder:
             tracking['visit'].append(tracking['relative_frame_num'])
             logger.info(f"\n[Frame {frame_num}] New fixation started at ({gaze_pos[0]:.1f}, {gaze_pos[1]:.1f})")
         
-        # Predict object and extract region of interest
-        roi, roi_bbox = get_roi(frame, (int(gaze_pos[0]), int(gaze_pos[1])), 256)
+        # Convert normalized gaze coordinates (0-1) to pixel coordinates
+        _, H, W = frame.shape
+        gaze_x, gaze_y = int(gaze_pos[0] * W), int(gaze_pos[1] * H)
         
+        # Extract region of interest
+        roi, roi_bbox = get_roi(frame, (gaze_x, gaze_y), 256)
+        logger.debug(f"[Frame {frame_num}] ROI bounding box: {roi_bbox}")
+
         # Run object detection on the region of interest
         current_label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
         tracking['potential_labels'][current_label] += 1
@@ -239,8 +244,9 @@ class GraphBuilder:
         logger.info(f"\n[Frame {frame_num}] Saccade detected:")
         logger.info(f"- Most likely object: {most_likely_label}")
         logger.info(f"- Visit duration: {fixation_duration} frames")
+        logger.debug(f"- Current gaze position (normalized): ({curr_gaze_pos[0]:.2f}, {curr_gaze_pos[1]:.2f})")
         
-        # Update graph with new observation
+        # Update graph with new observation using normalized gaze coordinates
         prev_node_id = scene_graph.current_node.id
         next_node = scene_graph.update_graph(
             tracking['potential_labels'],
@@ -313,11 +319,13 @@ class GraphBuilder:
         # Record end of visit
         tracking['visit'].append(tracking['relative_frame_num'] - 1)
         
-        # Get last valid gaze position
+        # Get last valid gaze position (already normalized to [0,1])
         last_frame = min(tracking['frame_num'], len(gaze_data)-1)
         last_gaze_pos = gaze_data[last_frame, :2]
         
-        # Update graph with final observation
+        logger.debug(f"- Final gaze position (normalized): ({last_gaze_pos[0]:.2f}, {last_gaze_pos[1]:.2f})")
+        
+        # Update graph with final observation using normalized gaze coordinates
         scene_graph.update_graph(
             tracking['potential_labels'],
             tracking['visit'], 
