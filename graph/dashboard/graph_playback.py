@@ -138,11 +138,11 @@ class GraphPlayback:
             self.last_built_frame = -1
         
         if frame_number > self.last_built_frame:
-            for event in self.events:
-                if event.frame_number > frame_number:
-                    break
-                if event.frame_number > self.last_built_frame:
+            # Process events for each frame between last_built_frame+1 and frame_number
+            for current_frame in range(self.last_built_frame + 1, frame_number + 1):
+                for event in self.frame_to_events.get(current_frame, []):
                     self._process_event(event)
+            
             self.last_built_frame = frame_number
         
-        return self.graph 
+        return self.graph
