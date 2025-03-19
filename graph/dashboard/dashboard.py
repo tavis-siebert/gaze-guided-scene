@@ -9,7 +9,6 @@ from graph.dashboard.graph_constants import DEFAULT_PLAY_INTERVAL_MS
 from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.video_display import VideoDisplay
 from graph.dashboard.graph_display import GraphDisplay
-from graph.dashboard.detection_display import DetectionDisplay
 from graph.dashboard.playback_controls import PlaybackControls
 
 
@@ -23,7 +22,6 @@ class Dashboard:
         playback: GraphPlayback instance for managing events and graph state
         video_display: VideoDisplay component for frame visualization
         graph_display: GraphDisplay component for graph visualization
-        detection_display: DetectionDisplay component for object detection info
         playback_controls: PlaybackControls component for playback interaction
         app: Dash application instance
     """
@@ -44,7 +42,6 @@ class Dashboard:
         self.playback = GraphPlayback(trace_file_path)
         self.video_display = VideoDisplay(video_path)
         self.graph_display = GraphDisplay()
-        self.detection_display = DetectionDisplay()
         self.playback_controls = PlaybackControls()
         self.play_interval_ms = play_interval_ms
         
@@ -106,15 +103,7 @@ class Dashboard:
                 ], width=6),
             ]),
             
-            # Object detection statistics row
-            dbc.Row([
-                dbc.Col([
-                    html.H4("Object Detection", className="text-center"),
-                    html.Div(id="detection-stats", className="border p-2")
-                ], width=12),
-            ], className="mb-3"),
-            
-            # Playback controls row - include directly in layout instead of dynamic loading
+            # Playback controls row
             dbc.Row([
                 dbc.Col([
                     self.playback_controls.create_layout(
@@ -142,7 +131,6 @@ class Dashboard:
         @app.callback(
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
-             Output("detection-stats", "children"),
              Output("current-frame-display", "children"),
              Output("frame-slider", "value"),
              Output("frame-state", "children")],
@@ -158,8 +146,8 @@ class Dashboard:
             """Update all display components based on the current frame.
             
             Returns:
-                Tuple of (video figure, graph figure, detection stats, 
-                         current frame text, frame slider value)
+                Tuple of (video figure, graph figure, current frame text, 
+                         frame slider value, frame state)
             """
             # Determine the frame number to display
             frame_number = self.playback_controls.determine_frame_number(
@@ -187,7 +175,6 @@ class Dashboard:
                     self.playback.last_added_node, 
                     self.playback.last_added_edge
                 ),
-                self.detection_display.create_layout(frame_number, self.playback),
                 str(frame_number),
                 frame_number,
                 str(frame_number)  # Hidden state
