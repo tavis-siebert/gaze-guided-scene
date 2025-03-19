@@ -4,10 +4,10 @@ import torch
 
 # Type aliases for better readability
 VisitRecord = List[int]
-NeighborInfo = List[Any]  # [Node, float, float]
 NodeSet = Set['Node']
 NodeList = List['Node']
 FeatureList = List[Any]
+EdgeList = List['Edge']  # Forward reference to Edge class
 
 class Node:
     """
@@ -22,16 +22,15 @@ class Node:
         visits: List of visit periods, each containing [start_frame, end_frame]
         keypoints: List of keypoints per frame returned by feature detector (e.g., SIFT)
         descriptors: List of descriptors per frame returned by feature detector
-        neighbors: List of connected nodes with edge information [neighbor_node, angle, distance]
+        outgoing_edges: List of outgoing Edge objects from this node
     """
     def __init__(
         self, 
         id: int,
         object_label: str = '', 
         visits: Optional[List[VisitRecord]] = None, 
-        keypoints: Optional[List[Any]] = None, 
-        descriptors: Optional[List[Any]] = None, 
-        neighbors: Optional[List[NeighborInfo]] = None
+        keypoints: Optional[FeatureList] = None, 
+        descriptors: Optional[FeatureList] = None
     ):
         """
         Initialize a new Node.
@@ -42,14 +41,13 @@ class Node:
             visits: List of visit periods
             keypoints: List of keypoints from feature detector
             descriptors: List of descriptors from feature detector
-            neighbors: List of connected nodes with edge information
         """
         self.id = id
         self.object_label = object_label
         self.visits = [] if visits is None else visits
         self.keypoints = [] if keypoints is None else keypoints
         self.descriptors = [] if descriptors is None else descriptors
-        self.neighbors = [] if neighbors is None else neighbors
+        self.outgoing_edges: EdgeList = []
 
     def set_object_label(self, label: str) -> None:
         """Set the object label for this node."""
@@ -75,16 +73,14 @@ class Node:
         self.keypoints.append(keypoint)
         self.descriptors.append(descriptor)
 
-    def add_neighbor(self, neighbor: 'Node', angle: float, distance: float) -> None:
+    def add_edge(self, edge: 'Edge') -> None:
         """
-        Add a neighbor node with edge information.
+        Add an outgoing edge from this node.
         
         Args:
-            neighbor: The neighboring node
-            angle: The angle between this node and the neighbor
-            distance: The distance between this node and the neighbor
+            edge: The Edge object to add
         """
-        self.neighbors.append([neighbor, angle, distance])
+        self.outgoing_edges.append(edge)
 
     def has_neighbor(self, node: 'Node') -> bool:
         """
@@ -96,7 +92,7 @@ class Node:
         Returns:
             True if the node is a neighbor, False otherwise
         """
-        return any(n[0] == node for n in self.neighbors)
+        return any(edge.target == node for edge in self.outgoing_edges)
     
     def get_neighbor_by_id(self, node_id: int) -> Optional['Node']:
         """
@@ -108,10 +104,34 @@ class Node:
         Returns:
             The neighbor node if found, None otherwise
         """
-        for neighbor, _, _ in self.neighbors:
-            if neighbor.id == node_id:
-                return neighbor
+        for edge in self.outgoing_edges:
+            if edge.target.id == node_id:
+                return edge.target
         return None
+    
+    def get_edge_to_neighbor(self, node: 'Node') -> Optional['Edge']:
+        """
+        Find the edge connecting to a specific neighbor.
+        
+        Args:
+            node: The neighbor node
+            
+        Returns:
+            The edge if found, None otherwise
+        """
+        for edge in self.outgoing_edges:
+            if edge.target == node:
+                return edge
+        return None
+    
+    def get_neighbors(self) -> List['Node']:
+        """
+        Get all neighbor nodes.
+        
+        Returns:
+            List of all neighbor nodes
+        """
+        return [edge.target for edge in self.outgoing_edges]
     
     def get_visit_duration(self) -> int:
         """
@@ -329,7 +349,8 @@ class NodeManager:
     @staticmethod
     def _add_unvisited_neighbors_to_queue(node: Node, visited: NodeSet, queue: deque) -> None:
         """Add unvisited neighbors to the BFS queue."""
-        for neighbor, _, _ in node.neighbors:
+        for edge in node.outgoing_edges:
+            neighbor = edge.target
             if neighbor not in visited:
                 visited.add(neighbor)
                 queue.append(neighbor)

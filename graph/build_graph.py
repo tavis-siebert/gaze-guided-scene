@@ -320,7 +320,7 @@ class GraphBuilder:
         
         logger.info(f"\n[Frame {frame_num}] Saving graph state:")
         logger.info(f"- Current nodes: {scene_graph.num_nodes}")
-        logger.info(f"- Edge count: {len(scene_graph.edge_data)}")
+        logger.info(f"- Edge count: {len(scene_graph.edges)}")
         
         # Calculate timestamp fraction
         timestamp_ratios = self.config.dataset.timestamps[self.split]
