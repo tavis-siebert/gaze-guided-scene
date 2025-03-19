@@ -7,6 +7,7 @@ and visualizing scene graphs based on gaze data and object detection.
 
 # Core graph components
 from graph.node import Node, VisitRecord, NeighborInfo, NodeManager
+from graph.edge import Edge
 from graph.graph import Graph, Position, EdgeFeature, EdgeIndex
 
 # Utility functions
@@ -31,6 +32,7 @@ from graph.graph_tracer import GraphTracer
 __all__ = [
     # Core classes
     'Node',
+    'Edge',
     'Graph',
     'GraphBuilder',
     
