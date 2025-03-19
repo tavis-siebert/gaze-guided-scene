@@ -334,15 +334,38 @@ class Graph:
         
         return normalized, edge_indices, edge_features
     
-    def to_pytorch_geometric(self) -> Dict:
+    def to_pytorch_geometric(
+        self,
+        video_length: int,
+        current_frame: int,
+        relative_frame: int,
+        timestamp_fraction: float,
+        labels_to_int: Dict[str, int],
+        num_object_classes: int
+    ) -> Dict:
         """
         Convert the graph to a PyTorch Geometric compatible format.
         
+        Args:
+            video_length: Total length of the video
+            current_frame: Current frame number
+            relative_frame: Relative frame number
+            timestamp_fraction: Fraction of video at current timestamp
+            labels_to_int: Mapping from object labels to class indices
+            num_object_classes: Number of object classes
+            
         Returns:
             Dictionary with node features, edge indices, and edge features
         """
         # Collect node features
-        node_features = self._collect_node_features()
+        node_features = self._collect_node_features(
+            video_length,
+            current_frame,
+            relative_frame,
+            timestamp_fraction,
+            labels_to_int,
+            num_object_classes
+        )
         
         if not node_features:
             return {"x": None, "edge_index": None, "edge_attr": None}
@@ -353,23 +376,40 @@ class Graph:
             "edge_attr": torch.stack(self.edge_data) if self.edge_data else None
         }
     
-    def _collect_node_features(self) -> List[torch.Tensor]:
-        """Collect features for all nodes in the graph."""
+    def _collect_node_features(
+        self,
+        video_length: int,
+        current_frame: int,
+        relative_frame: int,
+        timestamp_fraction: float,
+        labels_to_int: Dict[str, int],
+        num_object_classes: int
+    ) -> List[torch.Tensor]:
+        """
+        Collect features for all nodes in the graph using the new API.
+        
+        Args:
+            video_length: Total length of the video
+            current_frame: Current frame number
+            relative_frame: Relative frame number
+            timestamp_fraction: Fraction of video at current timestamp
+            labels_to_int: Mapping from object labels to class indices
+            num_object_classes: Number of object classes
+            
+        Returns:
+            List of node feature tensors
+        """
         node_features = []
         for node in sorted(self.get_all_nodes(), key=lambda n: n.id):
             if node.id >= 0:  # Skip root node
-                # Example node features: [visit_duration, num_visits, first_frame, last_frame, label_one_hot]
-                visit_duration = node.get_visit_duration()
-                num_visits = len(node.visits)
-                first_frame = node.get_first_visit_frame() or 0
-                last_frame = node.get_last_visit_frame() or 0
-                
-                # This is a placeholder - in a real implementation, you'd create a proper one-hot encoding
-                # based on your label vocabulary
-                label_feature = torch.zeros(10)  # Assuming 10 possible labels
-                label_feature[0] = 1  # Placeholder
-                
-                node_feature = torch.tensor([visit_duration, num_visits, first_frame, last_frame])
-                node_features.append(torch.cat([node_feature, label_feature]))
+                features_tensor = node.get_features_tensor(
+                    video_length,
+                    current_frame,
+                    relative_frame,
+                    timestamp_fraction,
+                    labels_to_int,
+                    num_object_classes
+                )
+                node_features.append(features_tensor)
         
         return node_features 

@@ -146,7 +146,50 @@ class Node:
             return None
         return self.visits[-1][1]
     
-    def create_features(
+    def get_features(
+        self,
+        video_length: int,
+        current_frame: int,
+        relative_frame: int,
+        timestamp_fraction: float,
+        labels_to_int: Dict[str, int]
+    ) -> Dict[str, Any]:
+        """
+        Get a dictionary of human-readable features for this node.
+        
+        Args:
+            video_length: Total length of the video
+            current_frame: Current frame number
+            relative_frame: Relative frame number (accounting for black frames)
+            timestamp_fraction: Fraction of video at current timestamp
+            labels_to_int: Mapping from object labels to class indices
+            
+        Returns:
+            Dictionary with feature keys and values
+        """
+        # Calculate temporal features
+        total_frames_visited = self.get_visit_duration()
+        num_visits = len(self.visits)
+        
+        # Normalize frame positions
+        normalization_factor = video_length - current_frame + relative_frame
+        first_frame_normalized = self.get_first_visit_frame() / normalization_factor if self.get_first_visit_frame() else 0
+        last_frame_normalized = self.get_last_visit_frame() / normalization_factor if self.get_last_visit_frame() else 0
+        
+        # Get class index for object label
+        class_idx = labels_to_int.get(self.object_label, 0)
+        
+        return {
+            "total_frames_visited": total_frames_visited,
+            "num_visits": num_visits,
+            "first_frame_normalized": first_frame_normalized,
+            "last_frame_normalized": last_frame_normalized,
+            "timestamp_fraction": timestamp_fraction,
+            "object_class_idx": class_idx,
+            "object_label": self.object_label
+        }
+    
+    def get_features_tensor(
         self,
         video_length: int,
         current_frame: int,
@@ -156,7 +199,7 @@ class Node:
         num_object_classes: int
     ) -> torch.Tensor:
         """
-        Create feature tensor for this node.
+        Get features for this node as a tensor.
         
         Args:
             video_length: Total length of the video
@@ -169,86 +212,23 @@ class Node:
         Returns:
             Feature tensor for the node
         """
-        # Calculate temporal features
-        temporal_features = self._calculate_temporal_features(
-            video_length, current_frame, relative_frame
-        )
+        features = self.get_features(video_length, current_frame, relative_frame, timestamp_fraction, labels_to_int)
         
         # Create one-hot encoding for object label
-        one_hot = self._create_label_one_hot(labels_to_int, num_object_classes)
+        one_hot = torch.zeros(num_object_classes)
+        one_hot[features["object_class_idx"]] = 1
+        
+        # Create temporal features tensor
+        temporal_features = torch.tensor([
+            features["total_frames_visited"], 
+            features["num_visits"],
+            features["first_frame_normalized"], 
+            features["last_frame_normalized"],
+            features["timestamp_fraction"]
+        ])
         
         # Combine features
-        return torch.cat([
-            torch.tensor([*temporal_features, timestamp_fraction]),
-            one_hot
-        ])
-    
-    def _calculate_temporal_features(
-        self,
-        video_length: int,
-        current_frame: int,
-        relative_frame: int
-    ) -> Tuple[float, int, float, float]:
-        """Calculate temporal features for the node."""
-        num_visits = len(self.visits)
-        total_frames_visited = self.get_visit_duration()
-        
-        # Normalize frame positions
-        normalization_factor = video_length - current_frame + relative_frame
-        first_frame = self.get_first_visit_frame() / normalization_factor if self.get_first_visit_frame() else 0
-        last_frame = self.get_last_visit_frame() / normalization_factor if self.get_last_visit_frame() else 0
-        
-        return total_frames_visited, num_visits, first_frame, last_frame
-    
-    def _create_label_one_hot(
-        self,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
-    ) -> torch.Tensor:
-        """Create one-hot encoding for the node's object label."""
-        one_hot = torch.zeros(num_object_classes)
-        class_idx = labels_to_int.get(self.object_label, 0)
-        one_hot[class_idx] = 1
-        return one_hot
-    
-    def update_features(
-        self,
-        node_data: Dict[int, torch.Tensor],
-        video_length: int,
-        current_frame: int,
-        relative_frame: int,
-        timestamp_fraction: float,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
-    ) -> None:
-        """
-        Update features for this node in the node_data dictionary.
-        
-        Args:
-            node_data: Dictionary mapping node IDs to feature tensors
-            video_length: Total length of the video
-            current_frame: Current frame number
-            relative_frame: Relative frame number (accounting for black frames)
-            timestamp_fraction: Fraction of video at current timestamp
-            labels_to_int: Mapping from object labels to class indices
-            num_object_classes: Number of object classes
-        """
-        temporal_features = self._calculate_temporal_features(
-            video_length, current_frame, relative_frame
-        )
-        
-        if self.id in node_data:
-            # Update existing features
-            node_data[self.id][:4] = torch.tensor(temporal_features)
-            node_data[self.id][4] = timestamp_fraction
-        else:
-            # Create new features
-            one_hot = self._create_label_one_hot(labels_to_int, num_object_classes)
-            
-            node_data[self.id] = torch.cat([
-                torch.tensor([*temporal_features, timestamp_fraction]),
-                one_hot
-            ])
+        return torch.cat([temporal_features, one_hot])
     
     @staticmethod
     def normalize_features(node_features: torch.Tensor, relative_frame: int, timestamp_fraction: float) -> torch.Tensor:
@@ -256,7 +236,7 @@ class Node:
         Normalize node features.
         
         Args:
-            node_features: Tensor of node features
+            node_features: Tensor of node features (as produced by get_features_tensor)
             relative_frame: Relative frame number for normalization
             timestamp_fraction: Fraction of video at current timestamp
             
