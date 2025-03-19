@@ -22,7 +22,8 @@ class Edge:
         target_id: The ID of the target node
         angle: The angle between source and target
         distance: The distance between source and target
-        features: Normalized position features as a tensor
+        prev_pos: Previous position (x,y)
+        curr_pos: Current position (x,y)
     """
     def __init__(
         self,
@@ -48,7 +49,8 @@ class Edge:
         self.target_id = target_id
         self.angle = angle
         self.distance = distance
-        self.features = self._compute_features(prev_pos, curr_pos)
+        self.prev_pos = prev_pos
+        self.curr_pos = curr_pos
     
     @staticmethod
     def calculate_edge_features(
@@ -144,19 +146,15 @@ class Edge:
         """
         return Edge(source_id, target_id, angle, distance, prev_pos, curr_pos)
     
-    def _compute_features(self, prev_pos: Position, curr_pos: Position) -> EdgeFeature:
+    def get_features(self) -> Dict[str, float]:
         """
-        Compute edge features from positions.
+        Get a dictionary of human-readable features for this edge.
         
-        Args:
-            prev_pos: Previous position (x,y)
-            curr_pos: Current position (x,y)
-            
         Returns:
-            Tensor of normalized position features
+            Dictionary with feature keys and values
         """
-        prev_x, prev_y = prev_pos
-        curr_x, curr_y = curr_pos
+        prev_x, prev_y = self.prev_pos
+        curr_x, curr_y = self.curr_pos
         
         # Normalize by resolution
         norm_prev_x = prev_x / resolution[0]
@@ -164,7 +162,14 @@ class Edge:
         norm_curr_x = curr_x / resolution[0] 
         norm_curr_y = curr_y / resolution[1]
         
-        return torch.tensor([norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y])
+        return {
+            "normalized_prev_x": norm_prev_x,
+            "normalized_prev_y": norm_prev_y,
+            "normalized_curr_x": norm_curr_x,
+            "normalized_curr_y": norm_curr_y,
+            "angle": self.angle,
+            "distance": self.distance
+        }
     
     def get_features_tensor(self) -> EdgeFeature:
         """
@@ -173,7 +178,14 @@ class Edge:
         Returns:
             Feature tensor for the edge
         """
-        return self.features
+        features = self.get_features()
+        
+        return torch.tensor([
+            features["normalized_prev_x"], 
+            features["normalized_prev_y"], 
+            features["normalized_curr_x"], 
+            features["normalized_curr_y"]
+        ])
     
     @staticmethod
     def get_edges_tensor(edges: List['Edge']) -> Tuple[torch.Tensor, torch.Tensor]:
