@@ -259,19 +259,10 @@ class VideoDisplay:
             frame_width: Width of the video frame
             frame_height: Height of the video frame
             potential_labels: Dictionary of potential labels and their counts
-        """
-        # Get confidence percentage if available
-        confidence_pct = self._calculate_confidence(potential_labels)
-        
+        """        
         # Define colors
         box_color = GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"]
         box_fill = 'rgba(0, 0, 255, 0.1)'  # Blue with 10% opacity
-        
-        # Combine label text with confidence score if available
-        if confidence_pct is not None:
-            display_text = f"{label_text} {int(confidence_pct)}%"
-        else:
-            display_text = label_text
         
         # Add main bounding box
         fig.add_trace(go.Scatter(
@@ -287,7 +278,7 @@ class VideoDisplay:
         ))
         
         # Calculate label text width based on its length
-        text_width = len(display_text) * 7  # Approximate width based on character count
+        text_width = len(label_text) * 7  # Approximate width based on character count
         
         # Calculate label box position
         # If the label would extend beyond right frame edge, align right edge with frame
@@ -333,7 +324,7 @@ class VideoDisplay:
             x=[(label_x0 + label_x1) / 2],
             y=[(label_y0 + label_y1) / 2],
             mode="text",
-            text=[display_text],
+            text=[label_text],
             textposition="middle center",
             textfont=dict(
                 size=12, 
