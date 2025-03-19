@@ -151,7 +151,7 @@ class GraphBuilder:
             return True
 
         # Check if we need to save graph state at this timestamp
-        if scene_graph.edge_data and (frame_num in timestamps or frame_num >= len(gaze_data)):
+        if scene_graph.edges and (frame_num in timestamps or frame_num >= len(gaze_data)):
             self._save_graph_state(scene_graph, tracking, records, frame_num, 
                                  timestamps, gaze_data, vid_length, results)
             
