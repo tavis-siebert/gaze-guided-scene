@@ -50,7 +50,7 @@ class Dashboard:
             dcc.Store(id="play-state", data={'is_playing': False, 'last_update': 0}),
             dcc.Interval(id="auto-advance", interval=self.play_interval_ms, disabled=True, max_intervals=-1),
             
-            dbc.Row(dbc.Col(html.H2("Graph & Video Playback Dashboard", className="text-center my-4"))),
+            dbc.Row(dbc.Col(html.H2("Gaze-Guided Scene Graph", className="text-center my-4"))),
             
             dbc.Row([
                 dbc.Col([
