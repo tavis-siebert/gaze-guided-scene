@@ -6,7 +6,7 @@ from graph.utils import AngleUtils
 from egtea_gaze.utils import resolution
 
 # Type aliases for better readability
-Position = Tuple[int, int]
+GazePosition = Tuple[int, int]  # Updated from Position to GazePosition
 EdgeFeature = torch.Tensor
 NodeId = int
 
@@ -20,16 +20,16 @@ class Edge:
     Attributes:
         source_id: The ID of the source node
         target_id: The ID of the target node
-        prev_pos: Previous position (x,y)
-        curr_pos: Current position (x,y)
+        prev_gaze_pos: Previous gaze position (x,y)
+        curr_gaze_pos: Current gaze position (x,y)
         num_bins: Number of angle bins for discretization
     """
     def __init__(
         self,
         source_id: NodeId,
         target_id: NodeId,
-        prev_pos: Position,
-        curr_pos: Position,
+        prev_gaze_pos: GazePosition,
+        curr_gaze_pos: GazePosition,
         num_bins: int = 8
     ):
         """
@@ -38,29 +38,29 @@ class Edge:
         Args:
             source_id: The ID of the source node
             target_id: The ID of the target node
-            prev_pos: Previous position (x,y)
-            curr_pos: Current position (x,y)
+            prev_gaze_pos: Previous gaze position (x,y)
+            curr_gaze_pos: Current gaze position (x,y)
             num_bins: Number of angle bins for discretization
         """
         self.source_id = source_id
         self.target_id = target_id
-        self.prev_pos = prev_pos
-        self.curr_pos = curr_pos
+        self.prev_gaze_pos = prev_gaze_pos
+        self.curr_gaze_pos = curr_gaze_pos
         self.num_bins = num_bins
     
     @property
     def angle(self) -> float:
-        """Angle between source and target positions."""
-        prev_x, prev_y = self.prev_pos
-        curr_x, curr_y = self.curr_pos
+        """Angle between source and target gaze positions."""
+        prev_x, prev_y = self.prev_gaze_pos
+        curr_x, curr_y = self.curr_gaze_pos
         dx, dy = curr_x - prev_x, curr_y - prev_y
         return AngleUtils.get_angle_bin(dx, dy, self.num_bins)
     
     @property
     def distance(self) -> float:
-        """Distance between source and target positions."""
-        prev_x, prev_y = self.prev_pos
-        curr_x, curr_y = self.curr_pos
+        """Distance between source and target gaze positions."""
+        prev_x, prev_y = self.prev_gaze_pos
+        curr_x, curr_y = self.curr_gaze_pos
         dx, dy = curr_x - prev_x, curr_y - prev_y
         return np.sqrt(dx**2 + dy**2)
     
@@ -69,8 +69,8 @@ class Edge:
         source_id: NodeId,
         target_id: NodeId,
         is_root: bool,
-        prev_pos: Position,
-        curr_pos: Position,
+        prev_gaze_pos: GazePosition,
+        curr_gaze_pos: GazePosition,
         num_bins: int = 8
     ) -> Tuple['Edge', Optional['Edge']]:
         """
@@ -80,8 +80,8 @@ class Edge:
             source_id: ID of the source node
             target_id: ID of the target node
             is_root: Whether the source node is the root node
-            prev_pos: Previous position (x,y)
-            curr_pos: Current position (x,y)
+            prev_gaze_pos: Previous gaze position (x,y)
+            curr_gaze_pos: Current gaze position (x,y)
             num_bins: Number of angle bins
             
         Returns:
@@ -89,7 +89,7 @@ class Edge:
             backward_edge is None if source is the root node
         """
         # Create forward edge
-        forward_edge = Edge(source_id, target_id, prev_pos, curr_pos, num_bins)
+        forward_edge = Edge(source_id, target_id, prev_gaze_pos, curr_gaze_pos, num_bins)
         
         # Create backward edge only if not connecting to root
         backward_edge = None
@@ -98,7 +98,7 @@ class Edge:
             opposite_angle = AngleUtils.get_opposite_angle(forward_edge.angle)
             
             # Create backward edge - pass the same positions but swapped
-            backward_edge = Edge(target_id, source_id, curr_pos, prev_pos, num_bins)
+            backward_edge = Edge(target_id, source_id, curr_gaze_pos, prev_gaze_pos, num_bins)
         
         return forward_edge, backward_edge
     
@@ -109,8 +109,8 @@ class Edge:
         Returns:
             Dictionary with feature keys and values
         """
-        prev_x, prev_y = self.prev_pos
-        curr_x, curr_y = self.curr_pos
+        prev_x, prev_y = self.prev_gaze_pos
+        curr_x, curr_y = self.curr_gaze_pos
         
         # Normalize by resolution
         norm_prev_x = prev_x / resolution[0]
@@ -119,10 +119,10 @@ class Edge:
         norm_curr_y = curr_y / resolution[1]
         
         return {
-            "normalized_prev_x": norm_prev_x,
-            "normalized_prev_y": norm_prev_y,
-            "normalized_curr_x": norm_curr_x,
-            "normalized_curr_y": norm_curr_y,
+            "normalized_prev_gaze_x": norm_prev_x,
+            "normalized_prev_gaze_y": norm_prev_y,
+            "normalized_curr_gaze_x": norm_curr_x,
+            "normalized_curr_gaze_y": norm_curr_y,
             "angle": self.angle,
             "distance": self.distance
         }
@@ -137,10 +137,10 @@ class Edge:
         features = self.get_features()
         
         return torch.tensor([
-            features["normalized_prev_x"], 
-            features["normalized_prev_y"], 
-            features["normalized_curr_x"], 
-            features["normalized_curr_y"]
+            features["normalized_prev_gaze_x"], 
+            features["normalized_prev_gaze_y"], 
+            features["normalized_curr_gaze_x"], 
+            features["normalized_curr_gaze_y"]
         ])
     
     @staticmethod
