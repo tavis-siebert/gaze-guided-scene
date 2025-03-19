@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 
 from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
+from graph.dashboard.utils import format_label
 
 
 class VideoDisplay:
@@ -183,9 +184,9 @@ class VideoDisplay:
         
         # Create label text showing both labels if they differ
         if current_label == most_likely_label:
-            label_text = f"{current_label.capitalize()}"
+            label_text = format_label(current_label)
         else:
-            label_text = f"{current_label.capitalize()} → {most_likely_label.capitalize()}"
+            label_text = f"{format_label(current_label)} → {format_label(most_likely_label)}"
         
         # Create hover text with label information
         hover_text = self._create_detection_hover_text(
@@ -220,12 +221,12 @@ class VideoDisplay:
         """
         sorted_labels = sorted(potential_labels.items(), key=lambda x: x[1], reverse=True)
         potential_labels_text = "<br>".join(
-            [f"{obj.capitalize()}: {count}" for obj, count in sorted_labels[:5]]
+            [f"{format_label(obj)}: {count}" for obj, count in sorted_labels[:5]]
         )
         
         return (
-            f"Current: {current_label.capitalize()}<br>"
-            f"Most likely: {most_likely_label.capitalize()}<br><br>"
+            f"Current: {format_label(current_label)}<br>"
+            f"Most likely: {format_label(most_likely_label)}<br><br>"
             f"Potential labels:<br>{potential_labels_text}"
         )
     
