@@ -111,6 +111,7 @@ class GraphPlayback:
         self.last_built_frame = -1
         self.last_added_node = None
         self.last_added_edge = None
+        self.object_detections = {}  # Frame number -> detection event
         self._load_events()
     
     def _load_events(self) -> None:
@@ -123,6 +124,10 @@ class GraphPlayback:
                 event = GraphEvent(event_data)
                 self.events.append(event)
                 self.frame_to_events[event.frame_number].append(event)
+                
+                # Track object detection events separately for quick access
+                if event.event_type == "gaze_object_detected":
+                    self.object_detections[event.frame_number] = event
         
         frames = list(self.frame_to_events.keys())
         self.min_frame = min(frames) if frames else 0
@@ -130,6 +135,10 @@ class GraphPlayback:
     
     def get_events_for_frame(self, frame_number: int) -> List[GraphEvent]:
         return self.frame_to_events.get(frame_number, [])
+    
+    def get_object_detection(self, frame_number: int) -> Optional[GraphEvent]:
+        """Get the object detection event for a specific frame, if any."""
+        return self.object_detections.get(frame_number)
     
     def _process_event(self, event: GraphEvent) -> None:
         if event.event_type == "node_added":
@@ -158,6 +167,10 @@ class GraphPlayback:
                 features=features
             )
             self.last_added_edge = (source_id, target_id)
+        
+        elif event.event_type == "gaze_object_detected":
+            # Store the latest object detection for this frame
+            self.object_detections[event.frame_number] = event
     
     def build_graph_until_frame(self, frame_number: int) -> nx.DiGraph:
         if frame_number < self.last_built_frame:
@@ -273,6 +286,12 @@ class InteractiveGraphVisualizer:
             ]),
             dbc.Row([
                 dbc.Col([
+                    html.H4("Object Detection", className="text-center"),
+                    html.Div(id="detection-stats", className="border p-2")
+                ], width=12),
+            ], className="mb-3"),
+            dbc.Row([
+                dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
                             dbc.Row([
@@ -329,6 +348,7 @@ class InteractiveGraphVisualizer:
         @app.callback(
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
+             Output("detection-stats", "children"),
              Output("current-frame-display", "children"),
              Output("frame-slider", "value")],
             [Input("frame-slider", "value"),
@@ -350,6 +370,7 @@ class InteractiveGraphVisualizer:
             return (
                 self._create_video_figure(frame_number),
                 self._create_graph_figure(frame_number),
+                self._create_detection_stats(frame_number),
                 str(frame_number),
                 frame_number
             )
@@ -385,10 +406,12 @@ class InteractiveGraphVisualizer:
 
     def _add_gaze_overlay(self, fig: go.Figure, frame_number: int, frame_width: int, frame_height: int) -> None:
         events = self.playback.get_events_for_frame(frame_number)
+        
+        # Add gaze point markers
         for event in events:
             if event.event_type == "frame_processed":
                 pos = event.data["gaze_position"]
-                if pos[0] == 0.0 and pos[1] == 0.0:
+                if pos is None or (pos[0] == 0.0 and pos[1] == 0.0):
                     continue
                     
                 x, y = pos[0] * frame_width, pos[1] * frame_height
@@ -404,6 +427,90 @@ class InteractiveGraphVisualizer:
                     marker=dict(size=15, color=gaze_info["color"]),
                     hovertext=gaze_info["label"],
                     hoverinfo='text',
+                    showlegend=False
+                ))
+        
+        # Add object detection bounding boxes
+        detection_event = self.playback.get_object_detection(frame_number)
+        if detection_event:
+            bbox = detection_event.data["bounding_box"]
+            most_likely_label = detection_event.data["detected_object"]
+            current_label = detection_event.data.get("current_detected_label", most_likely_label)
+            potential_labels = detection_event.data.get("potential_labels", {})
+            
+            # Create label text showing both current and most likely label if they differ
+            if current_label == most_likely_label:
+                label_text = f"{current_label.capitalize()}"
+            else:
+                label_text = f"{current_label.capitalize()} → {most_likely_label.capitalize()}"
+            
+            # Create hover text showing detected object and top potential label counts
+            sorted_labels = sorted(potential_labels.items(), key=lambda x: x[1], reverse=True)
+            potential_labels_text = "<br>".join([f"{obj.capitalize()}: {count}" for obj, count in sorted_labels[:5]])
+            
+            hover_text = (
+                f"Current: {current_label.capitalize()}<br>"
+                f"Most likely: {most_likely_label.capitalize()}<br><br>"
+                f"Potential labels:<br>{potential_labels_text}"
+            )
+            
+            # Extract bounding box coordinates
+            x0, y0, x1, y1 = bbox
+            
+            # Add semi-transparent fill for the bounding box
+            fig.add_trace(go.Scatter(
+                x=[x0, x1, x1, x0, x0],
+                y=[y0, y0, y1, y1, y0],
+                fill="toself",
+                fillcolor=f'rgba(0, 0, 255, 0.1)',  # Blue with 10% opacity
+                mode="lines",
+                line=dict(width=2, color=self.gaze_type_info[GAZE_TYPE_FIXATION]["color"]),
+                hoverinfo='text',
+                hovertext=hover_text,
+                showlegend=False
+            ))
+            
+            # Add label at top of bounding box
+            fig.add_trace(go.Scatter(
+                x=[(x0 + x1) / 2],
+                y=[y0 - 10],
+                mode="text",
+                text=[label_text],
+                textposition="top center",
+                textfont=dict(
+                    size=14, 
+                    color=self.gaze_type_info[GAZE_TYPE_FIXATION]["color"],
+                    family="Arial Black"
+                ),
+                hoverinfo='text',
+                hovertext=hover_text,
+                showlegend=False
+            ))
+            
+            # Add a smaller box in top-right corner showing confidence level
+            if sorted_labels:
+                top_confidence = sorted_labels[0][1]
+                total_votes = sum(count for _, count in sorted_labels)
+                confidence_pct = (top_confidence / total_votes) * 100 if total_votes > 0 else 0
+                
+                fig.add_trace(go.Scatter(
+                    x=[x1 - 50],
+                    y=[y0 + 20],
+                    mode="text",
+                    text=[f"{confidence_pct:.0f}%"],
+                    textposition="middle center",
+                    textfont=dict(
+                        size=12, 
+                        color="white",
+                        family="Arial"
+                    ),
+                    marker=dict(
+                        size=30,
+                        opacity=0.8,
+                        color=self.gaze_type_info[GAZE_TYPE_FIXATION]["color"]
+                    ),
+                    hoverinfo='text',
+                    hovertext=f"Confidence: {confidence_pct:.1f}%",
                     showlegend=False
                 ))
 
@@ -642,6 +749,82 @@ class InteractiveGraphVisualizer:
         )
         
         return fig
+
+    def _create_detection_stats(self, frame_number: int) -> List:
+        """Create a panel showing object detection statistics for the current frame."""
+        events = self.playback.get_events_for_frame(frame_number)
+        detection_events = [e for e in events if e.event_type == "gaze_object_detected"]
+        
+        if not detection_events:
+            return [html.P("No object detections in this frame", className="text-muted text-center")]
+        
+        # Use the most recent detection event for this frame
+        event = detection_events[-1]
+        most_likely_label = event.data["detected_object"]
+        current_label = event.data.get("current_detected_label", most_likely_label)
+        bbox = event.data["bounding_box"]
+        potential_labels = event.data.get("potential_labels", {})
+        
+        # Sort labels by count (descending)
+        sorted_labels = sorted(potential_labels.items(), key=lambda x: x[1], reverse=True)
+        
+        # Create color bars for the potential labels
+        max_count = max(count for _, count in sorted_labels) if sorted_labels else 1
+        
+        # Calculate confidence percentage for most likely label
+        if sorted_labels:
+            top_confidence = sorted_labels[0][1]
+            total_votes = sum(count for _, count in sorted_labels)
+            confidence_pct = (top_confidence / total_votes) * 100 if total_votes > 0 else 0
+        else:
+            confidence_pct = 0
+        
+        children = [
+            dbc.Row([
+                dbc.Col([
+                    html.H5("Current Detection:", className="text-primary mb-0")
+                ], width=5),
+                dbc.Col([
+                    html.H5(f"{current_label.capitalize()}", className="mb-0")
+                ], width=7)
+            ], className="mb-2"),
+            dbc.Row([
+                dbc.Col([
+                    html.H5("Most Likely Object:", className="text-primary mb-0")
+                ], width=5),
+                dbc.Col([
+                    html.H5([
+                        f"{most_likely_label.capitalize()} ",
+                        html.Small(f"({confidence_pct:.1f}%)", className="text-muted")
+                    ], className="mb-0")
+                ], width=7)
+            ], className="mb-3"),
+            html.Div([
+                html.Div([
+                    html.Strong("Bounding Box: "),
+                    html.Span(f"[{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}]")
+                ], className="mb-2"),
+                html.Strong("Potential Labels:", className="d-block mb-2"),
+                html.Div([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Span(label.capitalize(), className="align-middle")
+                        ], width=3),
+                        dbc.Col([
+                            dbc.Progress(
+                                value=(count / max_count) * 100,
+                                label=f"{count}",
+                                color="info" if label == most_likely_label else 
+                                      "success" if label == current_label else "secondary",
+                                className="mb-2"
+                            )
+                        ], width=9)
+                    ]) for label, count in sorted_labels[:10]  # Show top 10 labels
+                ])
+            ])
+        ]
+        
+        return children
 
 def visualize_graph_construction(
     trace_file: str,

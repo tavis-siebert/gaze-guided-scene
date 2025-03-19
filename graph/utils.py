@@ -9,7 +9,7 @@ from graph.node import Node
 # Type aliases for better readability
 Position = Tuple[int, int]
 
-def get_roi(image: torch.Tensor, roi_center: Tuple[int, int], roi_size: int) -> Tuple[torch.Tensor, Tuple[Tuple[int, int], Tuple[int, int]]]:
+def get_roi(image: torch.Tensor, roi_center: Tuple[int, int], roi_size: int) -> Tuple[torch.Tensor, List[int]]:
     """
     Extract a region of interest (ROI) from an image.
     
@@ -19,7 +19,9 @@ def get_roi(image: torch.Tensor, roi_center: Tuple[int, int], roi_size: int) -> 
         roi_size: Size of the ROI (square)
         
     Returns:
-        Tuple containing the ROI tensor and the bounding box coordinates
+        Tuple containing:
+            - ROI tensor
+            - Bounding box coordinates [x, y, width, height]
     """
     _, H, W = image.shape
     x, y = roi_center
@@ -31,9 +33,13 @@ def get_roi(image: torch.Tensor, roi_center: Tuple[int, int], roi_size: int) -> 
     roi_x1 = max(0, x - roi_half)
     roi_x2 = min(W, x + roi_half)
 
+    # Calculate width and height
+    width = roi_x2 - roi_x1
+    height = roi_y2 - roi_y1
+
     # Extract the ROI
-    bbox = ((roi_x1, roi_y1), (roi_x2, roi_y2))
     roi = image[:, roi_y1:roi_y2, roi_x1:roi_x2]
+    bbox = [roi_x1, roi_y1, width, height]
 
     return roi, bbox
 
