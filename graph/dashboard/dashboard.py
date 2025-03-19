@@ -187,4 +187,4 @@ class Dashboard:
             port: Port number to run the server on
             debug: Whether to run in debug mode
         """
-        self.app.run(debug=debug, port=port, use_reloader=False) 
+        self.app.run(debug=debug, port=port, use_reloader=debug) 
