@@ -183,6 +183,7 @@ class InteractiveGraphVisualizer:
         self.video_lock = threading.Lock()
         self.frame_cache = {}
         self.max_cache_size = 100
+        self.edge_hover_points = 20  # Number of hover points per edge
         
         self.gaze_type_info = {
             GAZE_TYPE_UNTRACKED: {"color": "gray", "label": "Untracked"},
@@ -476,7 +477,7 @@ class InteractiveGraphVisualizer:
     def _add_edges_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
         regular_edge_x, regular_edge_y = [], []
         last_edge_x, last_edge_y = [], []
-        edge_hover_texts = []
+        edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
         
         for edge in G.edges(data=True):
             source, target = edge[0], edge[1]
@@ -491,24 +492,29 @@ class InteractiveGraphVisualizer:
             edge_info = f"Edge: {source} → {target}<br>Type: {edge_type}"
             if features:
                 feature_text = self._format_feature_text(features)
-                edge_info += f"<br>{feature_text}"
+                edge_info += f"<br><br>{feature_text}"
             
-            edge_hover_texts.append(edge_info)
-            
+            # Add the main edge lines
             if (source, target) == self.playback.last_added_edge:
                 last_edge_x.extend([x0, x1, None])
                 last_edge_y.extend([y0, y1, None])
             else:
                 regular_edge_x.extend([x0, x1, None])
                 regular_edge_y.extend([y0, y1, None])
+            
+            # Add intermediate points for better hover detection
+            middle_x, middle_y = self._generate_intermediate_points(x0, x1, y0, y1, self.edge_hover_points)
+            edge_middle_x.extend(middle_x)
+            edge_middle_y.extend(middle_y)
+            edge_hover_texts.extend([edge_info] * len(middle_x))
         
+        # Add the main edge lines
         if regular_edge_x:
             fig.add_trace(go.Scatter(
                 x=regular_edge_x, y=regular_edge_y,
                 mode='lines',
                 line=dict(width=2.5, color='#888'),
-                hoverinfo='text',
-                hovertext=edge_hover_texts,
+                hoverinfo='none',
                 showlegend=False
             ))
         
@@ -517,10 +523,48 @@ class InteractiveGraphVisualizer:
                 x=last_edge_x, y=last_edge_y,
                 mode='lines',
                 line=dict(width=4, color='blue'),
-                hoverinfo='text',
-                hovertext=edge_hover_texts,
+                hoverinfo='none',
                 showlegend=False
             ))
+        
+        # Add hover points along edges
+        if edge_middle_x:
+            fig.add_trace(go.Scatter(
+                x=edge_middle_x, y=edge_middle_y,
+                mode='markers',
+                marker=dict(size=6, opacity=0.1),
+                hoverinfo='text',
+                hovertext=edge_hover_texts,
+                hovertemplate='%{hovertext}<extra></extra>',
+                showlegend=False
+            ))
+    
+    def _generate_intermediate_points(self, x0, x1, y0, y1, qty):
+        """Generate intermediate points along an edge for better hover detection."""
+        middle_x = self._queue(x0, x1, qty + 2)
+        middle_y = self._queue(y0, y1, qty + 2)
+        # Remove first and last points (they are the nodes)
+        middle_x.pop(0)
+        middle_x.pop()
+        middle_y.pop(0)
+        middle_y.pop()
+        return middle_x, middle_y
+    
+    def _queue(self, a, b, qty):
+        """Generate a specified number of points between a and b."""
+        q = deque()
+        q.append((0, qty - 1))  # indexing starts at 0
+        pts = [0] * qty
+        pts[0] = a
+        pts[-1] = b  # first value is a, last is b
+        while q:
+            left, right = q.popleft()  # remove working segment from queue
+            center = (left + right + 1) // 2  # creates index values for pts
+            pts[center] = (pts[left] + pts[right]) / 2
+            if right - left > 2:  # stop when qty met
+                q.append((left, center))
+                q.append((center, right))
+        return pts
 
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, current_node_id: Any) -> None:
         node_x, node_y, node_text, node_hover_text = [], [], [], []
@@ -589,7 +633,12 @@ class InteractiveGraphVisualizer:
             yaxis=dict(showgrid=False, zeroline=False, visible=False),
             height=450,
             plot_bgcolor='white',
-            paper_bgcolor='white'
+            paper_bgcolor='white',
+            hoverlabel=dict(
+                bgcolor="white",
+                font_size=12,
+                font_family="Arial"
+            )
         )
         
         return fig
