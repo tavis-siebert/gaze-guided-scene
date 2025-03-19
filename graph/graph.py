@@ -5,7 +5,7 @@ from collections import deque
 import math
 from collections import defaultdict
 
-from graph.node import Node, VisitRecord, NodeManager
+from graph.node import Node, VisitRecord
 from graph.edge import Edge
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
@@ -92,7 +92,7 @@ class Graph:
         Returns:
             The newly created node
         """
-        node = NodeManager.create_node(
+        node = Node.create(
             node_id=self.num_nodes,
             label=label,
             visit=visit,
@@ -166,10 +166,10 @@ class Graph:
         most_likely_label = max(label_counts, key=label_counts.get)
         
         # Try to find matching node
-        matching_node = NodeManager.find_matching_node(
+        matching_node = Node.find_matching(
             self.current_node, keypoints, descriptors, most_likely_label, inlier_thresh
         )
-        next_node = NodeManager.merge_node(visit, matching_node)
+        next_node = Node.merge(visit, matching_node)
         
         # Create new node if no match found
         if next_node is None:
