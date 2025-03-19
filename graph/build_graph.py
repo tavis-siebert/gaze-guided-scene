@@ -252,8 +252,7 @@ class GraphBuilder:
             logger.info(f"- Merged with existing node: {next_node.id}")
         
         # Update node features
-        next_node.update_features(
-            tracking['node_data'],
+        tracking['node_data'][next_node.id] = next_node.get_features_tensor(
             self.vid_lengths[tracking['video_name']],
             frame_num,
             tracking['relative_frame_num'],
@@ -331,11 +330,10 @@ class GraphBuilder:
         else:
             timestamp_fraction = frame_num / vid_length
         
-        # Update features for all nodes
+        # Update features for all nodes using the new API
         for node in scene_graph.get_all_nodes():
             if node.id >= 0:  # Skip root
-                node.update_features(
-                    tracking['node_data'],
+                tracking['node_data'][node.id] = node.get_features_tensor(
                     vid_length,
                     frame_num,
                     tracking['relative_frame_num'],
