@@ -161,10 +161,6 @@ class Node:
             return matching_node
         return None
 
-    def set_object_label(self, label: str) -> None:
-        """Set the object label for this node."""
-        self.object_label = label
-
     def add_new_visit(self, visit: VisitRecord) -> None:
         """
         Add a new visit period to this node.
@@ -173,17 +169,6 @@ class Node:
             visit: A list containing [start_frame, end_frame]
         """
         self.visits.append(visit)
-    
-    def add_new_feature(self, keypoint: Any, descriptor: Any) -> None:
-        """
-        Add a new feature (keypoint and descriptor) to this node.
-        
-        Args:
-            keypoint: Keypoint from feature detector
-            descriptor: Descriptor from feature detector
-        """
-        self.keypoints.append(keypoint)
-        self.descriptors.append(descriptor)
     
     def get_visit_duration(self) -> int:
         """

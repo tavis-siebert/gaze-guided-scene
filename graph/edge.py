@@ -175,41 +175,6 @@ class Edge:
         """
         return self.features
     
-    def get_opposite(self) -> 'Edge':
-        """
-        Create an edge in the opposite direction.
-        
-        Returns:
-            A new Edge object with source and target swapped and opposite angle
-        """
-        opposite_angle = AngleUtils.get_opposite_angle(self.angle)
-        
-        # Extract positions from features
-        prev_pos = self._get_position_from_features(True)  # curr_pos becomes prev_pos
-        curr_pos = self._get_position_from_features(False) # prev_pos becomes curr_pos
-        
-        return Edge(
-            self.target_id, 
-            self.source_id, 
-            opposite_angle, 
-            self.distance,
-            prev_pos,
-            curr_pos
-        )
-    
-    def _get_position_from_features(self, is_prev: bool) -> Position:
-        """Extract positions from features for creating opposite edges."""
-        if is_prev:
-            return (
-                int(self.features[0].item() * resolution[0]),
-                int(self.features[1].item() * resolution[1])
-            )
-        else:
-            return (
-                int(self.features[2].item() * resolution[0]),
-                int(self.features[3].item() * resolution[1])
-            )
-    
     @staticmethod
     def get_edges_tensor(edges: List['Edge']) -> Tuple[torch.Tensor, torch.Tensor]:
         """

@@ -68,21 +68,6 @@ class Graph:
         """
         return self.nodes.get(node_id)
     
-    def get_node_by_label(self, label: str) -> Optional[Node]:
-        """
-        Find a node by its label.
-        
-        Args:
-            label: The label of the node to find
-            
-        Returns:
-            The first node with the given label if found, None otherwise
-        """
-        for node in self.nodes.values():
-            if node.object_label == label:
-                return node
-        return None
-    
     def add_node(
         self, 
         label: str, 
