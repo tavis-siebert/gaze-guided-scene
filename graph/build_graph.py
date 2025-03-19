@@ -242,12 +242,26 @@ class GraphBuilder:
         if next_node.id != prev_node_id:
             logger.info(f"- New node created: {next_node.id}")
             
-            # Log node and edge addition
-            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, {})
+            # Get node features for tracing
+            node_features = next_node.get_features(
+                self.vid_lengths[tracking['video_name']],
+                frame_num,
+                tracking['relative_frame_num'],
+                -1,  # Placeholder for timestamp fraction
+                self.labels_to_int
+            )
+            
+            # Log node addition
+            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, node_features)
             
             # Log edge addition if applicable
             if prev_node_id >= 0:
-                self.tracer.log_edge_added(frame_num, prev_node_id, next_node.id, "saccade", {"angle": None})
+                # Find the edge connecting previous and current node
+                edge = scene_graph.get_edge(prev_node_id, next_node.id)
+                if edge:
+                    # Get edge features
+                    edge_features = edge.get_features()
+                    self.tracer.log_edge_added(frame_num, prev_node_id, next_node.id, "saccade", edge_features)
         else:
             logger.info(f"- Merged with existing node: {next_node.id}")
         
