@@ -230,33 +230,6 @@ class Node:
         # Combine features
         return torch.cat([temporal_features, one_hot])
     
-    @staticmethod
-    def normalize_features(node_features: torch.Tensor, relative_frame: int, timestamp_fraction: float) -> torch.Tensor:
-        """
-        Normalize node features.
-        
-        Args:
-            node_features: Tensor of node features (as produced by get_features_tensor)
-            relative_frame: Relative frame number for normalization
-            timestamp_fraction: Fraction of video at current timestamp
-            
-        Returns:
-            Normalized node features
-        """
-        normalized = node_features.clone()
-        
-        # Normalize visit duration by relative frame number
-        normalized[:, 0] /= relative_frame
-        
-        # Normalize number of visits by maximum value
-        if normalized[:, 1].max() > 0:
-            normalized[:, 1] /= normalized[:, 1].max()
-        
-        # Set timestamp fraction
-        normalized[:, 4] = timestamp_fraction
-        
-        return normalized
-    
     def __eq__(self, other: object) -> bool:
         """
         Check if two nodes are equal based on their ID.
