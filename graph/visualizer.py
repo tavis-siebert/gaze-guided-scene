@@ -454,8 +454,9 @@ class InteractiveGraphVisualizer:
                 f"Potential labels:<br>{potential_labels_text}"
             )
             
-            # Extract bounding box coordinates
-            x0, y0, x1, y1 = bbox
+            # Extract bounding box coordinates [x, y, width, height]
+            x, y, width, height = bbox
+            x0, y0, x1, y1 = x, y, x + width, y + height
             
             # Add semi-transparent fill for the bounding box
             fig.add_trace(go.Scatter(
@@ -801,7 +802,7 @@ class InteractiveGraphVisualizer:
             ], className="mb-3"),
             html.Div([
                 html.Div([
-                    html.Strong("Bounding Box: "),
+                    html.Strong("Bounding Box [x, y, width, height]: "),
                     html.Span(f"[{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}]")
                 ], className="mb-2"),
                 html.Strong("Potential Labels:", className="d-block mb-2"),
