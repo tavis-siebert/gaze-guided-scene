@@ -301,105 +301,33 @@ class Graph:
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees)
     
-    def extract_features(
+    def get_features_tensor(
         self,
-        node_data: Dict[int, torch.Tensor],
+        video_length: int,
+        current_frame: int,
         relative_frame: int,
-        timestamp_fraction: float
+        timestamp_fraction: float,
+        labels_to_int: Dict[str, int],
+        num_object_classes: int,
+        normalize: bool = True
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Extract node and edge features from the graph.
+        Get graph features as tensors for model input.
         
         Args:
-            node_data: Dictionary mapping node IDs to feature tensors
-            relative_frame: Relative frame number for normalization
+            video_length: Total length of the video
+            current_frame: Current frame number
+            relative_frame: Relative frame number
             timestamp_fraction: Fraction of video at current timestamp
+            labels_to_int: Mapping from object labels to class indices
+            num_object_classes: Number of object classes
+            normalize: Whether to normalize the node features
             
         Returns:
             Tuple of (node_features, edge_indices, edge_features)
         """
-        # Handle empty graph case
-        if not node_data:
-            return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
-            
-        # Stack node features and normalize
-        node_features = torch.stack(list(node_data.values()))
-        normalized = Node.normalize_features(node_features, relative_frame, timestamp_fraction)
-        
-        # Extract edge features and indices
-        edge_features = torch.stack(self.edge_data) if self.edge_data else torch.tensor([])
-        edge_indices = torch.tensor(
-            self.edge_index, dtype=torch.long
-        ) if self.edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
-        
-        return normalized, edge_indices, edge_features
-    
-    def to_pytorch_geometric(
-        self,
-        video_length: int,
-        current_frame: int,
-        relative_frame: int,
-        timestamp_fraction: float,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
-    ) -> Dict:
-        """
-        Convert the graph to a PyTorch Geometric compatible format.
-        
-        Args:
-            video_length: Total length of the video
-            current_frame: Current frame number
-            relative_frame: Relative frame number
-            timestamp_fraction: Fraction of video at current timestamp
-            labels_to_int: Mapping from object labels to class indices
-            num_object_classes: Number of object classes
-            
-        Returns:
-            Dictionary with node features, edge indices, and edge features
-        """
         # Collect node features
-        node_features = self._collect_node_features(
-            video_length,
-            current_frame,
-            relative_frame,
-            timestamp_fraction,
-            labels_to_int,
-            num_object_classes
-        )
-        
-        if not node_features:
-            return {"x": None, "edge_index": None, "edge_attr": None}
-            
-        return {
-            "x": torch.stack(node_features) if node_features else None,
-            "edge_index": torch.tensor(self.edge_index, dtype=torch.long) if self.edge_index[0] else None,
-            "edge_attr": torch.stack(self.edge_data) if self.edge_data else None
-        }
-    
-    def _collect_node_features(
-        self,
-        video_length: int,
-        current_frame: int,
-        relative_frame: int,
-        timestamp_fraction: float,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
-    ) -> List[torch.Tensor]:
-        """
-        Collect features for all nodes in the graph using the new API.
-        
-        Args:
-            video_length: Total length of the video
-            current_frame: Current frame number
-            relative_frame: Relative frame number
-            timestamp_fraction: Fraction of video at current timestamp
-            labels_to_int: Mapping from object labels to class indices
-            num_object_classes: Number of object classes
-            
-        Returns:
-            List of node feature tensors
-        """
-        node_features = []
+        nodes = []
         for node in sorted(self.get_all_nodes(), key=lambda n: n.id):
             if node.id >= 0:  # Skip root node
                 features_tensor = node.get_features_tensor(
@@ -410,6 +338,31 @@ class Graph:
                     labels_to_int,
                     num_object_classes
                 )
-                node_features.append(features_tensor)
+                nodes.append(features_tensor)
         
-        return node_features 
+        # Handle empty graph case
+        if not nodes:
+            return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
+        
+        # Stack node features
+        node_features = torch.stack(nodes)
+        
+        # Normalize node features if requested
+        if normalize:
+            # Normalize visit duration by relative frame number
+            node_features[:, 0] /= relative_frame
+            
+            # Normalize number of visits by maximum value
+            if node_features[:, 1].max() > 0:
+                node_features[:, 1] /= node_features[:, 1].max()
+            
+            # Set timestamp fraction
+            node_features[:, 4] = timestamp_fraction
+        
+        # Extract edge features and indices
+        edge_features = torch.stack(self.edge_data) if self.edge_data else torch.tensor([])
+        edge_indices = torch.tensor(
+            self.edge_index, dtype=torch.long
+        ) if self.edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
+        
+        return node_features, edge_indices, edge_features 
