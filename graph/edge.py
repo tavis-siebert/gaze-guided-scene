@@ -150,10 +150,12 @@ class Edge:
         features = self.get_features()
         
         return torch.tensor([
-            features["normalized_prev_gaze_x"], 
-            features["normalized_prev_gaze_y"], 
-            features["normalized_curr_gaze_x"], 
-            features["normalized_curr_gaze_y"]
+            features["prev_x"], 
+            features["prev_y"], 
+            features["curr_x"], 
+            features["curr_y"],
+            features["angle"],
+            features["distance"]
         ])
     
     @staticmethod
