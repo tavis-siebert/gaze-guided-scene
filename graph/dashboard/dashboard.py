@@ -31,7 +31,8 @@ class Dashboard:
             __name__, 
             external_stylesheets=[dbc.themes.FLATLY],
             update_title=None,
-            suppress_callback_exceptions=True
+            suppress_callback_exceptions=True,
+            title="Gaze-Guided Scene Graph"
         )
         
         app.enable_dev_tools(
