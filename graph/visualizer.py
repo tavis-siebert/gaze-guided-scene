@@ -133,19 +133,29 @@ class GraphPlayback:
     
     def _process_event(self, event: GraphEvent) -> None:
         if event.event_type == "node_added":
+            node_id = event.data["node_id"]
+            label = event.data["label"]
+            features = event.data.get("features", {})
+            
+            # Note: position is now calculated by the layout algorithm instead of stored
             self.graph.add_node(
-                event.data["node_id"],
-                label=event.data["label"],
-                position=event.data["position"]
+                node_id,
+                label=label,
+                features=features
             )
-            self.last_added_node = event.data["node_id"]
+            self.last_added_node = node_id
+            
         elif event.event_type == "edge_added":
             source_id = event.data["source_id"]
             target_id = event.data["target_id"]
+            edge_type = event.data["edge_type"]
+            features = event.data.get("features", {})
+            
             self.graph.add_edge(
                 source_id,
                 target_id,
-                edge_type=event.data["edge_type"]
+                edge_type=edge_type,
+                features=features
             )
             self.last_added_edge = (source_id, target_id)
     
@@ -439,15 +449,53 @@ class InteractiveGraphVisualizer:
                 return event.data["node_id"]
         return None
     
+    def _format_node_label(self, label: str) -> str:
+        words = label.split('_')
+        capitalized_words = [word.capitalize() for word in words]
+        return '<br>'.join(capitalized_words)
+        
+    def _format_feature_text(self, features: Dict[str, Any]) -> str:
+        if not features:
+            return ""
+            
+        text_parts = []
+        for key, value in features.items():
+            if isinstance(value, (int, float)):
+                value_str = f"{value:.2f}" if isinstance(value, float) else str(value)
+            else:
+                value_str = str(value)
+                
+            # Convert snake_case to Title Case
+            key_parts = key.split('_')
+            key_label = ' '.join(part.capitalize() for part in key_parts)
+            
+            text_parts.append(f"{key_label}: {value_str}")
+            
+        return "<br>".join(text_parts)
+
     def _add_edges_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
         regular_edge_x, regular_edge_y = [], []
         last_edge_x, last_edge_y = [], []
+        edge_hover_texts = []
         
-        for edge in G.edges():
-            x0, y0 = pos[edge[0]]
-            x1, y1 = pos[edge[1]]
+        for edge in G.edges(data=True):
+            source, target = edge[0], edge[1]
+            edge_data = edge[2]
             
-            if edge == self.playback.last_added_edge:
+            x0, y0 = pos[source]
+            x1, y1 = pos[target]
+            
+            edge_type = edge_data.get('edge_type', 'unknown')
+            features = edge_data.get('features', {})
+            
+            edge_info = f"Edge: {source} → {target}<br>Type: {edge_type}"
+            if features:
+                feature_text = self._format_feature_text(features)
+                edge_info += f"<br>{feature_text}"
+            
+            edge_hover_texts.append(edge_info)
+            
+            if (source, target) == self.playback.last_added_edge:
                 last_edge_x.extend([x0, x1, None])
                 last_edge_y.extend([y0, y1, None])
             else:
@@ -459,7 +507,8 @@ class InteractiveGraphVisualizer:
                 x=regular_edge_x, y=regular_edge_y,
                 mode='lines',
                 line=dict(width=2.5, color='#888'),
-                hoverinfo='none',
+                hoverinfo='text',
+                hovertext=edge_hover_texts,
                 showlegend=False
             ))
         
@@ -468,30 +517,35 @@ class InteractiveGraphVisualizer:
                 x=last_edge_x, y=last_edge_y,
                 mode='lines',
                 line=dict(width=4, color='blue'),
-                hoverinfo='none',
+                hoverinfo='text',
+                hovertext=edge_hover_texts,
                 showlegend=False
             ))
-
-    def _format_node_label(self, label: str) -> str:
-        words = label.split('_')
-        capitalized_words = [word.capitalize() for word in words]
-        return '<br>'.join(capitalized_words)
 
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, current_node_id: Any) -> None:
         node_x, node_y, node_text, node_hover_text = [], [], [], []
         node_colors, node_border_colors = [], []
         
-        for node in G.nodes():
+        for node, data in G.nodes(data=True):
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
             
-            raw_label = G.nodes[node]['label']
+            raw_label = data['label']
             formatted_label = self._format_node_label(raw_label)
             node_text.append(formatted_label)
             
+            # Create hover text with node info and features
             hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
-            node_hover_text.append(f"Node {node}: {hover_label}")
+            hover_text = f"Node {node}: {hover_label}"
+            
+            # Add features to hover text if available
+            features = data.get('features', {})
+            if features:
+                feature_text = self._format_feature_text(features)
+                hover_text += f"<br><br>{feature_text}"
+                
+            node_hover_text.append(hover_text)
             
             is_current = node == current_node_id
             is_last_added = node == self.playback.last_added_node
