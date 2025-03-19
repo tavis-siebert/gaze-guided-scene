@@ -21,6 +21,26 @@ def format_node_info(node: Any, prev_obj: str, theta: Any) -> Dict[str, Any]:
     }
 
 
+def format_label(label: str, line_break: bool = False) -> str:
+    """Format a label for display with consistent capitalization.
+    
+    Args:
+        label: The raw label (e.g., 'coffee_cup')
+        line_break: If True, insert line breaks between words for multi-line display
+                    If False, join words with spaces for single-line display
+    
+    Returns:
+        Formatted label with capitalized words
+    """
+    words = label.split('_')
+    capitalized_words = [word.capitalize() for word in words]
+    
+    if line_break:
+        return '<br>'.join(capitalized_words)
+    else:
+        return ' '.join(capitalized_words)
+
+
 def format_node_label(label: str) -> str:
     """Format a node label for display.
     
@@ -30,9 +50,7 @@ def format_node_label(label: str) -> str:
     Returns:
         Formatted label with capitalized words separated by line breaks
     """
-    words = label.split('_')
-    capitalized_words = [word.capitalize() for word in words]
-    return '<br>'.join(capitalized_words)
+    return format_label(label, line_break=True)
 
 
 def format_feature_text(features: Dict[str, Any]) -> str:
