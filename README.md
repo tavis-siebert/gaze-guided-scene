@@ -154,8 +154,21 @@ The interactive dashboard displays the graph construction process:
 python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
 ```
 
+**Dashboard Components**:
+- **Dashboard** - Main component that integrates all others
+- **GraphPlayback** - Handles trace file loading and graph state management
+- **VideoDisplay** - Manages video frames and overlay visualization
+- **GraphDisplay** - Handles graph visualization and interaction
+- **PlaybackControls** - Playback navigation controls
+
 **Key Features**:
 - Video player with gaze position and region-of-interest overlays
 - Graph visualization showing nodes (objects) and their relationships
-- Event timeline with playback controls
-- Detailed event log
+- Interactive playback controls for navigating through frames
+
+**Direct API Usage**:
+```python
+from graph.visualizer import visualize_graph_construction
+
+visualize_graph_construction("path/to/trace_file.jsonl", "path/to/video.mp4")
+```
