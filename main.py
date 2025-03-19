@@ -15,7 +15,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=str, default="config/student_cluster_config.yaml",
                        help="Path to custom config file. Defaults to config/student_cluster_config.yaml")
     parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                       help="Set the logging level", default="INFO")
+                       help="Set the logging level", default="DEBUG")
     parser.add_argument("--log-file", type=str,
                        help="Path to log file. If not specified, logs to console only", default="logs/main.log")
     
