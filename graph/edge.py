@@ -50,18 +50,30 @@ class Edge:
     
     @property
     def angle(self) -> float:
-        """Angle between source and target gaze positions."""
+        """
+        Angle between source and target gaze positions.
+        Works with normalized [0,1] gaze coordinates.
+        """
         prev_x, prev_y = self.prev_gaze_pos
         curr_x, curr_y = self.curr_gaze_pos
+        
+        # Calculate vector components in the normalized space
         dx, dy = curr_x - prev_x, curr_y - prev_y
+        
         return AngleUtils.get_angle_bin(dx, dy, self.num_bins)
     
     @property
     def distance(self) -> float:
-        """Distance between source and target gaze positions."""
+        """
+        Euclidean distance between source and target gaze positions.
+        Works with normalized [0,1] gaze coordinates, returns a relative distance.
+        """
         prev_x, prev_y = self.prev_gaze_pos
         curr_x, curr_y = self.curr_gaze_pos
+        
+        # Calculate Euclidean distance in normalized space
         dx, dy = curr_x - prev_x, curr_y - prev_y
+        
         return np.sqrt(dx**2 + dy**2)
     
     @staticmethod
@@ -112,19 +124,20 @@ class Edge:
         prev_x, prev_y = self.prev_gaze_pos
         curr_x, curr_y = self.curr_gaze_pos
         
-        # Normalize by resolution
-        norm_prev_x = prev_x / resolution[0]
-        norm_prev_y = prev_y / resolution[1]
-        norm_curr_x = curr_x / resolution[0] 
-        norm_curr_y = curr_y / resolution[1]
+        # These coordinates are already normalized to [0, 1]
+        norm_prev_x = prev_x
+        norm_prev_y = prev_y
+        norm_curr_x = curr_x
+        norm_curr_y = curr_y
         
         return {
-            "normalized_prev_gaze_x": norm_prev_x,
-            "normalized_prev_gaze_y": norm_prev_y,
-            "normalized_curr_gaze_x": norm_curr_x,
-            "normalized_curr_gaze_y": norm_curr_y,
             "angle": self.angle,
-            "distance": self.distance
+            "angle_degrees": AngleUtils.to_degrees(self.angle),
+            "distance": self.distance,
+            "prev_x": norm_prev_x,
+            "prev_y": norm_prev_y,
+            "curr_x": norm_curr_x,
+            "curr_y": norm_curr_y
         }
     
     def get_features_tensor(self) -> EdgeFeature:
