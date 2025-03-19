@@ -6,6 +6,7 @@ import math
 from collections import defaultdict
 
 from graph.node import Node, VisitRecord, NodeManager
+from graph.edge import Edge, EdgeManager
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 from egtea_gaze.utils import resolution
@@ -33,8 +34,7 @@ class Graph:
         self.root = Node(id=-1, object_label='root')
         self.current_node = self.root
         self.num_nodes = 0
-        self.edge_data: List[EdgeFeature] = []
-        self.edge_index: EdgeIndex = [[], []]
+        self.edges = []
         
     def get_all_nodes(self) -> List[Node]:
         """Get all nodes in the graph."""
@@ -120,118 +120,20 @@ class Graph:
             curr_pos: The current position (x,y)
             num_bins: The number of angle bins
         """
-        angle, distance = self._calculate_edge_features(prev_pos, curr_pos, num_bins)
-        
         if not source_node.has_neighbor(target_node):
-            self._add_bidirectional_edge(
-                source_node,
-                target_node,
-                angle,
-                distance,
-                prev_pos,
-                curr_pos
+            # Create bidirectional edges
+            forward_edge, backward_edge = EdgeManager.create_bidirectional_edges(
+                source_node, target_node, prev_pos, curr_pos, num_bins
             )
-    
-    def _calculate_edge_features(
-        self, 
-        prev_pos: Position, 
-        curr_pos: Position, 
-        num_bins: int
-    ) -> Tuple[float, float]:
-        """
-        Calculate edge features between two positions.
-        
-        Args:
-            prev_pos: Previous position (x,y)
-            curr_pos: Current position (x,y)
-            num_bins: Number of angle bins
             
-        Returns:
-            Tuple of (angle, distance)
-        """
-        prev_x, prev_y = prev_pos
-        curr_x, curr_y = curr_pos
-        dx, dy = curr_x - prev_x, curr_y - prev_y
-        
-        angle = AngleUtils.get_angle_bin(dx, dy, num_bins)
-        distance = np.sqrt(dx**2 + dy**2)
-        
-        return angle, distance
-    
-    def _normalize_positions(
-        self, 
-        prev_pos: Position, 
-        curr_pos: Position
-    ) -> Tuple[float, float, float, float]:
-        """Normalize positions by resolution for edge features."""
-        prev_x, prev_y = prev_pos
-        curr_x, curr_y = curr_pos
-        
-        return (
-            prev_x / resolution[0], 
-            prev_y / resolution[1], 
-            curr_x / resolution[0], 
-            curr_y / resolution[1]
-        )
-    
-    def _create_edge_feature(
-        self, 
-        prev_x: float, 
-        prev_y: float, 
-        curr_x: float, 
-        curr_y: float
-    ) -> EdgeFeature:
-        """Create an edge feature tensor from normalized positions."""
-        return torch.tensor([prev_x, prev_y, curr_x, curr_y])
-    
-    def _update_edge_indices(
-        self, 
-        source_id: int, 
-        target_id: int
-    ) -> None:
-        """Update edge indices for a bidirectional edge."""
-        self.edge_index[0].extend([source_id, target_id])
-        self.edge_index[1].extend([target_id, source_id])
-    
-    def _add_bidirectional_edge(
-        self, 
-        curr_node: Node, 
-        next_node: Node, 
-        angle: float, 
-        distance: float,
-        prev_pos: Position,
-        curr_pos: Position
-    ) -> None:
-        """
-        Add bidirectional edges between two nodes with appropriate features.
-        
-        Args:
-            curr_node: Source node
-            next_node: Target node
-            angle: Angle between nodes
-            distance: Distance between nodes
-            prev_pos: Previous position (x,y)
-            curr_pos: Current position (x,y)
-        """
-        # Add forward edge
-        curr_node.add_neighbor(next_node, angle, distance)
-        
-        # Add backward edge only if not connecting to root
-        if curr_node.object_label != 'root':
-            # Calculate opposite angle
-            opposite_angle = AngleUtils.get_opposite_angle(angle)
-            next_node.add_neighbor(curr_node, opposite_angle, distance)
+            # Add forward edge to source node
+            source_node.add_edge(forward_edge)
+            self.edges.append(forward_edge)
             
-            # Normalize positions and create edge feature
-            norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y = self._normalize_positions(prev_pos, curr_pos)
-            edge_feature = self._create_edge_feature(norm_prev_x, norm_prev_y, norm_curr_x, norm_curr_y)
-            
-            # Add edge features for both directions (same feature for both)
-            self.edge_data.append(edge_feature)
-            self.edge_data.append(edge_feature)
-            
-            # Update edge indices
-            self._update_edge_indices(curr_node.id, next_node.id)
+            # Add backward edge to target node if exists (not connecting to root)
+            if backward_edge:
+                target_node.add_edge(backward_edge)
+                self.edges.append(backward_edge)
     
     def update_graph(
         self, 
@@ -301,6 +203,27 @@ class Graph:
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees)
     
+    def get_edge_features_tensor(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Get edge features as tensors.
+        
+        Returns:
+            Tuple of (edge_index, edge_attr)
+        """
+        if not self.edges:
+            return torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
+        
+        # Extract edge indices
+        edge_index = [[], []]
+        for edge in self.edges:
+            edge_index[0].append(edge.source_id)
+            edge_index[1].append(edge.target_id)
+            
+        # Extract edge features
+        edge_attr = [edge.features for edge in self.edges]
+        
+        return torch.tensor(edge_index, dtype=torch.long), torch.stack(edge_attr)
+    
     def get_features_tensor(
         self,
         video_length: int,
@@ -359,10 +282,7 @@ class Graph:
             # Set timestamp fraction
             node_features[:, 4] = timestamp_fraction
         
-        # Extract edge features and indices
-        edge_features = torch.stack(self.edge_data) if self.edge_data else torch.tensor([])
-        edge_indices = torch.tensor(
-            self.edge_index, dtype=torch.long
-        ) if self.edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
+        # Get edge features
+        edge_indices, edge_features = self.get_edge_features_tensor()
         
         return node_features, edge_indices, edge_features 
