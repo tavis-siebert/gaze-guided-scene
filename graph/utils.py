@@ -85,13 +85,18 @@ class GraphTraversal:
     """Utilities for traversing and exploring graph structures."""
     
     @staticmethod
-    def dfs(start_node: Node, visited: Optional[Set[Node]] = None) -> Set[Node]:
+    def dfs(
+        graph: 'Graph',
+        start_node_id: int, 
+        visited: Optional[Set[int]] = None
+    ) -> Set[Node]:
         """
         Depth-first search traversal of a graph starting from a given node.
         
         Args:
-            start_node: Node to start traversal from
-            visited: Set of already visited nodes
+            graph: The Graph instance to traverse
+            start_node_id: ID of the node to start traversal from
+            visited: Set of already visited node IDs
             
         Returns:
             Set of all visited nodes
@@ -99,27 +104,43 @@ class GraphTraversal:
         if visited is None:
             visited = set()
         
-        visited.add(start_node)
-        for neighbor, _, _ in start_node.neighbors:
-            if neighbor not in visited:
-                GraphTraversal.dfs(neighbor, visited)
+        # Get the node from the graph
+        start_node = graph.get_node_by_id(start_node_id)
+        if start_node is None:
+            return set()
+            
+        # Add node to visited set
+        result_nodes = {start_node}
+        visited.add(start_node_id)
+        
+        # Traverse neighbors using graph's adjacency list
+        for neighbor_id in graph.get_node_neighbors(start_node_id):
+            if neighbor_id not in visited:
+                # Recursively traverse unvisited neighbors
+                neighbor_nodes = GraphTraversal.dfs(graph, neighbor_id, visited)
+                result_nodes.update(neighbor_nodes)
                 
-        return visited
+        return result_nodes
 
     @staticmethod
-    def get_all_nodes(start_node: Node, mode: str = 'dfs') -> List[Node]:
+    def get_all_nodes(
+        graph: 'Graph', 
+        start_node_id: int = -1,
+        mode: str = 'dfs'
+    ) -> List[Node]:
         """
         Returns all nodes in the graph using the specified traversal method.
         
         Args:
-            start_node: Node to start traversal from
+            graph: The Graph instance to traverse
+            start_node_id: ID of the node to start traversal from (default: root node)
             mode: Traversal mode ('dfs' for depth-first search)
             
         Returns:
             List of all nodes in the graph
         """
         if mode == 'dfs':
-            return list(GraphTraversal.dfs(start_node))
+            return list(GraphTraversal.dfs(graph, start_node_id))
         else:
             raise ValueError(f"Unknown traversal mode: {mode}")
 

@@ -36,8 +36,39 @@ class GraphVisualizer:
         print(f'Angle from prev: {node_info["angle"]}')
     
     @staticmethod
-    def print_levels(start_node: Any) -> None:
-        visited = set([start_node])
+    def print_levels(start_node: Any, use_degrees: bool = True, edges: List = None, graph: 'Graph' = None) -> None:
+        """
+        Print the graph structure by levels (BFS traversal).
+        
+        Args:
+            start_node: The node to start BFS from
+            use_degrees: Whether to display angles in degrees
+            edges: List of edges in the graph
+            graph: Optional Graph instance (preferred over edges list)
+        """
+        # Create adjacency map for edge lookup
+        adjacency = defaultdict(list)
+        visited_nodes = set([start_node])
+        nodes_by_id = {start_node.id: start_node}
+        
+        # Initialize with the given edges
+        if edges:
+            for edge in edges:
+                target_node = None
+                
+                # If graph is available, use it to look up nodes
+                if graph:
+                    target_node = graph.get_node_by_id(edge.target_id)
+                else:
+                    # This is a fallback when graph instance isn't provided
+                    # Note: this might not find all target nodes if they haven't been visited yet
+                    if edge.target_id in nodes_by_id:
+                        target_node = nodes_by_id[edge.target_id]
+                
+                if target_node:
+                    adjacency[edge.source_id].append((target_node, edge.angle, edge.distance))
+                    nodes_by_id[target_node.id] = target_node
+                
         queue = deque([(start_node, 'none', 'none')])
         
         curr_depth = 0
@@ -47,14 +78,20 @@ class GraphVisualizer:
             
             for _ in range(level_size):
                 node, prev_obj, theta = queue.popleft()
+                
+                # Convert angle to degrees if requested
+                if theta != 'none' and use_degrees:
+                    theta = f"{(theta * 180.0 / np.pi):.2f}°"
+                
                 node_info = GraphVisualizer.format_node_info(node, prev_obj, theta)
                 GraphVisualizer.print_node_info(node_info)
                 
-                if hasattr(node, 'neighbors'):
-                    for neighbor, angle, _ in node.neighbors:
-                        if neighbor not in visited:
-                            visited.add(neighbor)
-                            queue.append((neighbor, getattr(node, 'object_label', str(node)), angle))
+                # Use adjacency map to get neighbors
+                for neighbor, angle, distance in adjacency.get(node.id, []):
+                    if neighbor not in visited_nodes:
+                        visited_nodes.add(neighbor)
+                        nodes_by_id[neighbor.id] = neighbor
+                        queue.append((neighbor, getattr(node, 'object_label', str(node)), angle))
             
             print('================')
             curr_depth += 1

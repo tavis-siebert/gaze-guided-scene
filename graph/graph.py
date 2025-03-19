@@ -1,9 +1,8 @@
 from typing import Dict, List, Optional, Set, Tuple, Any
 import torch
 import numpy as np
-from collections import deque
+from collections import deque, defaultdict
 import math
-from collections import defaultdict
 
 from graph.node import Node, VisitRecord
 from graph.edge import Edge
@@ -16,6 +15,8 @@ from logger import get_logger
 Position = Tuple[int, int]
 EdgeFeature = torch.Tensor
 EdgeIndex = List[List[int]]
+NodeId = int
+EdgeId = Tuple[NodeId, NodeId]  # (source_id, target_id)
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -31,15 +32,30 @@ class Graph:
     
     def __init__(self):
         """Initialize an empty graph with a root node."""
+        # Create the root node (special node with ID -1)
         self.root = Node(id=-1, object_label='root')
         self.current_node = self.root
-        self.num_nodes = 0
-        self.edges = []
+        
+        # Track nodes by ID for efficient lookup
+        self.nodes: Dict[NodeId, Node] = {-1: self.root}
+        self.num_nodes = 0  # Counter for normal (non-root) nodes
+        
+        # Store all edges in the graph
+        self.edges: List[Edge] = []
+        
+        # Adjacency mapping for efficient edge lookups
+        # Maps node ID to list of neighbor node IDs
+        self.adjacency = defaultdict(list)
         
     def get_all_nodes(self) -> List[Node]:
-        """Get all nodes in the graph."""
-        return GraphTraversal.get_all_nodes(self.root)
-    
+        """
+        Get all nodes in the graph including the root.
+        
+        Returns:
+            List of all nodes in the graph
+        """
+        return list(self.nodes.values())
+        
     def get_node_by_id(self, node_id: int) -> Optional[Node]:
         """
         Find a node by its ID.
@@ -50,13 +66,7 @@ class Graph:
         Returns:
             The node if found, None otherwise
         """
-        if self.root.id == node_id:
-            return self.root
-            
-        for node in self.get_all_nodes():
-            if node.id == node_id:
-                return node
-        return None
+        return self.nodes.get(node_id)
     
     def get_node_by_label(self, label: str) -> Optional[Node]:
         """
@@ -68,7 +78,7 @@ class Graph:
         Returns:
             The first node with the given label if found, None otherwise
         """
-        for node in self.get_all_nodes():
+        for node in self.nodes.values():
             if node.object_label == label:
                 return node
         return None
@@ -99,8 +109,35 @@ class Graph:
             keypoints=keypoints,
             descriptors=descriptors
         )
+        # Store the node in our nodes dictionary
+        self.nodes[node.id] = node
         self.num_nodes += 1
         return node
+    
+    def has_neighbor(self, source_id: NodeId, target_id: NodeId) -> bool:
+        """
+        Check if two nodes are connected.
+        
+        Args:
+            source_id: ID of the source node
+            target_id: ID of the target node
+            
+        Returns:
+            True if the nodes are connected, False otherwise
+        """
+        return target_id in self.adjacency[source_id]
+    
+    def get_node_neighbors(self, node_id: NodeId) -> List[NodeId]:
+        """
+        Get all neighbors of a node.
+        
+        Args:
+            node_id: ID of the node
+            
+        Returns:
+            List of neighbor node IDs
+        """
+        return self.adjacency[node_id]
     
     def add_edge(
         self, 
@@ -120,20 +157,28 @@ class Graph:
             curr_pos: The current position (x,y)
             num_bins: The number of angle bins
         """
-        if not source_node.has_neighbor(target_node):
+        if not self.has_neighbor(source_node.id, target_node.id):
+            # Check if source is root node
+            is_root = source_node.id == self.root.id
+            
             # Create bidirectional edges
             forward_edge, backward_edge = Edge.create_bidirectional_edges(
-                source_node, target_node, prev_pos, curr_pos, num_bins
+                source_id=source_node.id,
+                target_id=target_node.id,
+                is_root=is_root,
+                prev_pos=prev_pos,
+                curr_pos=curr_pos,
+                num_bins=num_bins
             )
             
-            # Add forward edge to source node
-            source_node.add_edge(forward_edge)
+            # Add forward edge
             self.edges.append(forward_edge)
+            self.adjacency[source_node.id].append(target_node.id)
             
-            # Add backward edge to target node if exists (not connecting to root)
+            # Add backward edge if exists (not connecting to root)
             if backward_edge:
-                target_node.add_edge(backward_edge)
                 self.edges.append(backward_edge)
+                self.adjacency[target_node.id].append(source_node.id)
     
     def update_graph(
         self, 
@@ -166,8 +211,8 @@ class Graph:
         most_likely_label = max(label_counts, key=label_counts.get)
         
         # Try to find matching node
-        matching_node = Node.find_matching(
-            self.current_node, keypoints, descriptors, most_likely_label, inlier_thresh
+        matching_node = self._find_matching_node(
+            keypoints, descriptors, most_likely_label, inlier_thresh
         )
         next_node = Node.merge(visit, matching_node)
         
@@ -176,7 +221,8 @@ class Graph:
             next_node = self.add_node(most_likely_label, visit, keypoints, descriptors)
         
         # Connect nodes if not already connected and not self-loop
-        if next_node != self.current_node and not self.current_node.has_neighbor(next_node):
+        if (next_node != self.current_node and 
+            not self.has_neighbor(self.current_node.id, next_node.id)):
             self.add_edge(
                 self.current_node,
                 next_node,
@@ -188,6 +234,35 @@ class Graph:
         # Update current node
         self.current_node = next_node
         return next_node
+    
+    def _find_matching_node(
+        self,
+        keypoints: List[Any], 
+        descriptors: List[Any], 
+        label: str, 
+        inlier_thresh: float
+    ) -> Optional[Node]:
+        """
+        Find a matching node by searching from current node.
+        
+        Args:
+            keypoints: SIFT keypoints for the object
+            descriptors: SIFT descriptors for the object
+            label: Object label to match
+            inlier_thresh: Inlier threshold for RANSAC
+            
+        Returns:
+            Matching node if found, None otherwise
+        """
+        # Use Node's static method but pass graph instance
+        return Node.find_matching(
+            graph=self,
+            curr_node=self.current_node, 
+            keypoints=keypoints, 
+            descriptors=descriptors, 
+            label=label, 
+            inlier_thresh=inlier_thresh
+        )
     
     def print_graph(self, use_degrees: bool = True) -> None:
         """
@@ -201,7 +276,7 @@ class Graph:
             return
             
         logger.info(f"Graph with {self.num_nodes} nodes:")
-        GraphVisualizer.print_levels(self.root, use_degrees)
+        GraphVisualizer.print_levels(self.root, use_degrees, self.edges, self)
     
     def get_features_tensor(
         self,
@@ -228,9 +303,9 @@ class Graph:
         Returns:
             Tuple of (node_features, edge_indices, edge_features)
         """
-        # Collect node features
+        # Collect node features (skipping root node)
         nodes = []
-        for node in sorted(self.get_all_nodes(), key=lambda n: n.id):
+        for node in self.nodes.values():
             if node.id >= 0:  # Skip root node
                 features_tensor = node.get_features_tensor(
                     video_length,
@@ -264,4 +339,20 @@ class Graph:
         # Get edge features using Edge's static method
         edge_indices, edge_features = Edge.get_edges_tensor(self.edges)
         
-        return node_features, edge_indices, edge_features 
+        return node_features, edge_indices, edge_features
+    
+    def get_edge(self, source_id: NodeId, target_id: NodeId) -> Optional[Edge]:
+        """
+        Get an edge between two nodes if it exists.
+        
+        Args:
+            source_id: ID of the source node
+            target_id: ID of the target node
+            
+        Returns:
+            The edge if found, None otherwise
+        """
+        for edge in self.edges:
+            if edge.source_id == source_id and edge.target_id == target_id:
+                return edge
+        return None
