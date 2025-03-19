@@ -6,14 +6,15 @@ and visualizing scene graphs based on gaze data and object detection.
 """
 
 # Core graph components
-from graph.node import Node, VisitRecord, NeighborInfo, NodeManager
+from graph.node import Node, VisitRecord
 from graph.edge import Edge
-from graph.graph import Graph, Position, EdgeFeature, EdgeIndex
+from graph.graph import Graph
+from graph.utils import AngleUtils, GraphTraversal
+from graph.visualizer import GraphVisualizer
 
 # Utility functions
-from graph.utils import get_roi, AngleUtils, GraphTraversal, FeatureMatcher
+from graph.utils import get_roi, FeatureMatcher
 from graph.visualizer import (
-    GraphVisualizer, 
     GraphEvent, 
     GraphPlayback, 
     InteractiveGraphVisualizer,
@@ -30,18 +31,17 @@ from graph.build_graph import GraphBuilder, build_graph
 from graph.graph_tracer import GraphTracer
 
 __all__ = [
-    # Core classes
     'Node',
+    'VisitRecord',
     'Edge',
     'Graph',
-    'GraphBuilder',
+    'AngleUtils',
+    'GraphTraversal',
+    'GraphVisualizer',
     
     # Utility classes
-    'GraphTraversal',
-    'AngleUtils',
     'FeatureMatcher',
     'NodeManager',
-    'GraphVisualizer',
     
     # Data handling
     'Record',
@@ -56,7 +56,6 @@ __all__ = [
     'visualize_graph_construction',
     
     # Type aliases
-    'VisitRecord',
     'NeighborInfo',
     'Position',
     'EdgeFeature',

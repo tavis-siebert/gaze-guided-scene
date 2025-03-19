@@ -49,6 +49,121 @@ class Node:
         self.descriptors = [] if descriptors is None else descriptors
         self.outgoing_edges: EdgeList = []
 
+    @staticmethod
+    def create(
+        node_id: int, 
+        label: str, 
+        visit: VisitRecord, 
+        keypoints: FeatureList, 
+        descriptors: FeatureList
+    ) -> 'Node':
+        """
+        Create a new node with the given properties.
+        
+        Args:
+            node_id: Unique identifier for the node
+            label: The object class/label
+            visit: The visit period [start_frame, end_frame]
+            keypoints: List of keypoints from feature detector
+            descriptors: List of descriptors from feature detector
+            
+        Returns:
+            The newly created node
+        """
+        return Node(
+            id=node_id,
+            object_label=label,
+            visits=[visit],
+            keypoints=keypoints,
+            descriptors=descriptors
+        )
+
+    @staticmethod
+    def find_matching(
+        curr_node: 'Node', 
+        keypoints: FeatureList, 
+        descriptors: FeatureList, 
+        label: str, 
+        inlier_thresh: float, 
+        one_label_assumption: bool = True
+    ) -> Optional['Node']:
+        """
+        Find a matching node in the graph for the given keypoints and label.
+        
+        Args:
+            curr_node: Current node to start search from
+            keypoints: List of keypoints for the potential new node
+            descriptors: List of descriptors for the potential new node
+            label: Object label to match
+            inlier_thresh: Minimum inlier ratio threshold for feature matching
+            one_label_assumption: If True, assumes only one instance of each object class exists
+            
+        Returns:
+            Matching node if found, None otherwise
+        """
+        from graph.utils import FeatureMatcher
+        
+        if curr_node.object_label == 'root':
+            return None
+
+        visited = set([curr_node])
+        queue = deque([curr_node])
+        
+        # Use first frame's features for matching
+        kp1, des1 = keypoints[0], descriptors[0]
+        
+        while queue:
+            node = queue.popleft()
+
+            if node.object_label == label:
+                # If we assume only one instance of each object class, return first match
+                if one_label_assumption:
+                    return node
+                    
+                # Otherwise, verify match with feature comparison
+                kp2, des2 = node.keypoints[0], node.descriptors[0]
+                
+                matches = FeatureMatcher.match_features(des1, des2)
+                if not matches:
+                    continue
+                    
+                H, inliers = FeatureMatcher.compute_homography(kp1, kp2, matches)
+                inlier_ratio = FeatureMatcher.calculate_inlier_ratio(inliers, matches)
+                
+                if H is not None and inlier_ratio > inlier_thresh:
+                    return node
+
+            # Continue BFS
+            Node._add_unvisited_neighbors_to_queue(node, visited, queue)
+
+        return None
+    
+    @staticmethod
+    def _add_unvisited_neighbors_to_queue(node: 'Node', visited: NodeSet, queue: deque) -> None:
+        """Add unvisited neighbors to the BFS queue."""
+        for edge in node.outgoing_edges:
+            neighbor = edge.target
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+
+    @staticmethod
+    def merge(visit: VisitRecord, matching_node: Optional['Node']) -> Optional['Node']:
+        """
+        Add a new visit to an existing node if a match is found.
+        
+        Args:
+            visit: The visit period to add
+            matching_node: The node to merge the visit into
+            
+        Returns:
+            The matching node if found, None otherwise
+        """
+        if matching_node is not None:
+            matching_node.add_new_visit(visit)
+            return matching_node
+        return None
+
     def set_object_label(self, label: str) -> None:
         """Set the object label for this node."""
         self.object_label = label
@@ -242,101 +357,3 @@ class Node:
             String representation
         """
         return f"Node(id={self.id}, label='{self.object_label}', visits={len(self.visits)})"
-
-
-class NodeManager:
-    """Utilities for managing nodes in the scene graph."""
-    
-    @staticmethod
-    def find_matching_node(
-        curr_node: Node, 
-        keypoints: FeatureList, 
-        descriptors: FeatureList, 
-        label: str, 
-        inlier_thresh: float, 
-        one_label_assumption: bool = True
-    ) -> Optional[Node]:
-        """
-        Find a matching node in the graph for the given keypoints and label.
-        
-        Args:
-            curr_node: Current node to start search from
-            keypoints: List of keypoints for the potential new node
-            descriptors: List of descriptors for the potential new node
-            label: Object label to match
-            inlier_thresh: Minimum inlier ratio threshold for feature matching
-            one_label_assumption: If True, assumes only one instance of each object class exists
-            
-        Returns:
-            Matching node if found, None otherwise
-        """
-        from graph.utils import FeatureMatcher
-        
-        if curr_node.object_label == 'root':
-            return None
-
-        visited = set([curr_node])
-        queue = deque([curr_node])
-        
-        # Use first frame's features for matching
-        kp1, des1 = keypoints[0], descriptors[0]
-        
-        while queue:
-            node = queue.popleft()
-
-            if node.object_label == label:
-                # If we assume only one instance of each object class, return first match
-                if one_label_assumption:
-                    return node
-                    
-                # Otherwise, verify match with feature comparison
-                kp2, des2 = node.keypoints[0], node.descriptors[0]
-                
-                matches = FeatureMatcher.match_features(des1, des2)
-                if not matches:
-                    continue
-                    
-                H, inliers = FeatureMatcher.compute_homography(kp1, kp2, matches)
-                inlier_ratio = FeatureMatcher.calculate_inlier_ratio(inliers, matches)
-                
-                if H is not None and inlier_ratio > inlier_thresh:
-                    return node
-
-            # Continue BFS
-            NodeManager._add_unvisited_neighbors_to_queue(node, visited, queue)
-
-        return None
-    
-    @staticmethod
-    def _add_unvisited_neighbors_to_queue(node: Node, visited: NodeSet, queue: deque) -> None:
-        """Add unvisited neighbors to the BFS queue."""
-        for edge in node.outgoing_edges:
-            neighbor = edge.target
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append(neighbor)
-
-    @staticmethod
-    def merge_node(visit: VisitRecord, matching_node: Optional[Node]) -> Optional[Node]:
-        """Add a new visit to an existing node if a match is found."""
-        if matching_node is not None:
-            matching_node.add_new_visit(visit)
-            return matching_node
-        return None
-
-    @staticmethod
-    def create_node(
-        node_id: int, 
-        label: str, 
-        visit: VisitRecord, 
-        keypoints: FeatureList, 
-        descriptors: FeatureList
-    ) -> Node:
-        """Create a new node with the given properties."""
-        return Node(
-            id=node_id,
-            object_label=label,
-            visits=[visit],
-            keypoints=keypoints,
-            descriptors=descriptors
-        )
