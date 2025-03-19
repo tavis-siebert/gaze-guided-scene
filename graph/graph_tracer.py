@@ -165,6 +165,30 @@ class GraphTracer:
             
         self.log_event("frame_processed", frame_number, data)
     
+    def log_gaze_object_detected(self, frame_number: int, 
+                               detected_object: str,
+                               current_detected_label: str,
+                               bounding_box: List[int],
+                               potential_labels: Dict[str, int]) -> None:
+        """
+        Log a gaze object detection event.
+        
+        Args:
+            frame_number: Video frame number
+            detected_object: Most likely object label based on counts
+            current_detected_label: Current frame's detected object label
+            bounding_box: Region of interest coordinates [x_min, y_min, x_max, y_max]
+            potential_labels: Dictionary of potential object labels and their counts
+        """
+        data = {
+            "detected_object": detected_object,
+            "current_detected_label": current_detected_label,
+            "bounding_box": bounding_box,
+            "potential_labels": potential_labels
+        }
+        
+        self.log_event("gaze_object_detected", frame_number, data)
+    
     def _write_event(self, event: Dict[str, Any]) -> None:
         """
         Write an event to the trace file.

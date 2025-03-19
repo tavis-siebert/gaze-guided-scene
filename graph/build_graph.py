@@ -197,16 +197,29 @@ class GraphBuilder:
             logger.info(f"\n[Frame {frame_num}] New fixation started at ({gaze_pos[0]:.1f}, {gaze_pos[1]:.1f})")
         
         # Predict object and extract region of interest
-        roi, roi_coords = get_roi(frame, (int(gaze_pos[0]), int(gaze_pos[1])), 256)
-        label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
-        tracking['potential_labels'][label] += 1
+        roi, roi_bbox = get_roi(frame, (int(gaze_pos[0]), int(gaze_pos[1])), 256)
+        
+        # Run object detection on the region of interest
+        current_label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
+        tracking['potential_labels'][current_label] += 1
         
         # Extract SIFT features
         kp, desc = self.sift.extract_features(frame)
         tracking['keypoints'].append(kp)
         tracking['descriptors'].append(desc)
         
-        logger.info(f"[Frame {frame_num}] CLIP detected: {label} (count: {tracking['potential_labels'][label]})")
+        logger.info(f"[Frame {frame_num}] CLIP detected: {current_label} (count: {tracking['potential_labels'][current_label]})")
+        
+        # Get the current most likely label (the one with the highest count)
+        most_likely_label = max(tracking['potential_labels'].items(), key=lambda x: x[1])[0]
+        
+        self.tracer.log_gaze_object_detected(
+            frame_num,
+            most_likely_label,
+            current_label,
+            roi_bbox,
+            dict(tracking['potential_labels'])  # Convert defaultdict to regular dict
+        )
     
     def _handle_saccade(
         self,
