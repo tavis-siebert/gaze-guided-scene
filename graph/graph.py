@@ -6,7 +6,7 @@ import math
 from collections import defaultdict
 
 from graph.node import Node, VisitRecord, NodeManager
-from graph.edge import Edge, EdgeManager
+from graph.edge import Edge
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 from egtea_gaze.utils import resolution
@@ -122,7 +122,7 @@ class Graph:
         """
         if not source_node.has_neighbor(target_node):
             # Create bidirectional edges
-            forward_edge, backward_edge = EdgeManager.create_bidirectional_edges(
+            forward_edge, backward_edge = Edge.create_bidirectional_edges(
                 source_node, target_node, prev_pos, curr_pos, num_bins
             )
             
@@ -203,27 +203,6 @@ class Graph:
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees)
     
-    def get_edge_features_tensor(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Get edge features as tensors.
-        
-        Returns:
-            Tuple of (edge_index, edge_attr)
-        """
-        if not self.edges:
-            return torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
-        
-        # Extract edge indices
-        edge_index = [[], []]
-        for edge in self.edges:
-            edge_index[0].append(edge.source_id)
-            edge_index[1].append(edge.target_id)
-            
-        # Extract edge features
-        edge_attr = [edge.features for edge in self.edges]
-        
-        return torch.tensor(edge_index, dtype=torch.long), torch.stack(edge_attr)
-    
     def get_features_tensor(
         self,
         video_length: int,
@@ -282,7 +261,7 @@ class Graph:
             # Set timestamp fraction
             node_features[:, 4] = timestamp_fraction
         
-        # Get edge features
-        edge_indices, edge_features = self.get_edge_features_tensor()
+        # Get edge features using Edge's static method
+        edge_indices, edge_features = Edge.get_edges_tensor(self.edges)
         
         return node_features, edge_indices, edge_features 
