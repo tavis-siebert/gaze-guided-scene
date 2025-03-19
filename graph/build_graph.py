@@ -181,7 +181,7 @@ class GraphBuilder:
         if gaze_type == 1:  # Fixation
             self._handle_fixation(frame, frame_num, gaze_pos, tracking)
         elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
-            self._handle_saccade(frame_num, tracking, gaze_pos, scene_graph)
+            self._handle_saccade(frame_num, tracking, curr_gaze_pos=gaze_pos, scene_graph=scene_graph)
 
     def _handle_fixation(
         self,
@@ -212,7 +212,7 @@ class GraphBuilder:
         self,
         frame_num: int,
         tracking: Dict[str, Any],
-        curr_pos: Tuple[float, float],
+        curr_gaze_pos: Tuple[float, float],
         scene_graph: Graph
     ) -> None:
         """Handle a saccade between fixations."""
@@ -235,7 +235,7 @@ class GraphBuilder:
             tracking['keypoints'],
             tracking['descriptors'],
             tracking['prev_gaze_pos'],
-            curr_pos
+            curr_gaze_pos
         )
         
         # Log node creation/update
@@ -271,7 +271,7 @@ class GraphBuilder:
         # Reset tracking data for next fixation
         tracking['visit'] = []
         tracking['keypoints'], tracking['descriptors'] = [], []
-        tracking['prev_gaze_pos'] = curr_pos
+        tracking['prev_gaze_pos'] = curr_gaze_pos
         tracking['potential_labels'] = defaultdict(int)
     
     def _finish_final_fixation(

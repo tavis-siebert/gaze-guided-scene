@@ -12,7 +12,7 @@ from egtea_gaze.utils import resolution
 from logger import get_logger
 
 # Type aliases for better readability
-Position = Tuple[int, int]
+GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor
 EdgeIndex = List[List[int]]
 NodeId = int
@@ -128,8 +128,8 @@ class Graph:
         self, 
         source_node: Node, 
         target_node: Node, 
-        prev_pos: Position, 
-        curr_pos: Position, 
+        prev_gaze_pos: GazePosition, 
+        curr_gaze_pos: GazePosition, 
         num_bins: int = 8
     ) -> None:
         """
@@ -138,8 +138,8 @@ class Graph:
         Args:
             source_node: The source node
             target_node: The target node
-            prev_pos: The previous position (x,y)
-            curr_pos: The current position (x,y)
+            prev_gaze_pos: The previous gaze position (x,y)
+            curr_gaze_pos: The current gaze position (x,y)
             num_bins: The number of angle bins
         """
         if not self.has_neighbor(source_node.id, target_node.id):
@@ -151,8 +151,8 @@ class Graph:
                 source_id=source_node.id,
                 target_id=target_node.id,
                 is_root=is_root,
-                prev_pos=prev_pos,
-                curr_pos=curr_pos,
+                prev_gaze_pos=prev_gaze_pos,
+                curr_gaze_pos=curr_gaze_pos,
                 num_bins=num_bins
             )
             
@@ -171,8 +171,8 @@ class Graph:
         visit: VisitRecord, 
         keypoints: List[Any], 
         descriptors: List[Any], 
-        prev_gaze_pos: Position, 
-        curr_gaze_pos: Position, 
+        prev_gaze_pos: GazePosition, 
+        curr_gaze_pos: GazePosition, 
         num_bins: int = 8, 
         inlier_thresh: float = 0.3
     ) -> Node:
