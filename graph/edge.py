@@ -20,19 +20,17 @@ class Edge:
     Attributes:
         source_id: The ID of the source node
         target_id: The ID of the target node
-        angle: The angle between source and target
-        distance: The distance between source and target
         prev_pos: Previous position (x,y)
         curr_pos: Current position (x,y)
+        num_bins: Number of angle bins for discretization
     """
     def __init__(
         self,
         source_id: NodeId,
         target_id: NodeId,
-        angle: float,
-        distance: float,
         prev_pos: Position,
-        curr_pos: Position
+        curr_pos: Position,
+        num_bins: int = 8
     ):
         """
         Initialize a new Edge.
@@ -40,43 +38,31 @@ class Edge:
         Args:
             source_id: The ID of the source node
             target_id: The ID of the target node
-            angle: The angle between source and target
-            distance: The distance between source and target
             prev_pos: Previous position (x,y)
             curr_pos: Current position (x,y)
+            num_bins: Number of angle bins for discretization
         """
         self.source_id = source_id
         self.target_id = target_id
-        self.angle = angle
-        self.distance = distance
         self.prev_pos = prev_pos
         self.curr_pos = curr_pos
+        self.num_bins = num_bins
     
-    @staticmethod
-    def calculate_edge_features(
-        prev_pos: Position, 
-        curr_pos: Position, 
-        num_bins: int
-    ) -> Tuple[float, float]:
-        """
-        Calculate edge features (angle and distance) between two positions.
-        
-        Args:
-            prev_pos: Previous position (x,y)
-            curr_pos: Current position (x,y)
-            num_bins: Number of angle bins
-            
-        Returns:
-            Tuple of (angle, distance)
-        """
-        prev_x, prev_y = prev_pos
-        curr_x, curr_y = curr_pos
+    @property
+    def angle(self) -> float:
+        """Angle between source and target positions."""
+        prev_x, prev_y = self.prev_pos
+        curr_x, curr_y = self.curr_pos
         dx, dy = curr_x - prev_x, curr_y - prev_y
-        
-        angle = AngleUtils.get_angle_bin(dx, dy, num_bins)
-        distance = np.sqrt(dx**2 + dy**2)
-        
-        return angle, distance
+        return AngleUtils.get_angle_bin(dx, dy, self.num_bins)
+    
+    @property
+    def distance(self) -> float:
+        """Distance between source and target positions."""
+        prev_x, prev_y = self.prev_pos
+        curr_x, curr_y = self.curr_pos
+        dx, dy = curr_x - prev_x, curr_y - prev_y
+        return np.sqrt(dx**2 + dy**2)
     
     @staticmethod
     def create_bidirectional_edges(
@@ -103,14 +89,16 @@ class Edge:
             backward_edge is None if source is the root node
         """
         # Create forward edge
-        angle, distance = Edge.calculate_edge_features(prev_pos, curr_pos, num_bins)
-        forward_edge = Edge(source_id, target_id, angle, distance, prev_pos, curr_pos)
+        forward_edge = Edge(source_id, target_id, prev_pos, curr_pos, num_bins)
         
         # Create backward edge only if not connecting to root
         backward_edge = None
         if not is_root:
-            opposite_angle = AngleUtils.get_opposite_angle(angle)
-            backward_edge = Edge(target_id, source_id, opposite_angle, distance, curr_pos, prev_pos)
+            # Calculate opposite angle
+            opposite_angle = AngleUtils.get_opposite_angle(forward_edge.angle)
+            
+            # Create backward edge - pass the same positions but swapped
+            backward_edge = Edge(target_id, source_id, curr_pos, prev_pos, num_bins)
         
         return forward_edge, backward_edge
     
