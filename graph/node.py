@@ -203,46 +203,18 @@ class Node:
             return None
         return self.visits[-1][1]
     
-    def get_features(
-        self,
-        video_length: int,
-        current_frame: int,
-        relative_frame: int,
-        timestamp_fraction: float,
-        labels_to_int: Dict[str, int]
-    ) -> Dict[str, Any]:
+    def get_features(self) -> Dict[str, Any]:
         """
         Get a dictionary of human-readable features for this node.
         
-        Args:
-            video_length: Total length of the video
-            current_frame: Current frame number
-            relative_frame: Relative frame number (accounting for black frames)
-            timestamp_fraction: Fraction of video at current timestamp
-            labels_to_int: Mapping from object labels to class indices
-            
         Returns:
-            Dictionary with feature keys and values
+            Dictionary with basic node information
         """
-        # Calculate temporal features
-        total_frames_visited = self.get_visit_duration()
-        num_visits = len(self.visits)
-        
-        # Normalize frame positions
-        normalization_factor = video_length - current_frame + relative_frame
-        first_frame_normalized = self.get_first_visit_frame() / normalization_factor if self.get_first_visit_frame() else 0
-        last_frame_normalized = self.get_last_visit_frame() / normalization_factor if self.get_last_visit_frame() else 0
-        
-        # Get class index for object label
-        class_idx = labels_to_int.get(self.object_label, 0)
-        
         return {
-            "total_frames_visited": total_frames_visited,
-            "num_visits": num_visits,
-            "first_frame_normalized": first_frame_normalized,
-            "last_frame_normalized": last_frame_normalized,
-            "timestamp_fraction": timestamp_fraction,
-            "object_class_idx": class_idx,
+            "total_frames_visited": self.get_visit_duration(),
+            "num_visits": len(self.visits),
+            "first_visit_frame": self.get_first_visit_frame(),
+            "last_visit_frame": self.get_last_visit_frame(),
             "object_label": self.object_label
         }
     
@@ -256,7 +228,7 @@ class Node:
         num_object_classes: int
     ) -> torch.Tensor:
         """
-        Get features for this node as a tensor.
+        Get features for this node as a tensor, with normalization for machine learning.
         
         Args:
             video_length: Total length of the video
@@ -269,22 +241,33 @@ class Node:
         Returns:
             Feature tensor for the node
         """
-        features = self.get_features(video_length, current_frame, relative_frame, timestamp_fraction, labels_to_int)
+        # Get basic features first
+        features = self.get_features()
         
-        # Create one-hot encoding for object label
-        one_hot = torch.zeros(num_object_classes)
-        one_hot[features["object_class_idx"]] = 1
+        # Calculate normalization factor for frame positions
+        normalization_factor = video_length - current_frame + relative_frame
+        
+        # Normalize temporal features
+        first_frame = features["first_visit_frame"]
+        last_frame = features["last_visit_frame"]
+        first_frame_normalized = first_frame / normalization_factor if first_frame else 0
+        last_frame_normalized = last_frame / normalization_factor if last_frame else 0
         
         # Create temporal features tensor
         temporal_features = torch.tensor([
-            features["total_frames_visited"], 
+            features["total_frames_visited"],
             features["num_visits"],
-            features["first_frame_normalized"], 
-            features["last_frame_normalized"],
-            features["timestamp_fraction"]
+            first_frame_normalized,
+            last_frame_normalized,
+            timestamp_fraction
         ])
         
-        # Combine features
+        # Create one-hot encoding for object label
+        class_idx = labels_to_int.get(features["object_label"], 0)
+        one_hot = torch.zeros(num_object_classes)
+        one_hot[class_idx] = 1
+        
+        # Combine and return features
         return torch.cat([temporal_features, one_hot])
     
     def __eq__(self, other: object) -> bool:

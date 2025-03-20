@@ -114,48 +114,45 @@ class Edge:
         
         return forward_edge, backward_edge
     
-    def get_features(self) -> Dict[str, float]:
+    def get_features(self) -> Dict[str, Any]:
         """
         Get a dictionary of human-readable features for this edge.
         
         Returns:
-            Dictionary with feature keys and values
+            Dictionary with basic edge information
         """
-        prev_x, prev_y = self.prev_gaze_pos
-        curr_x, curr_y = self.curr_gaze_pos
-        
-        # These coordinates are already normalized to [0, 1]
-        norm_prev_x = prev_x
-        norm_prev_y = prev_y
-        norm_curr_x = curr_x
-        norm_curr_y = curr_y
-        
         return {
             "angle": self.angle,
             "angle_degrees": AngleUtils.to_degrees(self.angle),
             "distance": self.distance,
-            "prev_x": norm_prev_x,
-            "prev_y": norm_prev_y,
-            "curr_x": norm_curr_x,
-            "curr_y": norm_curr_y
+            "prev_pos": self.prev_gaze_pos,
+            "curr_pos": self.curr_gaze_pos
         }
     
     def get_features_tensor(self) -> EdgeFeature:
         """
-        Get features for this edge as a tensor.
+        Get features for this edge as a tensor, with values ready for machine learning.
         
         Returns:
-            Feature tensor for the edge
+            Feature tensor containing:
+            - Previous gaze position (x, y)
+            - Current gaze position (x, y)
+            - Angle bin (discretized direction)
+            - Euclidean distance
         """
+        # Get basic features first
         features = self.get_features()
         
+        # Extract coordinates from positions
+        prev_x, prev_y = features["prev_pos"]
+        curr_x, curr_y = features["curr_pos"]
+        
+        # Combine all features into a single tensor
         return torch.tensor([
-            features["prev_x"], 
-            features["prev_y"], 
-            features["curr_x"], 
-            features["curr_y"],
-            features["angle"],
-            features["distance"]
+            prev_x, prev_y,          # Previous gaze position
+            curr_x, curr_y,          # Current gaze position
+            features["angle"],       # Discretized angle bin
+            features["distance"]     # Euclidean distance
         ])
     
     @staticmethod
