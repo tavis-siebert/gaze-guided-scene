@@ -76,6 +76,9 @@ class GraphBuilder:
         
         # Initialize structures
         scene_graph = Graph()
+        # Set the tracer in the scene graph
+        scene_graph.tracer = self.tracer
+        
         tracking = {
             'video_name': video_name,
             'prev_gaze_pos': (-1, -1),

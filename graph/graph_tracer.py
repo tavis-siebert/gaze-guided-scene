@@ -123,6 +123,27 @@ class GraphTracer:
             
         self.log_event("node_added", frame_number, data)
     
+    def log_node_updated(self, frame_number: int, node_id: int, label: str,
+                        features: Dict[str, Any], visit: List[int]) -> None:
+        """
+        Log a node update event when a new visit is added to an existing node.
+        
+        Args:
+            frame_number: Video frame number
+            node_id: ID of the updated node
+            label: Object label of the node
+            features: Updated node features from Node.get_features()
+            visit: The new visit period [start_frame, end_frame] that was added
+        """
+        data = {
+            "node_id": node_id,
+            "label": label,
+            "features": features,
+            "new_visit": visit
+        }
+            
+        self.log_event("node_updated", frame_number, data)
+    
     def log_edge_added(self, frame_number: int, source_id: int, target_id: int, 
                       edge_type: str, features: Dict[str, Any]) -> None:
         """
