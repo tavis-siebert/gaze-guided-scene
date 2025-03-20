@@ -1,15 +1,64 @@
-# Paths
-paths:
+# Base directories
+base:
   scratch_dir: /work/courses/3dv/36
-  egtea_dir: ${REPO_ROOT}/egtea_gaze
-  ego_topo_data: ${paths.scratch_dir}/ego-topo/data/gtea
+  repo_root: ${REPO_ROOT}
 
-# Dataset parameters
+# Directories structure
+directories:
+  # Repository directories
+  repo:
+    egtea: ${base.repo_root}/egtea_gaze
+    datasets: ${base.repo_root}/datasets
+    traces: ${base.repo_root}/traces
+  
+  # Scratch directories
+  scratch:
+    root: ${base.scratch_dir}
+    egtea: ${directories.scratch.root}/egtea_gaze
+    ego_topo: ${directories.scratch.root}/ego-topo
+    tmp: ${directories.scratch.root}/tmp
+
+# Dataset paths and settings
 dataset:
-  train_timestamps: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-  val_timestamps: [0.25, 0.5, 0.75]
-  n_cores: 2
-  splits:
-    train: ${paths.ego_topo_data}/split/train_S1.csv
-    val: ${paths.ego_topo_data}/split/val_S1.csv
-    train_test_splits: ${paths.ego_topo_data}/train_test_splits.json 
+  # Timestamps for feature extraction
+  timestamps:
+    train: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    val: [0.25, 0.5, 0.75]
+  
+  # EGTEA Gaze+ dataset paths
+  egtea:
+    raw_videos: ${directories.scratch.egtea}/raw_videos
+    cropped_videos: ${directories.scratch.egtea}/cropped_videos
+    gaze_data: ${directories.repo.egtea}/gaze_data/gaze_data
+    action_annotations: ${directories.repo.egtea}/action_annotation
+    noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
+  
+  # Ego-topo data paths
+  ego_topo:
+    data_dir: ${directories.scratch.ego_topo}/data/gtea
+    splits:
+      train: ${dataset.ego_topo.data_dir}/split/train_S1.csv
+      val: ${dataset.ego_topo.data_dir}/split/val_S1.csv
+      train_test: ${dataset.ego_topo.data_dir}/train_test_splits.json
+
+  # Output paths
+  output:
+    dataset_file: ${directories.repo.datasets}/dataset.pth
+    subset_prefix: ${directories.repo.datasets}/data_subset_
+
+# Model settings and paths
+models:
+  clip:
+    model_dir: ${directories.scratch.egtea}/clip_model
+    model_id: "openai/clip-vit-base-patch16"
+
+# External resources
+external:
+  urls:
+    dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
+    dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
+    ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
+
+# Processing settings
+processing:
+  n_cores: 2 

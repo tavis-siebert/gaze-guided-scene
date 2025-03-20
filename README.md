@@ -1,77 +1,174 @@
-## Gaze-Guided Scene Graphs for Egocentric Action Prediction
-### Directory Structure
+# Gaze-Guided Scene Graphs for Egocentric Action Prediction
 
-- **datasets/**: Contains scripts for processing datasets as well as dataset files.
-- **egtea_gaze/**: Annotations and processing for actions and gaze
-- **graph/**: Handles scene graph construction and related operations.
-- **models/**: Includes model definitions (TODO).
+A framework for building scene graphs from egocentric video using gaze data to predict future actions.
 
-### Setup
+## Overview
 
-Clone this repository and navigate to its directory
+This project builds scene graphs from egocentric video and gaze data to capture spatial and temporal relationships between objects, which can be used for action anticipation. The system:
 
-#### Setup the Python Environment
+1. Processes fixations and saccades to identify objects using CLIP
+2. Constructs a scene graph with nodes (objects) and edges (transitions)
+3. Extracts features at specified timestamps for downstream tasks
+4. Provides interactive visualization of the graph construction process
 
-1. Run the setup script:
+## Setup
+
+### Prerequisites
+
+- Python 3.8+
+- Access to a Dropbox token for downloading the EGTEA Gaze+ dataset
+
+### Quick Start
+
+1. **Setup environment**:
+   Choose the appropriate setup script based on your environment:
+   
+   For Student Cluster:
    ```bash
-   source scripts/setup_env.sh
+   source scripts/setup_student_cluster_env.sh
    ```
-   This script will:
-   - Create a virtual environment called `venv`
-   - Install all dependencies from `requirements.txt`
-   - Activate the virtual environment
+   
+   For Euler Cluster:
+   ```bash
+   source scripts/setup_euler_cluster_env.sh
+   ```
 
-   You may rerun the script to update dependencies.
+2. **Create a Dropbox token**:
+   - Create an app at [Dropbox App Console](https://www.dropbox.com/developers/apps/)
+   - Enable `sharing.read` permission
+   - Generate an OAuth 2.0 token
+   - Add to `.env` file: `DROPBOX_TOKEN=your_token_here`
+   
+   > **Note:** Dropbox tokens expire after a period of time. If you encounter authentication errors, you'll need to generate a new token following the steps above.
 
-Note: Always use `source scripts/setup_env.sh` rather than `sh scripts/setup_env.sh` or `./scripts/setup_env.sh` to ensure the virtual environment is activated in your current shell.
+3. **Download dataset**:
+   ```bash
+   python main.py setup-scratch
+   ```
 
-#### Create a Dropbox Access Token
+4. **Build the dataset**:
+   ```bash
+   python main.py build
+   ```
+   
+   To enable tracing for visualization:
+   ```bash
+   python main.py build --videos VIDEO_NAME --enable-tracing
+   ```
 
-To download the Egtea Gaze dataset and allow automatic dataset download to the scratch directory, you need a Dropbox access token.
+5. **Visualize graph construction** (requires prior trace generation):
+   ```bash
+   python main.py visualize --video-name VIDEO_NAME
+   ```
 
-1. Make sure you are logged in to Dropbox in your browser.
+## Project Structure
 
-2. Go to [Dropbox App Console](https://www.dropbox.com/developers/apps/)
+- **datasets/**: Dataset processing scripts and files
+- **egtea_gaze/**: Action and gaze annotations/processing
+- **graph/**: Scene graph construction and visualization
+  - **Core Components**: Graph, Node, GraphBuilder, GraphTracer, GraphVisualizer
+  - **Key Features**: Processes gaze data, builds scene graphs, extracts features, visualizes construction
+- **models/**: Feature extraction (SIFT) and object detection (CLIP)
+- **config/**: Configuration files and utilities
+- **logger.py**: Centralized logging
 
-3. Create a new app (any app type will work)
+## Configuration System
 
-4. In the app's permissions page, enable the `sharing.read` permission
+The project uses YAML configuration files with a hierarchical structure:
 
-5. Generate an OAuth 2.0 access token
-
-6. Copy the `.env.example` file to `.env` and add your access token:
-    ```bash
-    cp .env.example .env
-    ```
-
-7. Update the `DROPBOX_TOKEN` variable in the `.env` file with your access token
-
-Note: You may need to regenerate the access token (steps 5 and 7) if it expires.
-
-#### Setup the Scratch Directory and Download the Egtea Gaze Dataset
-
-The script will download both the raw videos and the cropped video clips and place them in the scratch directory.
-
-1. Run the setup script:
-    ```bash
-    python main.py setup-scratch
-    ```
-
-### Usage
-
-The project provides a command-line interface through `main.py`. All commands support using a custom configuration file (default: `config/student_cluster_config.yaml`):
-```bash
-python main.py --config path/to/config.yaml <command>
+```
+base:                # Root directories
+directories:         # Directory structure
+dataset:             # Dataset settings and paths
+  timestamps:        # Feature extraction timestamps
+  egtea:             # EGTEA dataset paths
+  ego_topo:          # Ego-topo data paths
+  output:            # Output paths
+models:              # Model settings
+external:            # External resources
+processing:          # Processing settings
+trace_dir:           # Directory for graph construction trace files
 ```
 
-Available commands:
-- `setup-scratch`: Setup scratch directories and download required files
-- `build`: Build the dataset
+**Key features**:
+- Path references: `${path.to.reference}`
+- Environment variables: `${USER}`, `${REPO_ROOT}`
+- Configuration files: `student_cluster_config.yaml`, `euler_cluster_config.yaml`
 
-For detailed usage of each command, run:
+## Command-Line Interface
+
+```bash
+python main.py [options] <command>
+```
+
+**Commands**:
+- `setup-scratch`: Download and setup dataset
+- `build`: Build the scene graph dataset
+  - Options:
+    - `--device {gpu|cpu}`: Device to use (default: gpu)
+    - `--videos VIDEO_NAME [VIDEO_NAME ...]`: Specific videos to process
+    - `--enable-tracing`: Enable graph construction tracing for visualization
+- `visualize`: Visualize the graph construction process
+  - Options:
+    - `--video-name VIDEO_NAME`: Name of the video to visualize (required)
+    - `--video-path PATH`: Path to the video file (optional)
+    - `--port PORT`: Server port (default: 8050)
+    - `--debug`: Run in debug mode
+
+**Global options**:
+- `--config`: Custom config file path (default: config/student_cluster_config.yaml)
+- `--log-level`: Set logging level
+- `--log-file`: Specify log file
+
+For help:
 ```bash
 python main.py --help
 python main.py <command> --help
 ```
 
-Note: Make sure you have activated the virtual environment before running the commands (see [Setup the Python Environment](#setup-the-python-environment)).
+## Graph Tracing and Visualization
+
+The project includes a tracing and visualization system for recording and analyzing the graph construction process.
+
+### Tracing System
+
+Trace files are stored in the `traces` directory (configurable via `trace_dir` in config):
+- Each video gets its own trace file named `{video_name}_trace.jsonl`
+- Each file contains events like fixations, saccades, node/edge creation
+- Rerunning a trace for the same video overwrites its previous trace file
+
+To generate traces for visualization:
+```bash
+# For a single video
+python main.py build --videos VIDEO_NAME --enable-tracing
+
+# For multiple videos (each gets its own trace file)
+python main.py build --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
+```
+
+### Visualization Dashboard
+
+The interactive dashboard displays the graph construction process:
+
+```bash
+python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
+```
+
+**Dashboard Components**:
+- **Dashboard** - Main component that integrates all others
+- **GraphPlayback** - Handles trace file loading and graph state management
+- **VideoDisplay** - Manages video frames and overlay visualization
+- **GraphDisplay** - Handles graph visualization and interaction
+- **PlaybackControls** - Playback navigation controls
+
+**Key Features**:
+- Video player with gaze position and region-of-interest overlays
+- Graph visualization showing nodes (objects) and their relationships
+- Interactive playback controls for navigating through frames
+
+**Direct API Usage**:
+```python
+from graph.visualizer import visualize_graph_construction
+
+visualize_graph_construction("path/to/trace_file.jsonl", "path/to/video.mp4")
+```
