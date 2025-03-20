@@ -132,7 +132,7 @@ class GraphTracer:
             frame_number: Video frame number
             source_id: ID of the source node
             target_id: ID of the target node
-            edge_type: Type of the edge (e.g., 'saccade', 'spatial')
+            edge_type: Type of edge (e.g., "saccade")
             features: Edge features from Edge.get_features()
         """
         data = {
