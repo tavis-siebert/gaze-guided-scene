@@ -47,6 +47,9 @@ class Graph:
         # Maps node ID to list of neighbor node IDs
         self.adjacency = defaultdict(list)
         
+        # The tracer will be set from outside (in build_graph.py)
+        self.tracer = None
+        
     def get_all_nodes(self) -> List[Node]:
         """
         Get all nodes in the graph including the root.
@@ -202,7 +205,17 @@ class Graph:
         next_node = Node.merge(visit, matching_node)
         
         # Create new node if no match found
-        if next_node is None:
+        if next_node:
+            frame_number = visit[1]  # Use end frame of the visit
+            self.tracer.log_node_updated(
+                frame_number,
+                next_node.id,
+                next_node.object_label,
+                next_node.get_features(),
+                visit
+            )
+            logger.info(f"Node {next_node.id} updated with new visit at frames {visit}")
+        else:
             next_node = self.add_node(most_likely_label, visit, keypoints, descriptors)
         
         # Connect nodes if not already connected and not self-loop
