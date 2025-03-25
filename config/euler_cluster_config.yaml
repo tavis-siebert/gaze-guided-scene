@@ -12,4 +12,4 @@ dataset:
   splits:
     train: ${paths.ego_topo_data}/split/train_S1.csv
     val: ${paths.ego_topo_data}/split/val_S1.csv
-    train_test_splits: ${paths.ego_topo_data}/train_test_splits.json 
+    train_test_splits: ${paths.ego_topo_data}/train_test_splits.json

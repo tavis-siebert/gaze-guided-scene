@@ -54,6 +54,7 @@ def build_dataset_subset(train_vids, val_vids, device_id, config: DotDict, resul
 def build_dataset(config: DotDict, debug: bool = False):
     """Build dataset using all available GPUs or CPU. Set debug=True to process only one video per split."""
     print("Starting dataset building process...")
+    mp.set_start_method('spawn')
     
     with open(config.dataset.splits.train_test_splits) as f:
         split = json.load(f)
