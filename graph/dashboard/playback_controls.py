@@ -32,55 +32,41 @@ class PlaybackControls:
             
         return dbc.Card([
             dbc.CardBody([
+                # Main controls row
                 dbc.Row([
-                    # Playback buttons and speed control
+                    # Navigation buttons
                     dbc.Col([
+                        dbc.ButtonGroup([
+                            dbc.Button("←", id="prev-frame", color="primary", size="sm"),
+                            dbc.Button("Play", id="play-pause", color="success", size="sm"),
+                            dbc.Button("→", id="next-frame", color="primary", size="sm"),
+                        ], className="me-3"),
+                        
+                        # Speed control
                         html.Div([
-                            dbc.Button(
-                                "← Prev", 
-                                id="prev-frame", 
-                                n_clicks=0, 
-                                color="primary", 
-                                className="me-2"
+                            dcc.Slider(
+                                id="playback-speed",
+                                min=PLAYBACK_SPEED_MIN,
+                                max=PLAYBACK_SPEED_MAX,
+                                value=PLAYBACK_SPEED_DEFAULT,
+                                marks=PLAYBACK_SPEED_MARKS,
+                                step=1,
+                                tooltip={"placement": "bottom", "always_visible": True}
                             ),
-                            dbc.Button(
-                                "Play", 
-                                id="play-pause", 
-                                n_clicks=0, 
-                                color="success", 
-                                className="me-2"
-                            ),
-                            dbc.Button(
-                                "Next →", 
-                                id="next-frame", 
-                                n_clicks=0, 
-                                color="primary",
-                                className="me-2"
-                            ),
-                            html.Div([
-                                html.Span("Speed: ", className="me-2"),
-                                dcc.Slider(
-                                    id="playback-speed",
-                                    min=PLAYBACK_SPEED_MIN,
-                                    max=PLAYBACK_SPEED_MAX,
-                                    value=PLAYBACK_SPEED_DEFAULT,
-                                    marks=PLAYBACK_SPEED_MARKS,
-                                    step=1,
-                                    tooltip={"placement": "bottom", "always_visible": True}
-                                ),
-                            ], style={"width": "200px", "display": "inline-block", "vertical-align": "middle"}),
-                        ], className="d-flex justify-content-center align-items-center"),
-                    ], width=4),
+                        ], style={"width": "200px", "display": "inline-block"}),
+                    ], className="d-flex align-items-center"),
                     
-                    # Current frame display
+                    # Frame counter
                     dbc.Col([
                         html.Div([
-                            html.Span("Current Frame: ", className="me-2"),
+                            html.Span("Frame:", className="me-2"),
                             html.Strong(str(current_frame), id="current-frame-display"),
-                        ], className="d-flex justify-content-center align-items-center h-100"),
-                    ], width=4),
-                    
-                    # Frame slider
+                        ], className="d-flex align-items-center"),
+                    ], className="text-center"),
+                ], className="mb-3"),
+                
+                # Frame slider row
+                dbc.Row([
                     dbc.Col([
                         dcc.Slider(
                             id="frame-slider",
@@ -90,7 +76,7 @@ class PlaybackControls:
                             marks=None,
                             tooltip={"placement": "bottom", "always_visible": True}
                         ),
-                    ], width=4),
+                    ]),
                 ]),
             ])
         ], className="mb-3")
