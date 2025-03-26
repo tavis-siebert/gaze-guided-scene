@@ -151,7 +151,7 @@ class VideoDisplay:
                     {"color": "black", "label": f"Other ({gaze_type})"}
                 )
                 
-                fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scattergl(
                     x=[x], y=[y],
                     mode="markers",
                     marker=dict(size=15, color=gaze_info["color"]),
@@ -264,8 +264,8 @@ class VideoDisplay:
         box_color = GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"]
         box_fill = 'rgba(0, 0, 255, 0.1)'  # Blue with 10% opacity
         
-        # Add main bounding box
-        fig.add_trace(go.Scatter(
+        # Add main bounding box using Scattergl for better performance
+        fig.add_trace(go.Scattergl(
             x=[x0, x1, x1, x0, x0],
             y=[y0, y0, y1, y1, y0],
             fill="toself",
@@ -306,7 +306,7 @@ class VideoDisplay:
             label_y0 = y0 - 20
             label_y1 = y0
         
-        # Add colored label background
+        # Add colored label background using regular Scatter for proper fill rendering
         fig.add_trace(go.Scatter(
             x=[label_x0, label_x1, label_x1, label_x0, label_x0],
             y=[label_y0, label_y0, label_y1, label_y1, label_y0],
@@ -319,7 +319,7 @@ class VideoDisplay:
             showlegend=False
         ))
         
-        # Add label text
+        # Add label text using regular Scatter for proper text rendering
         fig.add_trace(go.Scatter(
             x=[(label_x0 + label_x1) / 2],
             y=[(label_y0 + label_y1) / 2],
