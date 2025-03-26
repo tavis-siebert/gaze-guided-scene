@@ -133,34 +133,12 @@ class VideoDisplay:
             # Return the requested frame if it was successfully read
             return self.frame_cache.get(frame_number)
     
-    def add_gaze_overlay(
-        self, 
-        fig: go.Figure, 
-        frame_number: int, 
-        playback: GraphPlayback
-    ) -> None:
-        """Add gaze point and object detection overlays to the figure.
+    def _get_gaze_traces(self, events: List, traces: List[go.Trace]) -> None:
+        """Add gaze point marker traces to the provided traces list.
         
         Args:
-            fig: The Plotly figure to add overlays to
-            frame_number: The current frame number
-            playback: The GraphPlayback instance for event access
-        """
-        events = playback.get_events_for_frame(frame_number)
-        
-        self._add_gaze_points(fig, events)
-        self._add_object_detection(fig, playback, frame_number)
-    
-    def _add_gaze_points(
-        self, 
-        fig: go.Figure, 
-        events: List
-    ) -> None:
-        """Add gaze point markers to the figure.
-        
-        Args:
-            fig: The Plotly figure to add gaze points to
             events: List of events for the current frame
+            traces: List to append gaze traces to
         """
         for event in events:
             if event.event_type == "frame_processed":
@@ -175,7 +153,7 @@ class VideoDisplay:
                     {"color": "black", "label": f"Other ({gaze_type})"}
                 )
                 
-                fig.add_trace(go.Scattergl(
+                traces.append(go.Scattergl(
                     x=[x], y=[y],
                     mode="markers",
                     marker=dict(size=15, color=gaze_info["color"]),
@@ -184,18 +162,18 @@ class VideoDisplay:
                     showlegend=False
                 ))
     
-    def _add_object_detection(
+    def _get_detection_traces(
         self, 
-        fig: go.Figure, 
         playback: GraphPlayback, 
-        frame_number: int
+        frame_number: int,
+        traces: List[go.Trace]
     ) -> None:
-        """Add object detection bounding box and labels to the figure.
+        """Add object detection bounding box and label traces to the provided traces list.
         
         Args:
-            fig: The Plotly figure to add object detection to
             playback: The GraphPlayback instance for event access
             frame_number: The current frame number
+            traces: List to append detection traces to
         """
         detection_event = playback.get_object_detection(frame_number)
         if not detection_event:
@@ -220,67 +198,12 @@ class VideoDisplay:
         x, y, width, height = bbox
         x0, y0, x1, y1 = x, y, x + width, y + height
         
-        # Add bounding box and label with improved styling
-        self._add_styled_detection(
-            fig, x0, y0, x1, y1, 
-            label_text, hover_text,
-            potential_labels
-        )
-    
-    def _create_detection_hover_text(
-        self, 
-        current_label: str, 
-        most_likely_label: str,
-        potential_labels: dict
-    ) -> str:
-        """Create hover text for object detection.
-        
-        Args:
-            current_label: The current object label
-            most_likely_label: The most likely object label
-            potential_labels: Dictionary of potential labels and their counts
-            
-        Returns:
-            Formatted hover text
-        """
-        sorted_labels = sorted(potential_labels.items(), key=lambda x: x[1], reverse=True)
-        potential_labels_text = "<br>".join(
-            [f"{format_label(obj)}: {count}" for obj, count in sorted_labels[:5]]
-        )
-        
-        return (
-            f"Current: {format_label(current_label)}<br>"
-            f"Most likely: {format_label(most_likely_label)}<br><br>"
-            f"Potential labels:<br>{potential_labels_text}"
-        )
-    
-    def _add_styled_detection(
-        self,
-        fig: go.Figure,
-        x0: float,
-        y0: float,
-        x1: float,
-        y1: float,
-        label_text: str,
-        hover_text: str,
-        potential_labels: dict
-    ) -> None:
-        """Add styled object detection with bounding box and label box.
-        
-        Args:
-            fig: The Plotly figure to add detection to
-            x0, y0: Top-left coordinates of the bounding box
-            x1, y1: Bottom-right coordinates of the bounding box
-            label_text: Text to display as the label
-            hover_text: Text to display on hover
-            potential_labels: Dictionary of potential labels and their counts
-        """        
         # Define colors
         box_color = GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"]
         box_fill = 'rgba(0, 0, 255, 0.1)'  # Blue with 10% opacity
         
         # Add main bounding box using Scattergl for better performance
-        fig.add_trace(go.Scattergl(
+        traces.append(go.Scattergl(
             x=[x0, x1, x1, x0, x0],
             y=[y0, y0, y1, y1, y0],
             fill="toself",
@@ -322,7 +245,7 @@ class VideoDisplay:
             label_y1 = y0
         
         # Add colored label background using regular Scatter for proper fill rendering
-        fig.add_trace(go.Scatter(
+        traces.append(go.Scatter(
             x=[label_x0, label_x1, label_x1, label_x0, label_x0],
             y=[label_y0, label_y0, label_y1, label_y1, label_y0],
             fill="toself",
@@ -335,7 +258,7 @@ class VideoDisplay:
         ))
         
         # Add label text using regular Scatter for proper text rendering
-        fig.add_trace(go.Scatter(
+        traces.append(go.Scatter(
             x=[(label_x0 + label_x1) / 2],
             y=[(label_y0 + label_y1) / 2],
             mode="text",
@@ -351,19 +274,32 @@ class VideoDisplay:
             showlegend=False
         ))
     
-    def _calculate_confidence(self, potential_labels: dict) -> Optional[float]:
-        """Calculate confidence percentage from potential labels."""
-        if not potential_labels:
-            return None
-            
-        sorted_labels = sorted(potential_labels.items(), key=lambda x: x[1], reverse=True)
-        top_confidence = sorted_labels[0][1]
-        total_votes = sum(count for _, count in sorted_labels)
+    def _create_detection_hover_text(
+        self, 
+        current_label: str, 
+        most_likely_label: str,
+        potential_labels: dict
+    ) -> str:
+        """Create hover text for object detection.
         
-        if total_votes <= 0:
-            return None
+        Args:
+            current_label: The current object label
+            most_likely_label: The most likely object label
+            potential_labels: Dictionary of potential labels and their counts
             
-        return (top_confidence / total_votes) * 100
+        Returns:
+            Formatted hover text
+        """
+        sorted_labels = sorted(potential_labels.items(), key=lambda x: x[1], reverse=True)
+        potential_labels_text = "<br>".join(
+            [f"{format_label(obj)}: {count}" for obj, count in sorted_labels[:5]]
+        )
+        
+        return (
+            f"Current: {format_label(current_label)}<br>"
+            f"Most likely: {format_label(most_likely_label)}<br><br>"
+            f"Potential labels:<br>{potential_labels_text}"
+        )
     
     def create_figure(self, frame_number: int, playback: GraphPlayback) -> go.Figure:
         """Create a complete figure with the video frame and overlays.
@@ -380,8 +316,18 @@ class VideoDisplay:
             return go.Figure(self.empty_figure)
             
         fig = go.Figure(self.empty_figure)
-        fig.add_trace(go.Image(z=frame))
         
-        self.add_gaze_overlay(fig, frame_number, playback)
+        # Collect all traces
+        traces = [go.Image(z=frame)]  # Start with the video frame
+        
+        # Add gaze traces
+        events = playback.get_events_for_frame(frame_number)
+        self._get_gaze_traces(events, traces)
+        
+        # Add detection traces
+        self._get_detection_traces(playback, frame_number, traces)
+        
+        # Add all traces at once
+        fig.add_traces(traces)
         
         return fig 
