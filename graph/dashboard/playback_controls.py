@@ -32,41 +32,16 @@ class PlaybackControls:
             
         return dbc.Card([
             dbc.CardBody([
-                # Main controls row
                 dbc.Row([
-                    # Navigation buttons
-                    dbc.Col([
-                        dbc.ButtonGroup([
-                            dbc.Button("←", id="prev-frame", color="primary", size="sm"),
-                            dbc.Button("Play", id="play-pause", color="success", size="sm"),
-                            dbc.Button("→", id="next-frame", color="primary", size="sm"),
-                        ], className="me-3"),
-                        
-                        # Speed control
-                        html.Div([
-                            dcc.Slider(
-                                id="playback-speed",
-                                min=PLAYBACK_SPEED_MIN,
-                                max=PLAYBACK_SPEED_MAX,
-                                value=PLAYBACK_SPEED_DEFAULT,
-                                marks=PLAYBACK_SPEED_MARKS,
-                                step=1,
-                                tooltip={"placement": "bottom", "always_visible": True}
-                            ),
-                        ], style={"width": "200px", "display": "inline-block"}),
-                    ], className="d-flex align-items-center"),
-                    
                     # Frame counter
                     dbc.Col([
                         html.Div([
-                            html.Span("Frame:", className="me-2"),
                             html.Strong(str(current_frame), id="current-frame-display"),
+                            html.Span(f" / {max_frame}", className="ms-1"),
                         ], className="d-flex align-items-center"),
-                    ], className="text-center"),
-                ], className="mb-3"),
-                
-                # Frame slider row
-                dbc.Row([
+                    ], width="auto", className="pe-3"),
+                    
+                    # Frame slider
                     dbc.Col([
                         dcc.Slider(
                             id="frame-slider",
@@ -76,8 +51,33 @@ class PlaybackControls:
                             marks=None,
                             tooltip={"placement": "bottom", "always_visible": True}
                         ),
-                    ]),
-                ]),
+                    ], className="flex-grow-1"),
+                    
+                    # Speed control
+                    dbc.Col([
+                        html.Div([
+                            html.Span("Speed:", className="me-2"),
+                            dcc.Slider(
+                                id="playback-speed",
+                                min=PLAYBACK_SPEED_MIN,
+                                max=PLAYBACK_SPEED_MAX,
+                                value=PLAYBACK_SPEED_DEFAULT,
+                                marks=PLAYBACK_SPEED_MARKS,
+                                step=1,
+                                tooltip={"placement": "bottom", "always_visible": True}
+                            ),
+                        ], style={"width": "150px"}),
+                    ], width="auto", className="px-3"),
+                    
+                    # Navigation buttons
+                    dbc.Col([
+                        dbc.ButtonGroup([
+                            dbc.Button("←", id="prev-frame", color="primary", size="sm"),
+                            dbc.Button("Play", id="play-pause", color="success", size="sm"),
+                            dbc.Button("→", id="next-frame", color="primary", size="sm"),
+                        ]),
+                    ], width="auto"),
+                ], className="align-items-center"),
             ])
         ], className="mb-3")
     
