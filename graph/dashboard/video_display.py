@@ -154,7 +154,7 @@ class VideoDisplay:
                     {"color": "black", "label": f"Other ({gaze_type})"}
                 )
                 
-                traces.append(go.Scattergl(
+                traces.append(go.Scatter(
                     x=[x], y=[y],
                     mode="markers",
                     marker=dict(size=15, color=gaze_info["color"]),
@@ -203,8 +203,7 @@ class VideoDisplay:
         box_color = GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"]
         box_fill = 'rgba(0, 0, 255, 0.1)'  # Blue with 10% opacity
         
-        # Add main bounding box using Scattergl for better performance
-        traces.append(go.Scattergl(
+        traces.append(go.Scatter(
             x=[x0, x1, x1, x0, x0],
             y=[y0, y0, y1, y1, y0],
             fill="toself",
