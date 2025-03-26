@@ -25,6 +25,8 @@ class VideoDisplay:
         video_lock: Thread lock for video operations
         batch_size: Number of frames to read at once
         empty_figure: Pre-configured empty figure with proper layout
+        frame_width: Width of video frames
+        frame_height: Height of video frames
     """
     
     def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 48):
@@ -41,6 +43,7 @@ class VideoDisplay:
         self.max_cache_size = max_cache_size
         self.video_lock = threading.Lock()
         self.batch_size = batch_size
+        self.frame_width, self.frame_height = RESOLUTION
         
         self.empty_figure = self._create_empty_figure()
         self._setup_video_capture()
@@ -51,18 +54,17 @@ class VideoDisplay:
         Returns:
             Plotly figure with proper layout settings
         """
-        frame_width, frame_height = RESOLUTION
         fig = go.Figure()
         fig.update_layout(
             xaxis=dict(
-                range=[0, frame_width],
+                range=[0, self.frame_width],
                 showgrid=False, 
                 zeroline=False, 
                 visible=False,
                 constrain="domain"
             ),
             yaxis=dict(
-                range=[frame_height, 0],
+                range=[self.frame_height, 0],
                 showgrid=False, 
                 zeroline=False, 
                 visible=False,
@@ -135,8 +137,7 @@ class VideoDisplay:
         self, 
         fig: go.Figure, 
         frame_number: int, 
-        playback: GraphPlayback, 
-        frame_dimensions: Tuple[int, int]
+        playback: GraphPlayback
     ) -> None:
         """Add gaze point and object detection overlays to the figure.
         
@@ -144,28 +145,22 @@ class VideoDisplay:
             fig: The Plotly figure to add overlays to
             frame_number: The current frame number
             playback: The GraphPlayback instance for event access
-            frame_dimensions: Tuple of (width, height) for the frame
         """
-        frame_width, frame_height = frame_dimensions
         events = playback.get_events_for_frame(frame_number)
         
-        self._add_gaze_points(fig, events, frame_width, frame_height)
-        self._add_object_detection(fig, playback, frame_number, frame_dimensions)
+        self._add_gaze_points(fig, events)
+        self._add_object_detection(fig, playback, frame_number)
     
     def _add_gaze_points(
         self, 
         fig: go.Figure, 
-        events: List, 
-        frame_width: int, 
-        frame_height: int
+        events: List
     ) -> None:
         """Add gaze point markers to the figure.
         
         Args:
             fig: The Plotly figure to add gaze points to
             events: List of events for the current frame
-            frame_width: Width of the video frame
-            frame_height: Height of the video frame
         """
         for event in events:
             if event.event_type == "frame_processed":
@@ -173,7 +168,7 @@ class VideoDisplay:
                 if pos is None or (pos[0] == 0.0 and pos[1] == 0.0):
                     continue
                     
-                x, y = pos[0] * frame_width, pos[1] * frame_height
+                x, y = pos[0] * self.frame_width, pos[1] * self.frame_height
                 gaze_type = event.data["gaze_type"]
                 gaze_info = GAZE_TYPE_INFO.get(
                     gaze_type, 
@@ -193,8 +188,7 @@ class VideoDisplay:
         self, 
         fig: go.Figure, 
         playback: GraphPlayback, 
-        frame_number: int,
-        frame_dimensions: Tuple[int, int]
+        frame_number: int
     ) -> None:
         """Add object detection bounding box and labels to the figure.
         
@@ -202,7 +196,6 @@ class VideoDisplay:
             fig: The Plotly figure to add object detection to
             playback: The GraphPlayback instance for event access
             frame_number: The current frame number
-            frame_dimensions: Tuple of (width, height) for the frame
         """
         detection_event = playback.get_object_detection(frame_number)
         if not detection_event:
@@ -227,13 +220,10 @@ class VideoDisplay:
         x, y, width, height = bbox
         x0, y0, x1, y1 = x, y, x + width, y + height
         
-        frame_width, frame_height = frame_dimensions
-        
         # Add bounding box and label with improved styling
         self._add_styled_detection(
             fig, x0, y0, x1, y1, 
-            label_text, hover_text, 
-            frame_width, frame_height,
+            label_text, hover_text,
             potential_labels
         )
     
@@ -273,8 +263,6 @@ class VideoDisplay:
         y1: float,
         label_text: str,
         hover_text: str,
-        frame_width: float,
-        frame_height: float,
         potential_labels: dict
     ) -> None:
         """Add styled object detection with bounding box and label box.
@@ -285,8 +273,6 @@ class VideoDisplay:
             x1, y1: Bottom-right coordinates of the bounding box
             label_text: Text to display as the label
             hover_text: Text to display on hover
-            frame_width: Width of the video frame
-            frame_height: Height of the video frame
             potential_labels: Dictionary of potential labels and their counts
         """        
         # Define colors
@@ -319,8 +305,8 @@ class VideoDisplay:
         label_x1 = label_x0 + label_width
         
         # If label extends beyond right edge, adjust position
-        if label_x1 > frame_width:
-            label_x1 = min(frame_width, x1)
+        if label_x1 > self.frame_width:
+            label_x1 = min(self.frame_width, x1)
             label_x0 = max(0, label_x1 - label_width)
         
         # Ensure label box stays within left edge
@@ -393,10 +379,9 @@ class VideoDisplay:
         if frame is None:
             return go.Figure(self.empty_figure)
             
-        frame_height, frame_width = frame.shape[:2]
         fig = go.Figure(self.empty_figure)
         fig.add_trace(go.Image(z=frame))
         
-        self.add_gaze_overlay(fig, frame_number, playback, (frame_width, frame_height))
+        self.add_gaze_overlay(fig, frame_number, playback)
         
         return fig 
