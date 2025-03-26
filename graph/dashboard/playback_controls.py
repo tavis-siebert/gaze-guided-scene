@@ -39,7 +39,7 @@ class PlaybackControls:
                             dbc.Button("←", id="prev-frame", color="secondary", size="m"),
                             dbc.Button("▶️", id="play-pause", color="success", size="m"),
                             dbc.Button("→", id="next-frame", color="secondary", size="m"),
-                        ], className=""),
+                        ]),
                     ], width="auto", className="me-3"),
                     
                     # Frame slider
@@ -67,7 +67,7 @@ class PlaybackControls:
                                 step=1,
                                 tooltip={"placement": "bottom", "always_visible": True}
                             ),
-                        ], style={"width": "240px"}),
+                        ], style={"width": "300px"}),
                     ], width="auto"),
                 ], className="align-items-center"),
             ])
