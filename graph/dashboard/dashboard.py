@@ -57,17 +57,23 @@ class Dashboard:
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Video Feed"),
-                        dbc.CardBody(dcc.Graph(id="video-display"))
-                    ], className="shadow-sm")
-                ], width=6),
+                        dbc.CardBody([
+                            dcc.Graph(
+                                id="video-display",
+                                style={"height": "60vh", "width": "100%"},
+                                config={"responsive": True}
+                            )
+                        ], style={"padding": "0.5rem"})
+                    ], className="shadow-sm h-100 w-100")
+                ], width=6, className="d-flex"),
                 
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Graph Visualization"),
                         dbc.CardBody(dcc.Graph(id="graph-display"))
-                    ], className="shadow-sm")
-                ], width=6),
-            ], className="mb-4"),
+                    ], className="shadow-sm h-100 w-100")
+                ], width=6, className="d-flex"),
+            ], className="mb-4 g-3"),
             
             dbc.Row(dbc.Col(
                 dbc.Card([
@@ -75,11 +81,11 @@ class Dashboard:
                     dbc.CardBody(self.playback_controls.create_layout(
                         self.playback.min_frame, self.playback.max_frame, self.playback.min_frame
                     ))
-                ], className="shadow-sm")
+                ], className="shadow-sm w-100")
             )),
             
             html.Div(id="frame-state", style={"display": "none"}),
-        ], fluid=True)
+        ], fluid=True, className="py-3")
     
     def _register_callbacks(self, app: dash.Dash) -> None:
         self.playback_controls.register_callbacks(app)

@@ -389,9 +389,10 @@ class VideoDisplay:
                 constrain="domain"
             ),
             margin=dict(l=0, r=0, t=0, b=0),
-            autosize=False,
-            width=frame_width,
-            height=frame_height
+            autosize=True,
+            height=None,
+            width=None,
+            template="plotly_white"
         )
         
         return fig 
