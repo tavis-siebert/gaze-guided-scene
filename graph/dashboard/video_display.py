@@ -142,7 +142,8 @@ class VideoDisplay:
             # Manage cache size using FIFO
             if len(self.frame_cache) >= self.max_cache_size:
                 oldest_batch = self.batch_order.pop(0)
-                del self.frame_cache[oldest_batch]
+                if oldest_batch in self.frame_cache:
+                    del self.frame_cache[oldest_batch]
             
             # Add new batch to cache
             self.frame_cache[batch_number] = batch_frames
