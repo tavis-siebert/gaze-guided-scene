@@ -93,7 +93,6 @@ class Dashboard:
         @app.callback(
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
-             Output("current-frame-display", "children"),
              Output("frame-slider", "value"),
              Output("frame-state", "children")],
             [Input("frame-slider", "value"),
@@ -121,7 +120,6 @@ class Dashboard:
                     graph, current_node_id, 
                     self.playback.last_added_node, self.playback.last_added_edge
                 ),
-                str(frame_number),
                 frame_number,
                 str(frame_number)
             )

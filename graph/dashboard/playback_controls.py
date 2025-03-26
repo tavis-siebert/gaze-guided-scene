@@ -33,14 +33,6 @@ class PlaybackControls:
         return dbc.Card([
             dbc.CardBody([
                 dbc.Row([
-                    # Frame counter
-                    dbc.Col([
-                        html.Div([
-                            html.Strong(str(current_frame), id="current-frame-display"),
-                            html.Span(f" / {max_frame}", className="ms-1"),
-                        ], className="d-flex align-items-center"),
-                    ], width="auto", className="pe-3"),
-                    
                     # Frame slider
                     dbc.Col([
                         dcc.Slider(
@@ -48,7 +40,8 @@ class PlaybackControls:
                             min=min_frame,
                             max=max_frame,
                             value=current_frame,
-                            marks=None,
+                            step=1,
+                            marks={str(min_frame): str(min_frame), str(max_frame): str(max_frame)},
                             tooltip={"placement": "bottom", "always_visible": True}
                         ),
                     ], className="flex-grow-1"),
