@@ -36,10 +36,10 @@ class PlaybackControls:
                     # Navigation buttons
                     dbc.Col([
                         dbc.ButtonGroup([
-                            dbc.Button("←", id="prev-frame", color="primary", size="sm"),
-                            dbc.Button("▶️", id="play-pause", color="success", size="sm"),
-                            dbc.Button("→", id="next-frame", color="primary", size="sm"),
-                        ]),
+                            dbc.Button("←", id="prev-frame", color="secondary", size="m"),
+                            dbc.Button("▶️", id="play-pause", color="success", size="m"),
+                            dbc.Button("→", id="next-frame", color="secondary", size="m"),
+                        ], className=""),
                     ], width="auto", className="me-3"),
                     
                     # Frame slider
