@@ -30,7 +30,7 @@ class VideoDisplay:
         frame_height: Height of video frames
     """
     
-    def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 48):
+    def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 96):
         """Initialize the video display component.
         
         Args:
