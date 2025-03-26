@@ -32,4 +32,19 @@ NODE_BORDER = {
 # Dashboard settings
 DEFAULT_PLAY_INTERVAL_MS = 1000 // 12 # 12 FPS
 DEFAULT_FRAME_CACHE_SIZE = 100
-DEFAULT_EDGE_HOVER_POINTS = 20 
+DEFAULT_EDGE_HOVER_POINTS = 20
+
+# Playback speed options
+PLAYBACK_SPEEDS = {
+    1: "1x",   # Every frame
+    2: "2x",   # Every second frame
+    3: "3x",   # Every third frame
+    5: "5x",   # Every fifth frame
+    10: "10x"  # Every tenth frame
+}
+
+# Playback speed slider settings
+PLAYBACK_SPEED_MIN = 1
+PLAYBACK_SPEED_MAX = 10
+PLAYBACK_SPEED_DEFAULT = 1
+PLAYBACK_SPEED_MARKS = {str(speed): label for speed, label in PLAYBACK_SPEEDS.items()} 

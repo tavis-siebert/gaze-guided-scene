@@ -95,13 +95,14 @@ class Dashboard:
              Input("next-frame", "n_clicks"),
              Input("auto-advance", "n_intervals")],
             [State("play-state", "data"),
-             State("frame-slider", "value")]
+             State("frame-slider", "value"),
+             State("playback-speed", "value")]
         )
         def update_displays(slider_frame, prev_clicks, next_clicks, 
-                            n_intervals, play_state, current_frame):
+                            n_intervals, play_state, current_frame, playback_speed):
             frame_number = self.playback_controls.determine_frame_number(
                 dash.callback_context, slider_frame, current_frame, play_state,
-                self.playback.min_frame, self.playback.max_frame
+                self.playback.min_frame, self.playback.max_frame, playback_speed
             )
             
             graph = self.playback.build_graph_until_frame(frame_number)
