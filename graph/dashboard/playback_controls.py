@@ -72,7 +72,7 @@ class PlaybackControls:
                     dbc.Col([
                         dbc.ButtonGroup([
                             dbc.Button("←", id="prev-frame", color="primary", size="sm"),
-                            dbc.Button("Play", id="play-pause", color="success", size="sm"),
+                            dbc.Button("▶️", id="play-pause", color="success", size="sm"),
                             dbc.Button("→", id="next-frame", color="primary", size="sm"),
                         ]),
                     ], width="auto"),
@@ -106,7 +106,7 @@ class PlaybackControls:
                 Tuple of (new state, interval disabled, button text)
             """
             if not play_clicks:
-                return current_state, True, "Play"
+                return current_state, True, "▶️"
                 
             is_playing = not current_state.get('is_playing', False)
             new_state = {
@@ -114,7 +114,7 @@ class PlaybackControls:
                 'last_update': current_state.get('last_update', 0) + 1
             }
             
-            return new_state, not is_playing, "Pause" if is_playing else "Play"
+            return new_state, not is_playing, "⏸️" if is_playing else "▶️"
     
     def determine_frame_number(
         self, 
