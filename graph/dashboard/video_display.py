@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 from graph.dashboard.utils import format_label
+from egtea_gaze.constants import RESOLUTION
 
 
 class VideoDisplay:
@@ -23,6 +24,7 @@ class VideoDisplay:
         max_cache_size: Maximum number of frames to cache
         video_lock: Thread lock for video operations
         batch_size: Number of frames to read at once
+        empty_figure: Pre-configured empty figure with proper layout
     """
     
     def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 48):
@@ -40,7 +42,41 @@ class VideoDisplay:
         self.video_lock = threading.Lock()
         self.batch_size = batch_size
         
+        self.empty_figure = self._create_empty_figure()
         self._setup_video_capture()
+    
+    def _create_empty_figure(self) -> go.Figure:
+        """Create an empty figure with proper layout based on constant resolution.
+        
+        Returns:
+            Plotly figure with proper layout settings
+        """
+        frame_width, frame_height = RESOLUTION
+        fig = go.Figure()
+        fig.update_layout(
+            xaxis=dict(
+                range=[0, frame_width],
+                showgrid=False, 
+                zeroline=False, 
+                visible=False,
+                constrain="domain"
+            ),
+            yaxis=dict(
+                range=[frame_height, 0],
+                showgrid=False, 
+                zeroline=False, 
+                visible=False,
+                scaleanchor="x", 
+                scaleratio=1,
+                constrain="domain"
+            ),
+            margin=dict(l=0, r=0, t=0, b=0),
+            autosize=True,
+            height=None,
+            width=None,
+            template="plotly_white"
+        )
+        return fig
     
     def _setup_video_capture(self) -> None:
         """Initialize the video capture if a valid video path is provided."""
@@ -94,24 +130,6 @@ class VideoDisplay:
             
             # Return the requested frame if it was successfully read
             return self.frame_cache.get(frame_number)
-    
-    def create_empty_figure(self, height: int = 400) -> go.Figure:
-        """Create an empty figure with appropriate layout.
-        
-        Args:
-            height: Height of the figure in pixels
-            
-        Returns:
-            Empty Plotly figure
-        """
-        fig = go.Figure()
-        fig.update_layout(
-            xaxis=dict(showgrid=False, zeroline=False, visible=False),
-            yaxis=dict(showgrid=False, zeroline=False, visible=False, scaleanchor="x", scaleratio=1),
-            margin=dict(l=0, r=0, t=0, b=0),
-            height=height
-        )
-        return fig
     
     def add_gaze_overlay(
         self, 
@@ -371,39 +389,14 @@ class VideoDisplay:
         Returns:
             Plotly figure with video frame and overlays
         """
-        fig = self.create_empty_figure()
-        
         frame = self.get_frame(frame_number)
         if frame is None:
-            return fig
+            return go.Figure(self.empty_figure)
             
         frame_height, frame_width = frame.shape[:2]
+        fig = go.Figure(self.empty_figure)
         fig.add_trace(go.Image(z=frame))
         
         self.add_gaze_overlay(fig, frame_number, playback, (frame_width, frame_height))
-        
-        fig.update_layout(
-            xaxis=dict(
-                range=[0, frame_width],
-                showgrid=False, 
-                zeroline=False, 
-                visible=False,
-                constrain="domain"
-            ),
-            yaxis=dict(
-                range=[frame_height, 0],
-                showgrid=False, 
-                zeroline=False, 
-                visible=False,
-                scaleanchor="x", 
-                scaleratio=1,
-                constrain="domain"
-            ),
-            margin=dict(l=0, r=0, t=0, b=0),
-            autosize=True,
-            height=None,
-            width=None,
-            template="plotly_white"
-        )
         
         return fig 
