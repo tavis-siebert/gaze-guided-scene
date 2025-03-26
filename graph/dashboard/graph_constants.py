@@ -33,19 +33,15 @@ NODE_BORDER = {
 # Dashboard settings
 TARGET_FPS = 12
 DEFAULT_PLAY_INTERVAL_MS = 1000 // TARGET_FPS
-DEFAULT_FRAME_CACHE_SIZE = 100
-DEFAULT_EDGE_HOVER_POINTS = 20
-
-# Playback speed options
-PLAYBACK_SPEEDS = {
-    1: "1x",   # Every frame
-    2: "2x",   # Every second frame
-    5: "5x",   # Every fifth frame
-    10: "10x",   # Every tenth frame
-}
-
-# Playback speed slider settings
-PLAYBACK_SPEED_MIN = 1
-PLAYBACK_SPEED_MAX = 10
+FRAME_INTERVALS = [1, 2, 5, 10]
 PLAYBACK_SPEED_DEFAULT = 2
+
+def compute_playback_speed(frame_interval: int, original_fps: int = FPS) -> float:
+    """Compute playback speed multiplier based on frame interval and original FPS."""
+    return TARGET_FPS / original_fps * frame_interval
+
+
+PLAYBACK_SPEEDS = {interval: f"{compute_playback_speed(interval):.1f}x" for interval in FRAME_INTERVALS}
+PLAYBACK_SPEED_MIN = min(FRAME_INTERVALS)
+PLAYBACK_SPEED_MAX = max(FRAME_INTERVALS)
 PLAYBACK_SPEED_MARKS = {str(speed): label for speed, label in PLAYBACK_SPEEDS.items()} 
