@@ -3,6 +3,11 @@ from typing import Callable, Dict, Any
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
+from graph.dashboard.graph_constants import (
+    PLAYBACK_SPEEDS, PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX,
+    PLAYBACK_SPEED_DEFAULT, PLAYBACK_SPEED_MARKS
+)
+
 
 class PlaybackControls:
     """Component for controlling playback of the graph visualization.
@@ -28,7 +33,7 @@ class PlaybackControls:
         return dbc.Card([
             dbc.CardBody([
                 dbc.Row([
-                    # Playback buttons
+                    # Playback buttons and speed control
                     dbc.Col([
                         html.Div([
                             dbc.Button(
@@ -49,9 +54,22 @@ class PlaybackControls:
                                 "Next →", 
                                 id="next-frame", 
                                 n_clicks=0, 
-                                color="primary"
+                                color="primary",
+                                className="me-2"
                             ),
-                        ], className="d-flex justify-content-center"),
+                            html.Div([
+                                html.Span("Speed: ", className="me-2"),
+                                dcc.Slider(
+                                    id="playback-speed",
+                                    min=PLAYBACK_SPEED_MIN,
+                                    max=PLAYBACK_SPEED_MAX,
+                                    value=PLAYBACK_SPEED_DEFAULT,
+                                    marks=PLAYBACK_SPEED_MARKS,
+                                    step=1,
+                                    tooltip={"placement": "bottom", "always_visible": True}
+                                ),
+                            ], style={"width": "200px", "display": "inline-block", "vertical-align": "middle"}),
+                        ], className="d-flex justify-content-center align-items-center"),
                     ], width=4),
                     
                     # Current frame display
@@ -120,7 +138,8 @@ class PlaybackControls:
         current_frame: int, 
         play_state: Dict[str, Any],
         min_frame: int,
-        max_frame: int
+        max_frame: int,
+        playback_speed: int = PLAYBACK_SPEED_DEFAULT
     ) -> int:
         """Determine the next frame number based on user interactions.
         
@@ -131,6 +150,7 @@ class PlaybackControls:
             play_state: Current play state
             min_frame: Minimum frame number
             max_frame: Maximum frame number
+            playback_speed: Current playback speed setting
             
         Returns:
             Next frame number to display
@@ -142,11 +162,11 @@ class PlaybackControls:
         is_playing = play_state.get('is_playing', False)
         
         if trigger_id == "prev-frame":
-            return max(min_frame, current_frame - 1)
+            return max(min_frame, current_frame - playback_speed)
         elif trigger_id == "next-frame":
-            return min(max_frame, current_frame + 1)
+            return min(max_frame, current_frame + playback_speed)
         elif trigger_id == "auto-advance" and is_playing:
-            frame_number = current_frame + 1
+            frame_number = current_frame + playback_speed
             if frame_number > max_frame:
                 frame_number = min_frame
             return frame_number
