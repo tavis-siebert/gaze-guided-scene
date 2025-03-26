@@ -146,7 +146,7 @@ class PlaybackControls:
         elif trigger_id == "auto-advance" and is_playing:
             frame_number = current_frame + playback_speed
             if frame_number > max_frame:
-                frame_number = min_frame
+                return max_frame
             return frame_number
         else:
             return slider_frame 
