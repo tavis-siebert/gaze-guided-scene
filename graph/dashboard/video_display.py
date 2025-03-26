@@ -1,6 +1,7 @@
 """Video display component for the graph visualization dashboard."""
 from typing import Optional, List, Tuple, Dict
 import threading
+from logger import get_logger
 import cv2
 import numpy as np
 import plotly.graph_objects as go
@@ -11,6 +12,7 @@ from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 from graph.dashboard.utils import format_label
 from egtea_gaze.constants import RESOLUTION
 
+logger = get_logger(__name__)
 
 class VideoDisplay:
     """Component for displaying video frames with gaze and object overlays.
@@ -21,13 +23,14 @@ class VideoDisplay:
     Attributes:
         video_path: Path to the video file
         video_capture: OpenCV video capture object
-        frame_cache: Cache of video frames
-        max_cache_size: Maximum number of frames to cache
+        frame_cache: Cache of video frame batches
+        max_cache_size: Maximum number of batches to cache
         video_lock: Thread lock for video operations
         batch_size: Number of frames to read at once
         empty_figure: Pre-configured empty figure with proper layout
         frame_width: Width of video frames
         frame_height: Height of video frames
+        batch_order: List of batch numbers in FIFO order
     """
     
     def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 96):
@@ -41,10 +44,11 @@ class VideoDisplay:
         self.video_path = video_path
         self.video_capture = None
         self.frame_cache = {}
-        self.max_cache_size = max_cache_size
+        self.max_cache_size = max_cache_size // batch_size  # Convert to number of batches
         self.video_lock = threading.Lock()
         self.batch_size = batch_size
         self.frame_width, self.frame_height = RESOLUTION
+        self.batch_order = []  # Track batch order for FIFO
         
         self.empty_figure = self._create_empty_figure()
         self._setup_video_capture()
@@ -103,12 +107,16 @@ class VideoDisplay:
         if self.video_capture is None:
             return None
             
-        # Check if frame is in cache
-        if frame_number in self.frame_cache:
-            return self.frame_cache[frame_number]
+        # Calculate batch number and frame offset within batch
+        batch_number = frame_number // self.batch_size
+        frame_offset = frame_number % self.batch_size
+            
+        # Check if frame's batch is in cache
+        if batch_number in self.frame_cache:
+            return self.frame_cache[batch_number][frame_offset]
             
         # Calculate batch range
-        batch_start = frame_number - (frame_number % self.batch_size)
+        batch_start = batch_number * self.batch_size
         batch_end = min(batch_start + self.batch_size, int(self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT)))
         
         # Acquire frames in batch
@@ -116,23 +124,34 @@ class VideoDisplay:
             self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, batch_start)
             
             # Read all frames in the batch
-            for current_frame in range(batch_start, batch_end):
+            batch_frames = []
+            for _ in range(batch_start, batch_end):
                 success, frame = self.video_capture.read()
                 if not success:
+                    logger.warning(f"Failed to read frame at position {batch_start + len(batch_frames)}")
                     continue
-                    
+
                 # Convert from BGR to RGB for Plotly
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                batch_frames.append(frame_rgb)
+            
+            if not batch_frames:
+                logger.warning(f"No frames read for batch {batch_number}")
+                return None
                 
-                # Manage cache size
-                if len(self.frame_cache) >= self.max_cache_size:
-                    oldest_frame = min(self.frame_cache.keys())
-                    del self.frame_cache[oldest_frame]
-                
-                self.frame_cache[current_frame] = frame_rgb
+            # Manage cache size using FIFO
+            if len(self.frame_cache) >= self.max_cache_size:
+                oldest_batch = self.batch_order.pop(0)
+                del self.frame_cache[oldest_batch]
+            
+            # Add new batch to cache
+            self.frame_cache[batch_number] = batch_frames
+            self.batch_order.append(batch_number)
             
             # Return the requested frame if it was successfully read
-            return self.frame_cache.get(frame_number)
+            if frame_offset < len(batch_frames):
+                return batch_frames[frame_offset]
+            return None
     
     def _get_gaze_traces(self, events: List, traces: List[go.Trace]) -> None:
         """Add gaze point marker traces to the provided traces list.
