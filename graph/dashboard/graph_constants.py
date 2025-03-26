@@ -6,7 +6,8 @@ from egtea_gaze.constants import (
     GAZE_TYPE_FIXATION,
     GAZE_TYPE_SACCADE,
     GAZE_TYPE_UNKNOWN,
-    GAZE_TYPE_TRUNCATED
+    GAZE_TYPE_TRUNCATED,
+    FPS
 )
 
 # Gaze type styling information
@@ -30,7 +31,7 @@ NODE_BORDER = {
 }
 
 # Dashboard settings
-DEFAULT_PLAY_INTERVAL_MS = 1000 // 12 # 12 FPS
+DEFAULT_PLAY_INTERVAL_MS = 1000 // FPS # Match the FPS of the video
 DEFAULT_FRAME_CACHE_SIZE = 100
 DEFAULT_EDGE_HOVER_POINTS = 20
 
@@ -45,5 +46,5 @@ PLAYBACK_SPEEDS = {
 # Playback speed slider settings
 PLAYBACK_SPEED_MIN = 1
 PLAYBACK_SPEED_MAX = 10
-PLAYBACK_SPEED_DEFAULT = 2
+PLAYBACK_SPEED_DEFAULT = 1
 PLAYBACK_SPEED_MARKS = {str(speed): label for speed, label in PLAYBACK_SPEEDS.items()} 
