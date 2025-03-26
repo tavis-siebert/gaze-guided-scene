@@ -33,6 +33,15 @@ class PlaybackControls:
         return dbc.Card([
             dbc.CardBody([
                 dbc.Row([
+                    # Navigation buttons
+                    dbc.Col([
+                        dbc.ButtonGroup([
+                            dbc.Button("←", id="prev-frame", color="primary", size="sm"),
+                            dbc.Button("▶️", id="play-pause", color="success", size="sm"),
+                            dbc.Button("→", id="next-frame", color="primary", size="sm"),
+                        ]),
+                    ], width="auto", className="me-3"),
+                    
                     # Frame slider
                     dbc.Col([
                         dcc.Slider(
@@ -59,15 +68,6 @@ class PlaybackControls:
                                 tooltip={"placement": "bottom", "always_visible": True}
                             ),
                         ], style={"width": "240px"}),
-                    ], width="auto"),
-                    
-                    # Navigation buttons
-                    dbc.Col([
-                        dbc.ButtonGroup([
-                            dbc.Button("←", id="prev-frame", color="primary", size="sm"),
-                            dbc.Button("▶️", id="play-pause", color="success", size="sm"),
-                            dbc.Button("→", id="next-frame", color="primary", size="sm"),
-                        ]),
                     ], width="auto"),
                 ], className="align-items-center"),
             ])
