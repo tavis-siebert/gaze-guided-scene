@@ -4,6 +4,7 @@ import threading
 import cv2
 import numpy as np
 import plotly.graph_objects as go
+import base64
 
 from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
@@ -312,22 +313,41 @@ class VideoDisplay:
             Plotly figure with video frame and overlays
         """
         frame = self.get_frame(frame_number)
-        if frame is None:
-            return go.Figure(self.empty_figure)
-            
         fig = go.Figure(self.empty_figure)
         
-        # Collect all traces
-        traces = [go.Image(z=frame)]  # Start with the video frame
+        # Add background image if frame exists
+        if frame is not None:
+            img_src = self.numpy_to_base64(frame)
+            fig.update_layout(
+                images=[dict(
+                    source=img_src,
+                    xref="x",
+                    yref="y",
+                    x=0,
+                    y=0,
+                    sizex=self.frame_width,
+                    sizey=self.frame_height,
+                    sizing="stretch",
+                    layer="below"
+                )]
+            )
         
-        # Add gaze traces
+        # Collect overlay traces
+        traces = []
         events = playback.get_events_for_frame(frame_number)
         self._get_gaze_traces(events, traces)
-        
-        # Add detection traces
         self._get_detection_traces(playback, frame_number, traces)
         
-        # Add all traces at once
         fig.add_traces(traces)
-        
-        return fig 
+        return fig
+
+    def numpy_to_base64(self, frame: np.ndarray) -> str:
+        """Convert a numpy frame to base64 encoded PNG."""
+        if frame is None:
+            return ""
+        # Convert RGB to BGR for OpenCV encoding
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        success, buffer = cv2.imencode('.png', frame_bgr)
+        if not success:
+            return ""
+        return f"data:image/png;base64,{base64.b64encode(buffer).decode()}" 
