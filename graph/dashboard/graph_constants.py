@@ -37,7 +37,6 @@ DEFAULT_EDGE_HOVER_POINTS = 20
 # Playback speed options
 PLAYBACK_SPEEDS = {
     1: "1x",   # Every frame
-    2: "2x",   # Every second frame
     3: "3x",   # Every third frame
     5: "5x",   # Every fifth frame
     10: "10x"  # Every tenth frame

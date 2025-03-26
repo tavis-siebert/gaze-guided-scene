@@ -56,7 +56,6 @@ class PlaybackControls:
                     # Speed control
                     dbc.Col([
                         html.Div([
-                            html.Span("Speed:", className="me-2"),
                             dcc.Slider(
                                 id="playback-speed",
                                 min=PLAYBACK_SPEED_MIN,
@@ -67,7 +66,7 @@ class PlaybackControls:
                                 tooltip={"placement": "bottom", "always_visible": True}
                             ),
                         ], style={"width": "150px"}),
-                    ], width="auto", className="px-3"),
+                    ], width="auto"),
                     
                     # Navigation buttons
                     dbc.Col([
