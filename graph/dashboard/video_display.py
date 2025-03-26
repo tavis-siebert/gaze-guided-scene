@@ -1,5 +1,5 @@
 """Video display component for the graph visualization dashboard."""
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 import threading
 import cv2
 import numpy as np
@@ -22,20 +22,23 @@ class VideoDisplay:
         frame_cache: Cache of video frames
         max_cache_size: Maximum number of frames to cache
         video_lock: Thread lock for video operations
+        batch_size: Number of frames to read at once
     """
     
-    def __init__(self, video_path: Optional[str], max_cache_size: int = 100):
+    def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 48):
         """Initialize the video display component.
         
         Args:
             video_path: Path to the video file or None if no video
             max_cache_size: Maximum number of frames to cache
+            batch_size: Number of frames to read at once
         """
         self.video_path = video_path
         self.video_capture = None
         self.frame_cache = {}
         self.max_cache_size = max_cache_size
         self.video_lock = threading.Lock()
+        self.batch_size = batch_size
         
         self._setup_video_capture()
     
@@ -65,24 +68,32 @@ class VideoDisplay:
         if frame_number in self.frame_cache:
             return self.frame_cache[frame_number]
             
-        # Acquire frame from video
+        # Calculate batch range
+        batch_start = frame_number - (frame_number % self.batch_size)
+        batch_end = min(batch_start + self.batch_size, int(self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT)))
+        
+        # Acquire frames in batch
         with self.video_lock:
-            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-            success, frame = self.video_capture.read()
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, batch_start)
             
-            if not success:
-                return None
+            # Read all frames in the batch
+            for current_frame in range(batch_start, batch_end):
+                success, frame = self.video_capture.read()
+                if not success:
+                    continue
+                    
+                # Convert from BGR to RGB for Plotly
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
-            # Convert from BGR to RGB for Plotly
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Manage cache size
+                if len(self.frame_cache) >= self.max_cache_size:
+                    oldest_frame = min(self.frame_cache.keys())
+                    del self.frame_cache[oldest_frame]
+                
+                self.frame_cache[current_frame] = frame_rgb
             
-            # Manage cache size
-            if len(self.frame_cache) >= self.max_cache_size:
-                oldest_frame = min(self.frame_cache.keys())
-                del self.frame_cache[oldest_frame]
-            
-            self.frame_cache[frame_number] = frame_rgb
-            return frame_rgb
+            # Return the requested frame if it was successfully read
+            return self.frame_cache.get(frame_number)
     
     def create_empty_figure(self, height: int = 400) -> go.Figure:
         """Create an empty figure with appropriate layout.
