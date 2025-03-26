@@ -37,13 +37,13 @@ DEFAULT_EDGE_HOVER_POINTS = 20
 # Playback speed options
 PLAYBACK_SPEEDS = {
     1: "1x",   # Every frame
-    3: "3x",   # Every third frame
+    2: "2x",   # Every second frame
     5: "5x",   # Every fifth frame
-    10: "10x"  # Every tenth frame
+    10: "10x",   # Every tenth frame
 }
 
 # Playback speed slider settings
 PLAYBACK_SPEED_MIN = 1
 PLAYBACK_SPEED_MAX = 10
-PLAYBACK_SPEED_DEFAULT = 1
+PLAYBACK_SPEED_DEFAULT = 2
 PLAYBACK_SPEED_MARKS = {str(speed): label for speed, label in PLAYBACK_SPEEDS.items()} 

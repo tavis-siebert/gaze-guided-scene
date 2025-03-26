@@ -65,7 +65,7 @@ class PlaybackControls:
                                 step=1,
                                 tooltip={"placement": "bottom", "always_visible": True}
                             ),
-                        ], style={"width": "150px"}),
+                        ], style={"width": "240px"}),
                     ], width="auto"),
                     
                     # Navigation buttons
