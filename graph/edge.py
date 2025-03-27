@@ -106,9 +106,6 @@ class Edge:
         # Create backward edge only if not connecting to root
         backward_edge = None
         if not is_root:
-            # Calculate opposite angle
-            opposite_angle = AngleUtils.get_opposite_angle(forward_edge.angle)
-            
             # Create backward edge - pass the same positions but swapped
             backward_edge = Edge(target_id, source_id, curr_gaze_pos, prev_gaze_pos, num_bins)
         
