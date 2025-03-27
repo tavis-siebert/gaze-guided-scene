@@ -69,7 +69,8 @@ class Dashboard:
                 self.playback_controls.create_layout(
                     self.playback.min_frame, 
                     self.playback.max_frame, 
-                    self.playback.min_frame
+                    self.playback.min_frame,
+                    graph_playback=self.playback
                 )
             ), className="mb-2"),
             

@@ -1,5 +1,5 @@
 """Playback controls component for the graph visualization dashboard."""
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, List
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
@@ -16,19 +16,59 @@ class PlaybackControls:
     for jumping to specific frames in the visualization.
     """
     
-    def create_layout(self, min_frame: int, max_frame: int, current_frame: int = None) -> dbc.Card:
+    def get_node_addition_frames(self, graph_playback) -> List[int]:
+        """Get a list of frame numbers where new unique nodes were added.
+        
+        Args:
+            graph_playback: GraphPlayback instance containing event data
+            
+        Returns:
+            List of frame numbers where unique node addition events occurred
+        """
+        node_frames = {}  # Maps node_id to first frame it appears in
+        
+        # Sort frames to ensure we find the first occurrence of each node
+        sorted_frames = sorted(graph_playback.frame_to_events.keys())
+        
+        for frame_num in sorted_frames:
+            events = graph_playback.frame_to_events[frame_num]
+            for event in events:
+                if event.event_type == "node_added":
+                    node_id = event.data["node_id"]
+                    # Only record the first occurrence of this node_id
+                    if node_id not in node_frames:
+                        node_frames[node_id] = frame_num
+        
+        # Return sorted list of unique frames where new nodes appeared
+        return sorted(set(node_frames.values()))
+    
+    def create_layout(self, min_frame: int, max_frame: int, current_frame: int = None, graph_playback = None) -> dbc.Card:
         """Create a layout with playback controls.
         
         Args:
             min_frame: Minimum frame number
             max_frame: Maximum frame number
             current_frame: Current frame number (defaults to min_frame if None)
+            graph_playback: GraphPlayback instance for marking frames with node additions
             
         Returns:
             Dash Bootstrap Card component with playback controls
         """
         if current_frame is None:
             current_frame = min_frame
+            
+        # Create basic marks for min and max frames
+        slider_marks = {str(min_frame): str(min_frame), str(max_frame): str(max_frame)}
+        
+        # Add marks for frames with node additions if graph_playback is provided
+        if graph_playback:
+            node_frames = self.get_node_addition_frames(graph_playback)
+            for frame in node_frames:
+                # Only add label for node frames if they're not too close to other marks
+                if frame != min_frame and frame != max_frame:
+                    slider_marks[str(frame)] = {
+                        "label": "",  # Empty label to hide text but keep marker
+                    }
             
         return dbc.Card([
             dbc.CardHeader("Playback Controls"),
@@ -51,7 +91,7 @@ class PlaybackControls:
                             max=max_frame,
                             value=current_frame,
                             step=1,
-                            marks={str(min_frame): str(min_frame), str(max_frame): str(max_frame)},
+                            marks=slider_marks,
                             tooltip={"placement": "bottom", "always_visible": True}
                         ),
                     ], className="flex-grow-1"),
