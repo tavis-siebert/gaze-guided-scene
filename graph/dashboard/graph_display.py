@@ -7,6 +7,21 @@ from graph.dashboard.graph_constants import NODE_BACKGROUND, NODE_BORDER
 from graph.dashboard.utils import format_node_label, format_feature_text, generate_intermediate_points
 
 
+def get_angle_symbol(angle_degrees: float) -> str:
+    """Map angle degrees to corresponding arrow symbol.
+    
+    Args:
+        angle_degrees: Angle in degrees
+        
+    Returns:
+        Arrow symbol representing the angle bin
+    """
+    symbols = ["→", "↗", "↑", "↖", "←", "↙", "↓", "↘"]
+    bin_size = 360 / len(symbols)
+    bin_index = int((angle_degrees % 360) / bin_size)
+    return symbols[bin_index]
+
+
 class GraphDisplay:
     """Component for displaying the graph visualization.
     
@@ -111,6 +126,7 @@ class GraphDisplay:
         regular_edge_x, regular_edge_y = [], []
         last_edge_x, last_edge_y = [], []
         edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
+        edge_labels_x, edge_labels_y, edge_labels_text = [], [], []
         
         for edge in G.edges(data=True):
             source, target = edge[0], edge[1]
@@ -143,6 +159,17 @@ class GraphDisplay:
             edge_middle_x.extend(middle_x)
             edge_middle_y.extend(middle_y)
             edge_hover_texts.extend([edge_info] * len(middle_x))
+            
+            # Add angle label if angle_degrees feature exists
+            if 'angle_degrees' in features:
+                angle = features['angle_degrees']
+                symbol = get_angle_symbol(angle)
+                # Position label at the middle of the edge
+                label_x = (x0 + x1) / 2
+                label_y = (y0 + y1) / 2
+                edge_labels_x.append(label_x)
+                edge_labels_y.append(label_y)
+                edge_labels_text.append(symbol)
         
         # Add regular edges
         if regular_edge_x:
@@ -173,6 +200,18 @@ class GraphDisplay:
                 hoverinfo='text',
                 hovertext=edge_hover_texts,
                 hovertemplate='%{hovertext}<extra></extra>',
+                showlegend=False
+            ))
+            
+        # Add angle labels
+        if edge_labels_x:
+            fig.add_trace(go.Scatter(
+                x=edge_labels_x, y=edge_labels_y,
+                mode='text',
+                text=edge_labels_text,
+                textposition="middle center",
+                textfont=dict(size=18, color='#000'),
+                hoverinfo='none',
                 showlegend=False
             ))
     
