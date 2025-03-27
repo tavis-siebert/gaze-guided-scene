@@ -4,9 +4,14 @@ import networkx as nx
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from dash import dcc
+from svg.path import parse_path
+import numpy as np
 
 from graph.dashboard.graph_constants import NODE_BACKGROUND, NODE_BORDER
 from graph.dashboard.utils import format_node_label, format_feature_text, generate_intermediate_points
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_angle_symbol(angle_degrees: float) -> str:
@@ -101,14 +106,51 @@ class GraphDisplay:
         """Create an empty figure with appropriate layout.
         
         Returns:
-            Empty Plotly figure
+            Empty Plotly figure with placeholder message
         """
         fig = go.Figure()
+        
+        # SVG path data for diagram-project icon (FontAwesome diagram-project)
+        path_data = "M0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 16 192 0 0-16c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-16-192 0 0 16c0 1.7-.1 3.4-.3 5L272 288l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-1.7 .1-3.4 .3-5L144 224l-96 0c-26.5 0-48-21.5-48-48L0 80z"
+        
+        # Parse and sample points from SVG path
+        path = parse_path(path_data)
+        n_samples = 250
+        points = np.array([(path.point(i/n_samples).real, path.point(i/n_samples).imag) for i in range(n_samples)])
+        
+        # Normalize to fit in center 10% of figure
+        min_coords = points.min(axis=0)
+        max_coords = points.max(axis=0)
+        x_norm = 0.45 + 0.1 * (points[:, 0] - min_coords[0]) / (max_coords[0] - min_coords[0])
+        y_norm = 0.45 + 0.1 * (points[:, 1] - min_coords[1]) / (max_coords[1] - min_coords[1])
+        
+        # Add the SVG shape
+        fig.add_trace(go.Scatter(
+            x=x_norm, y=y_norm,
+            mode='lines',
+            line=dict(width=1, color='#555'),
+            fill='toself',
+            fillcolor='#666',
+            hoverinfo='none',
+            showlegend=False
+        ))
+        
+        # Add placeholder text
+        fig.add_annotation(
+            text="No graph data available yet",
+            xref="paper", yref="paper",
+            x=0.5, y=0.3,
+            showarrow=False,
+            font=dict(size=16, color="#444"),
+            align="center"
+        )
+        
+        # Configure layout
         fig.update_layout(
             showlegend=False,
             margin=dict(l=20, r=20, t=20, b=20),
-            xaxis=dict(showgrid=False, zeroline=False, visible=False),
-            yaxis=dict(showgrid=False, zeroline=False, visible=False),
+            xaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
+            yaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
             height=450,
             plot_bgcolor='white',
             paper_bgcolor='white'
