@@ -154,13 +154,16 @@ class VideoDisplay:
                 return batch_frames[frame_offset]
             return None
     
-    def _get_gaze_traces(self, events: List, traces: List[go.Trace]) -> None:
-        """Add gaze point marker traces to the provided traces list.
+    def _get_gaze_traces(self, events: List, traces: List[go.Trace], fig: go.Figure) -> None:
+        """Add gaze point marker traces and saccade arrows to the provided traces list.
         
         Args:
             events: List of events for the current frame
             traces: List to append gaze traces to
+            fig: The figure object to update with annotations
         """
+        annotations = []
+        
         for event in events:
             if event.event_type == "frame_processed":
                 pos = event.data["gaze_position"]
@@ -182,6 +185,52 @@ class VideoDisplay:
                     hoverinfo='text',
                     showlegend=False
                 ))
+            
+            elif event.event_type == "edge_added" and event.data["edge_type"] == "saccade":
+                features = event.data["features"]
+                prev_x = features["prev_x"] * self.frame_width
+                prev_y = features["prev_y"] * self.frame_height
+                curr_x = features["curr_x"] * self.frame_width
+                curr_y = features["curr_y"] * self.frame_height
+                
+                # Add line trace
+                traces.append(go.Scatter(
+                    x=[prev_x, curr_x],
+                    y=[prev_y, curr_y],
+                    mode="lines",
+                    line=dict(
+                        width=4,
+                        color="rgba(0, 0, 0, 0.8)"
+                    ),
+                    hovertext=(
+                        f"Saccade<br>"
+                        f"From node {event.data['source_id']} to {event.data['target_id']}<br>"
+                        f"Angle: {features['angle_degrees']:.2f}°<br>"
+                        f"Distance: {features['distance']:.2f}"
+                    ),
+                    hoverinfo='text',
+                    showlegend=False
+                ))
+                
+                # Add arrow annotation
+                annotations.append(dict(
+                    x=curr_x,
+                    y=curr_y,
+                    ax=prev_x,
+                    ay=prev_y,
+                    xref="x",
+                    yref="y",
+                    axref="x",
+                    ayref="y",
+                    showarrow=True,
+                    arrowhead=4,
+                    arrowsize=4,
+                    arrowcolor="rgba(0, 0, 0, 0.8)"
+                ))
+        
+        # Update the figure layout with annotations
+        if annotations:
+            fig.update_layout(annotations=annotations)
     
     def _get_detection_traces(
         self, 
@@ -354,7 +403,7 @@ class VideoDisplay:
         # Collect overlay traces
         traces = []
         events = playback.get_events_for_frame(frame_number)
-        self._get_gaze_traces(events, traces)
+        self._get_gaze_traces(events, traces, fig)
         self._get_detection_traces(playback, frame_number, traces)
         
         fig.add_traces(traces)
