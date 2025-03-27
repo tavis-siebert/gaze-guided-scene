@@ -2,7 +2,6 @@
 from typing import Callable, Dict, Any
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from pathlib import Path
 
 from graph.dashboard.graph_constants import (
     PLAYBACK_SPEEDS, PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX,
@@ -17,16 +16,13 @@ class PlaybackControls:
     for jumping to specific frames in the visualization.
     """
     
-    def create_layout(self, min_frame: int, max_frame: int, current_frame: int = None, 
-                     video_path: str = None, trace_file_path: str = None) -> dbc.Card:
+    def create_layout(self, min_frame: int, max_frame: int, current_frame: int = None) -> dbc.Card:
         """Create a layout with playback controls.
         
         Args:
             min_frame: Minimum frame number
             max_frame: Maximum frame number
             current_frame: Current frame number (defaults to min_frame if None)
-            video_path: Path to the video file
-            trace_file_path: Path to the trace file
             
         Returns:
             Dash Bootstrap Card component with playback controls
@@ -34,22 +30,7 @@ class PlaybackControls:
         if current_frame is None:
             current_frame = min_frame
             
-        # Extract file names
-        video_name = Path(video_path).name if video_path else "No video"
-        trace_name = Path(trace_file_path).name if trace_file_path else "No trace file"
-            
         return dbc.Card([
-            dbc.CardHeader([
-                dbc.Row([
-                    dbc.Col("Playback Controls", className="col-auto"),
-                    dbc.Col([
-                        html.Small("Video: ", className="text-muted"),
-                        html.Span(video_name, className="fw-bold me-3"),
-                        html.Small("Trace: ", className="text-muted"),
-                        html.Span(trace_name, className="fw-bold"),
-                    ], className="col-auto ms-auto"),
-                ], className="align-items-center"),
-            ]),
             dbc.CardBody([
                 dbc.Row([
                     # Navigation buttons
