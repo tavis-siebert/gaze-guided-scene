@@ -4,6 +4,7 @@ from typing import Dict, List, Any, Optional
 from collections import defaultdict
 import json
 import networkx as nx
+import math
 
 from graph.dashboard.graph_event import GraphEvent
 
@@ -51,6 +52,7 @@ class GraphPlayback:
             for line in f:
                 event_data = json.loads(line.strip())
                 event = GraphEvent(event_data)
+                self._rotate_event_angles(event)
                 self.events.append(event)
                 self.frame_to_events[event.frame_number].append(event)
                 
@@ -61,6 +63,28 @@ class GraphPlayback:
         frames = list(self.frame_to_events.keys())
         self.min_frame = min(frames) if frames else 0
         self.max_frame = max(frames) if frames else 0
+
+    def _rotate_event_angles(self, event: GraphEvent) -> None:
+        # we need to rotate all data.features.angle (radians) and data.features.angle_degrees (degrees) to match our intuition
+        # check if this property exists in the event data
+        if "features" in event.data and "angle" in event.data["features"]:
+            event.data["features"]["angle"] = self._rotate_angle(event.data["features"]["angle"], True)
+            if "angle_degrees" in event.data["features"]:
+                event.data["features"]["angle_degrees"] = self._rotate_angle(event.data["features"]["angle_degrees"], False)
+
+    def _rotate_angle(self, angle: float, is_radian: bool) -> float:
+        # angle calculation assumes origin of gaze vectors is at top left
+        # corner of image. we need to rotate the angles so that they coincide 
+        # with our intuition of angles when looking at the rendered image, e.g. 
+        # 45 deg should be rotated to 360 - 45 = 315 deg,
+        # 0 deg should be rotated to 270 deg, etc.
+        if is_radian:
+            rotation = -math.pi / 2
+            modulo = 2 * math.pi
+        else:
+            rotation = -90
+            modulo = 360
+        return (angle + rotation) % (modulo)
     
     def get_events_for_frame(self, frame_number: int) -> List[GraphEvent]:
         """Get all events for a specific frame number.
