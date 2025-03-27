@@ -14,6 +14,33 @@ from logger import get_logger
 logger = get_logger(__name__)
 
 
+# Precompute SVG path points for the diagram-project icon
+def _precompute_svg_points():
+    """Precompute the normalized points for the SVG diagram-project icon.
+    
+    Returns:
+        Tuple of x and y normalized coordinates for the SVG path
+    """
+    # SVG path data for diagram-project icon (FontAwesome diagram-project)
+    path_data = "M0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 16 192 0 0-16c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-16-192 0 0 16c0 1.7-.1 3.4-.3 5L272 288l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-1.7 .1-3.4 .3-5L144 224l-96 0c-26.5 0-48-21.5-48-48L0 80z"
+    
+    # Parse and sample points from SVG path
+    path = parse_path(path_data)
+    n_samples = 250
+    points = np.array([(path.point(i/n_samples).real, path.point(i/n_samples).imag) for i in range(n_samples)])
+    
+    # Normalize to fit in center 10% of figure
+    min_coords = points.min(axis=0)
+    max_coords = points.max(axis=0)
+    x_norm = 0.45 + 0.1 * (points[:, 0] - min_coords[0]) / (max_coords[0] - min_coords[0])
+    y_norm = 0.45 + 0.1 * (points[:, 1] - min_coords[1]) / (max_coords[1] - min_coords[1])
+    
+    return x_norm, y_norm
+
+# Precompute the SVG path points at module initialization
+ICON_X_POINTS, ICON_Y_POINTS = _precompute_svg_points()
+
+
 def get_angle_symbol(angle_degrees: float) -> str:
     """Map angle degrees to corresponding arrow symbol.
     
@@ -110,23 +137,9 @@ class GraphDisplay:
         """
         fig = go.Figure()
         
-        # SVG path data for diagram-project icon (FontAwesome diagram-project)
-        path_data = "M0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 16 192 0 0-16c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-16-192 0 0 16c0 1.7-.1 3.4-.3 5L272 288l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-1.7 .1-3.4 .3-5L144 224l-96 0c-26.5 0-48-21.5-48-48L0 80z"
-        
-        # Parse and sample points from SVG path
-        path = parse_path(path_data)
-        n_samples = 250
-        points = np.array([(path.point(i/n_samples).real, path.point(i/n_samples).imag) for i in range(n_samples)])
-        
-        # Normalize to fit in center 10% of figure
-        min_coords = points.min(axis=0)
-        max_coords = points.max(axis=0)
-        x_norm = 0.45 + 0.1 * (points[:, 0] - min_coords[0]) / (max_coords[0] - min_coords[0])
-        y_norm = 0.45 + 0.1 * (points[:, 1] - min_coords[1]) / (max_coords[1] - min_coords[1])
-        
-        # Add the SVG shape
+        # Add the SVG shape using precomputed points
         fig.add_trace(go.Scatter(
-            x=x_norm, y=y_norm,
+            x=ICON_X_POINTS, y=ICON_Y_POINTS,
             mode='lines',
             line=dict(width=1, color='#555'),
             fill='toself',
