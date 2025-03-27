@@ -9,6 +9,7 @@ from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.video_display import VideoDisplay
 from graph.dashboard.graph_display import GraphDisplay
 from graph.dashboard.playback_controls import PlaybackControls
+from graph.dashboard.meta_info import MetaInfoBar
 
 
 class Dashboard:
@@ -29,7 +30,10 @@ class Dashboard:
     def _create_app(self) -> dash.Dash:
         app = dash.Dash(
             __name__, 
-            external_stylesheets=[dbc.themes.FLATLY],
+            external_stylesheets=[
+                dbc.themes.FLATLY,
+                "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+            ],
             update_title=None,
             suppress_callback_exceptions=True,
             title="Gaze-Guided Scene Graph"
@@ -65,11 +69,11 @@ class Dashboard:
                 self.playback_controls.create_layout(
                     self.playback.min_frame, 
                     self.playback.max_frame, 
-                    self.playback.min_frame,
-                    self.video_display.video_path,
-                    self.playback.trace_file_path
+                    self.playback.min_frame
                 )
             )),
+            
+            MetaInfoBar(self.video_display.video_path, self.playback.trace_file_path),
             
             html.Div(id="frame-state", style={"display": "none"}),
         ], fluid=True, className="py-3")
