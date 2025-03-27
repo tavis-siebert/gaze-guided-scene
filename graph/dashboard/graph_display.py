@@ -150,9 +150,9 @@ class GraphDisplay:
         
         # Add placeholder text
         fig.add_annotation(
-            text="No graph data available yet",
+            text="Empty Graph",
             xref="paper", yref="paper",
-            x=0.5, y=0.3,
+            x=0.5, y=0.4,
             showarrow=False,
             font=dict(size=16, color="#444"),
             align="center"
