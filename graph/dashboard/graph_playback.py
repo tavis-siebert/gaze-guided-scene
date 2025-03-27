@@ -73,18 +73,15 @@ class GraphPlayback:
                 event.data["features"]["angle_degrees"] = self._rotate_angle(event.data["features"]["angle_degrees"], False)
 
     def _rotate_angle(self, angle: float, is_radian: bool) -> float:
-        # angle calculation assumes origin of gaze vectors is at top left
-        # corner of image. we need to rotate the angles so that they coincide 
-        # with our intuition of angles when looking at the rendered image, e.g. 
-        # 45 deg should be rotated to 360 - 45 = 315 deg,
-        # 0 deg should be rotated to 270 deg, etc.
+        # Angle calculation assumes origin of gaze vectors is at top left
+        # corner of image. We need to flip the angles so that they coincide 
+        # with our intuition of angles when looking at the rendered image
+        # with an origin in the bottom left
         if is_radian:
-            rotation = -math.pi / 2
             modulo = 2 * math.pi
         else:
-            rotation = -90
             modulo = 360
-        return (angle + rotation) % (modulo)
+        return (modulo - angle) % (modulo)
     
     def get_events_for_frame(self, frame_number: int) -> List[GraphEvent]:
         """Get all events for a specific frame number.
