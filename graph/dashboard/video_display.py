@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import plotly.graph_objects as go
 import base64
+import dash_bootstrap_components as dbc
+from dash import dcc
 
 from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
@@ -418,4 +420,21 @@ class VideoDisplay:
         success, buffer = cv2.imencode('.png', frame_bgr)
         if not success:
             return ""
-        return f"data:image/png;base64,{base64.b64encode(buffer).decode()}" 
+        return f"data:image/png;base64,{base64.b64encode(buffer).decode()}"
+
+    def create_card(self) -> dbc.Card:
+        """Create a card containing the video display.
+        
+        Returns:
+            Dash Bootstrap Card component with video display
+        """
+        return dbc.Card([
+            dbc.CardHeader("Video Feed"),
+            dbc.CardBody([
+                dcc.Graph(
+                    id="video-display",
+                    style={"height": "60vh", "width": "100%"},
+                    config={"responsive": True}
+                )
+            ], style={"padding": "0.5rem"})
+        ], className="shadow-sm h-100 w-100") 

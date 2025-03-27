@@ -53,33 +53,22 @@ class Dashboard:
             
             dbc.Row([
                 dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader("Video Feed"),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                id="video-display",
-                                style={"height": "60vh", "width": "100%"},
-                                config={"responsive": True}
-                            )
-                        ], style={"padding": "0.5rem"})
-                    ], className="shadow-sm h-100 w-100")
+                    self.video_display.create_card()
                 ], width=6, className="d-flex"),
                 
                 dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader("Graph Visualization"),
-                        dbc.CardBody(dcc.Graph(id="graph-display"))
-                    ], className="shadow-sm h-100 w-100")
+                    self.graph_display.create_card()
                 ], width=6, className="d-flex"),
             ], className="mb-4 g-3"),
             
             dbc.Row(dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader("Playback Controls"),
-                    dbc.CardBody(self.playback_controls.create_layout(
-                        self.playback.min_frame, self.playback.max_frame, self.playback.min_frame
-                    ))
-                ], className="shadow-sm w-100")
+                self.playback_controls.create_layout(
+                    self.playback.min_frame, 
+                    self.playback.max_frame, 
+                    self.playback.min_frame,
+                    self.video_display.video_path,
+                    self.playback.trace_file_path
+                )
             )),
             
             html.Div(id="frame-state", style={"display": "none"}),

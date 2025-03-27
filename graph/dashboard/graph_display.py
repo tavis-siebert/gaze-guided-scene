@@ -2,6 +2,8 @@
 from typing import Dict, Any, List, Optional, Tuple
 import networkx as nx
 import plotly.graph_objects as go
+import dash_bootstrap_components as dbc
+from dash import dcc
 
 from graph.dashboard.graph_constants import NODE_BACKGROUND, NODE_BORDER
 from graph.dashboard.utils import format_node_label, format_feature_text, generate_intermediate_points
@@ -278,4 +280,15 @@ class GraphDisplay:
             hovertext=node_hover_text,
             hoverinfo='text',
             showlegend=False
-        )) 
+        ))
+    
+    def create_card(self) -> dbc.Card:
+        """Create a card containing the graph display.
+        
+        Returns:
+            Dash Bootstrap Card component with graph display
+        """
+        return dbc.Card([
+            dbc.CardHeader("Graph Visualization"),
+            dbc.CardBody(dcc.Graph(id="graph-display"))
+        ], className="shadow-sm h-100 w-100") 
