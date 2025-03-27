@@ -63,7 +63,7 @@ class Dashboard:
                 dbc.Col([
                     self.graph_display.create_card()
                 ], width=6, className="d-flex"),
-            ], className="mb-4 g-3"),
+            ], className="mb-3 g-3"),
             
             dbc.Row(dbc.Col(
                 self.playback_controls.create_layout(
@@ -71,12 +71,14 @@ class Dashboard:
                     self.playback.max_frame, 
                     self.playback.min_frame
                 )
-            )),
+            ), className="mb-2"),
             
-            MetaInfoBar(self.video_display.video_path, self.playback.trace_file_path),
+            dbc.Row(dbc.Col(
+                MetaInfoBar(self.video_display.video_path, self.playback.trace_file_path)
+            ), className="mb-2"),
             
             html.Div(id="frame-state", style={"display": "none"}),
-        ], fluid=True, className="py-3")
+        ], fluid=True, className="p-3")
     
     def _register_callbacks(self, app: dash.Dash) -> None:
         self.playback_controls.register_callbacks(app)

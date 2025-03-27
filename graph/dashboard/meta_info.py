@@ -34,5 +34,5 @@ class MetaInfoBar(html.Div):
                         html.Span(Path(trace_path).name)
                     ], color="light", text_color="dark"),
                 ], width="auto")
-            ], className="mt-4 pt-3")
+            ])
         )
