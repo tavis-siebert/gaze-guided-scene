@@ -31,6 +31,7 @@ class PlaybackControls:
             current_frame = min_frame
             
         return dbc.Card([
+            dbc.CardHeader("Playback Controls"),
             dbc.CardBody([
                 dbc.Row([
                     # Navigation buttons
