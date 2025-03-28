@@ -11,3 +11,4 @@ dash>=2.9.0
 dash-bootstrap-components>=1.4.0
 plotly>=5.13.0
 networkx>=3.0
+svg.path>=1.5

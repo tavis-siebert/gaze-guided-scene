@@ -76,6 +76,9 @@ class GraphBuilder:
         
         # Initialize structures
         scene_graph = Graph()
+        # Set the tracer in the scene graph
+        scene_graph.tracer = self.tracer
+        
         tracking = {
             'video_name': video_name,
             'prev_gaze_pos': (-1, -1),
@@ -261,17 +264,8 @@ class GraphBuilder:
         if next_node.id != prev_node_id:
             logger.info(f"- New node created: {next_node.id}")
             
-            # Get node features for tracing
-            node_features = next_node.get_features(
-                self.vid_lengths[tracking['video_name']],
-                frame_num,
-                tracking['relative_frame_num'],
-                -1,  # Placeholder for timestamp fraction
-                self.labels_to_int
-            )
-            
             # Log node addition
-            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, node_features)
+            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, next_node.get_features())
             
             # Log edge addition if applicable
             if prev_node_id >= 0:
