@@ -151,7 +151,13 @@ def main():
                     logger.warning(f"Could not find video file at expected location: {possible_video_path}")
                     logger.warning("Visualization will proceed without video display")
             else:
-                logger.warning("No video path provided. Visualization will proceed without video display.")
+                # If no video_name is provided, video_path is required
+                if not args.video_name:
+                    logger.error("When using --trace-path directly, --video-path must also be provided")
+                    logger.error("Either specify --video-name (to auto-locate video) or both --trace-path and --video-path")
+                    sys.exit(1)
+                else:
+                    logger.warning("No video path provided. Visualization will proceed without video display.")
         elif not Path(video_path).exists():
             logger.error(f"Video file does not exist at: {video_path}")
             sys.exit(1)
