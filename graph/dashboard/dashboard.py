@@ -10,7 +10,7 @@ from graph.dashboard.playback import GraphPlayback
 from graph.dashboard.components.video_display import VideoDisplay
 from graph.dashboard.components.graph_display import GraphDisplay
 from graph.dashboard.components.playback_controls import PlaybackControls
-from graph.dashboard.components.meta_info import MetaInfoBar
+from graph.dashboard.components.meta_info import MetaInfo
 
 
 class Dashboard:
@@ -36,7 +36,7 @@ class Dashboard:
             current_frame=self.playback.min_frame,
             graph_playback=self.playback
         )
-        self.meta_info = MetaInfoBar(video_path, trace_file_path)
+        self.meta_info = MetaInfo(video_path, trace_file_path)
         self.play_interval_ms = play_interval_ms
         
         self.app = self._create_app()
