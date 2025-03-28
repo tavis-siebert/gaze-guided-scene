@@ -26,8 +26,12 @@ def get_deterministic_jitter(node_id: Any, scale: float = LAYOUT_JITTER_SCALE) -
     jitter_y = ((node_hash // 1000 % 1000) / 1000.0 - 0.5) * scale
     return jitter_x, jitter_y
 
-def initialize_positions_from_angles(G: nx.DiGraph) -> Dict[Any, Tuple[float, float]]:
+def initialize_positions_from_angles(G: nx.DiGraph) -> Dict:
     """Initialize node positions based on edge angle features.
+    
+    This creates an initial layout where connected nodes are positioned
+    according to their angular relationships, which serves as a starting
+    point for the Kamada-Kawai algorithm.
     
     Args:
         G: NetworkX directed graph to lay out
@@ -38,30 +42,46 @@ def initialize_positions_from_angles(G: nx.DiGraph) -> Dict[Any, Tuple[float, fl
     pos = {}
     processed_nodes = set()
     
-    # Find start node with angle information
-    start_node = next((node for node in G.nodes() 
-                      if any('angle_degrees' in G[node][target].get('features', {}) 
-                            for target in G.successors(node))), 
-                     list(G.nodes())[0] if G.nodes else None)
+    # Start with a node that has outgoing edges with angle information
+    start_node = None
+    for node in G.nodes():
+        if any('angle_degrees' in G[node][target].get('features', {}) 
+                for target in G.successors(node)):
+            start_node = node
+            break
     
-    if not start_node:
+    # If no suitable start node found, fall back to first node
+    if start_node is None and G.nodes:
+        start_node = list(G.nodes())[0]
+    
+    if start_node is None:
         return {}
     
-    # Place start node at center with small jitter
-    jitter_x, jitter_y = get_deterministic_jitter(start_node, LAYOUT_START_JITTER_SCALE)
+    # Create deterministic jitter based on node hash
+    def get_jitter(node_id, scale=0.05):
+        """Generate deterministic jitter based on node ID."""
+        # Use hash of node ID to create consistent jitter values
+        node_hash = hash(str(node_id))
+        # Use modulo to constrain values within desired range
+        jitter_x = ((node_hash % 1000) / 1000.0 - 0.5) * scale
+        jitter_y = ((node_hash // 1000 % 1000) / 1000.0 - 0.5) * scale
+        return jitter_x, jitter_y
+        
+    # Place the start node at the center with small deterministic jitter
+    jitter_x, jitter_y = get_jitter(start_node, scale=0.02)
     pos[start_node] = (jitter_x, jitter_y)
     processed_nodes.add(start_node)
     
-    # Process nodes in breadth-first order
+    # Process nodes in breadth-first order to propagate positions
     nodes_to_process = [start_node]
-    radius = 1.0
+    radius = 1.0  # Distance from center for first layer
     
     while nodes_to_process:
         current_nodes = nodes_to_process.copy()
         nodes_to_process = []
         
         for node in current_nodes:
-            # Process outgoing edges
+            # Process outgoing edges with angle information
             for target in G.successors(node):
                 if target in processed_nodes:
                     continue
@@ -70,15 +90,18 @@ def initialize_positions_from_angles(G: nx.DiGraph) -> Dict[Any, Tuple[float, fl
                 angle_degrees = edge_data.get('features', {}).get('angle_degrees')
                 
                 if angle_degrees is not None:
+                    # Convert angle to radians (adjust as needed for your angle convention)
                     angle_rad = np.radians(angle_degrees)
-                    jitter_x, jitter_y = get_deterministic_jitter(target)
+                    # Get deterministic jitter for this target node
+                    jitter_x, jitter_y = get_jitter(target)
+                    # Position target based on angle and radius with deterministic jitter
                     x = pos[node][0] + radius * np.cos(angle_rad) + jitter_x
                     y = pos[node][1] + radius * np.sin(angle_rad) + jitter_y
                     pos[target] = (x, y)
                     processed_nodes.add(target)
                     nodes_to_process.append(target)
             
-            # Process incoming edges
+            # Process incoming edges with angle information
             for source in G.predecessors(node):
                 if source in processed_nodes:
                     continue
@@ -87,19 +110,24 @@ def initialize_positions_from_angles(G: nx.DiGraph) -> Dict[Any, Tuple[float, fl
                 angle_degrees = edge_data.get('features', {}).get('angle_degrees')
                 
                 if angle_degrees is not None:
+                    # For incoming edges, use opposite angle
                     angle_rad = np.radians((angle_degrees + 180) % 360)
-                    jitter_x, jitter_y = get_deterministic_jitter(source)
+                    # Get deterministic jitter for this source node
+                    jitter_x, jitter_y = get_jitter(source)
+                    # Position source based on angle and radius with deterministic jitter
                     x = pos[node][0] + radius * np.cos(angle_rad) + jitter_x
                     y = pos[node][1] + radius * np.sin(angle_rad) + jitter_y
                     pos[source] = (x, y)
                     processed_nodes.add(source)
                     nodes_to_process.append(source)
         
-        radius += LAYOUT_RADIUS_STEP
+        # Increase radius for next layer to avoid overlaps
+        radius += 0.5
     
-    # Place remaining nodes using deterministic positions
+    # For any remaining nodes without angle information, place them using deterministic positions
     for node in G.nodes():
         if node not in pos:
+            # Use deterministic values based on node hash
             node_hash = hash(str(node))
             x = -2 + 4 * ((node_hash % 1000) / 1000.0)
             y = -2 + 4 * ((node_hash // 1000 % 1000) / 1000.0)
@@ -121,18 +149,6 @@ def compute_graph_layout(G: nx.DiGraph) -> Dict[Any, Tuple[float, float]]:
         
     # Initialize positions based on edge angles for small graphs
     initial_pos = initialize_positions_from_angles(G) if len(G.nodes) < MAX_ANGLE_NODES else None
-    
-    # Ensure all nodes have valid positions
-    if initial_pos is None:
-        initial_pos = nx.spring_layout(G, iterations=50, seed=42)
-    elif not all(node in initial_pos for node in G.nodes):
-        # If some nodes are missing positions, initialize them
-        missing_nodes = set(G.nodes) - set(initial_pos.keys())
-        for node in missing_nodes:
-            node_hash = hash(str(node))
-            x = -2 + 4 * ((node_hash % 1000) / 1000.0)
-            y = -2 + 4 * ((node_hash // 1000 % 1000) / 1000.0)
-            initial_pos[node] = (x, y)
     
     try:
         return nx.kamada_kawai_layout(G, pos=initial_pos)
