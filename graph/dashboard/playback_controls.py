@@ -101,6 +101,21 @@ class PlaybackControls:
                         ]),
                     ], width="auto", className="me-3"),
                     
+                    # Speed control (moved here)
+                    dbc.Col([
+                        html.Div([
+                            dcc.Slider(
+                                id="playback-speed",
+                                min=PLAYBACK_SPEED_MIN,
+                                max=PLAYBACK_SPEED_MAX,
+                                value=PLAYBACK_SPEED_DEFAULT,
+                                marks=PLAYBACK_SPEED_MARKS,
+                                step=1,
+                                tooltip={"placement": "bottom", "always_visible": True}
+                            ),
+                        ], style={"width": "300px"}),
+                    ], width="auto", className="me-3"),
+                    
                     # Current time display
                     dbc.Col([
                         html.Div(
@@ -131,21 +146,6 @@ class PlaybackControls:
                             className="text-start ms-2"
                         ),
                     ], width="auto", style={"minWidth": "50px"}),
-                    
-                    # Speed control
-                    dbc.Col([
-                        html.Div([
-                            dcc.Slider(
-                                id="playback-speed",
-                                min=PLAYBACK_SPEED_MIN,
-                                max=PLAYBACK_SPEED_MAX,
-                                value=PLAYBACK_SPEED_DEFAULT,
-                                marks=PLAYBACK_SPEED_MARKS,
-                                step=1,
-                                tooltip={"placement": "bottom", "always_visible": True}
-                            ),
-                        ], style={"width": "300px"}),
-                    ], width="auto"),
                 ], className="align-items-center"),
             ])
         ], className="mb-3")
