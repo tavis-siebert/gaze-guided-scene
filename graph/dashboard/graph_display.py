@@ -69,9 +69,6 @@ class GraphDisplay:
         _cached_positions: Dictionary mapping graph hash to node positions
         _base_figure: Cached base figure without highlights
         _last_graph_hash: Hash of the last processed graph
-        _last_current_node: Last processed current node ID
-        _last_added_node: Last processed added node ID
-        _last_added_edge: Last processed added edge
         _node_trace_indices: Dictionary mapping node IDs to their trace indices
         _edge_trace_indices: Dictionary mapping edge tuples to their trace indices
         _current_positions: Dictionary mapping node IDs to their current positions
@@ -91,9 +88,6 @@ class GraphDisplay:
         self._cached_positions = {}
         self._base_figure = None
         self._last_graph_hash = None
-        self._last_current_node = None
-        self._last_added_node = None
-        self._last_added_edge = None
         self._node_trace_indices = {}
         self._edge_trace_indices = {}
         self._current_positions = {}
@@ -149,44 +143,6 @@ class GraphDisplay:
         
         return fig
     
-    def _update_highlights(self, fig: go.Figure, G: nx.DiGraph,
-                          current_node_id: Optional[Any], last_added_node: Optional[Any],
-                          last_added_edge: Optional[Tuple]) -> None:
-        """Update the highlights in the figure without recreating it.
-        
-        Args:
-            fig: The Plotly figure to update
-            G: NetworkX directed graph
-            current_node_id: ID of the currently active node (if any)
-            last_added_node: ID of the most recently added node (if any)
-            last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
-        """
-        # Update node highlights
-        for node, data in G.nodes(data=True):
-            is_current = node == current_node_id
-            is_last_added = node == last_added_node
-            
-            # Update node color and border
-            node_idx = self._node_trace_indices.get(node)
-            if node_idx is not None and node_idx < len(fig.data):
-                fig.data[node_idx].marker.color = (
-                    NODE_BACKGROUND["last_added"] if is_last_added else NODE_BACKGROUND["default"]
-                )
-                fig.data[node_idx].marker.line.color = (
-                    NODE_BORDER["current"] if is_current else NODE_BORDER["default"]
-                )
-        
-        # Update edge highlights
-        for edge in G.edges():
-            edge_key = (edge[0], edge[1])
-            is_last_added = edge_key == last_added_edge
-            
-            # Update edge color and width
-            edge_idx = self._edge_trace_indices.get(edge_key)
-            if edge_idx is not None and edge_idx < len(fig.data):
-                fig.data[edge_idx].line.color = 'blue' if is_last_added else '#888'
-                fig.data[edge_idx].line.width = 4 if is_last_added else 2.5
-    
     def create_figure(self, G: nx.DiGraph, current_node_id: Optional[Any], 
                      last_added_node: Optional[Any], last_added_edge: Optional[Tuple]) -> go.Figure:
         """Create a complete graph visualization figure.
@@ -235,22 +191,7 @@ class GraphDisplay:
             }
         
         # Create a copy of the base figure for this update
-        fig = go.Figure(self._base_figure)
-        
-        # Update highlights if state has changed
-        state_changed = (
-            current_node_id != self._last_current_node or
-            last_added_node != self._last_added_node or
-            last_added_edge != self._last_added_edge
-        )
-        
-        if state_changed:
-            self._update_highlights(fig, G, current_node_id, last_added_node, last_added_edge)
-            self._last_current_node = current_node_id
-            self._last_added_node = last_added_node
-            self._last_added_edge = last_added_edge
-        
-        return fig
+        return go.Figure(self._base_figure)
     
     def get_current_node_id(self, events: List) -> Optional[Any]:
         """Extract the current node ID from frame processing events.
@@ -317,14 +258,9 @@ class GraphDisplay:
             pos: Dictionary mapping node IDs to positions
             last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
         """
-        regular_edge_x, regular_edge_y = [], []
-        last_edge_x, last_edge_y = [], []
+        edge_x, edge_y = [], []
         edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
         edge_labels_x, edge_labels_y, edge_labels_text = [], [], []
-        
-        # Track edge indices for each edge
-        edge_indices = {}
-        current_index = 0
         
         # First pass: collect all edge data
         for edge in G.edges(data=True):
@@ -343,13 +279,9 @@ class GraphDisplay:
                 feature_text = format_feature_text(features)
                 edge_info += f"<br><br>{feature_text}"
             
-            # Add the main edge lines - highlight the last added edge
-            if (source, target) == last_added_edge:
-                last_edge_x.extend([x0, x1, None])
-                last_edge_y.extend([y0, y1, None])
-            else:
-                regular_edge_x.extend([x0, x1, None])
-                regular_edge_y.extend([y0, y1, None])
+            # Add the main edge lines
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
             
             # Only add hover points if we're under the threshold
             if len(G.edges()) <= self.max_edge_hover_points:
@@ -372,34 +304,15 @@ class GraphDisplay:
                 edge_labels_y.append(label_y)
                 edge_labels_text.append(symbol)
         
-        # Add regular edges
-        if regular_edge_x:
+        # Add edges
+        if edge_x:
             fig.add_trace(go.Scatter(
-                x=regular_edge_x, y=regular_edge_y,
+                x=edge_x, y=edge_y,
                 mode='lines',
                 line=dict(width=2.5, color='#888'),
                 hoverinfo='none',
                 showlegend=False
             ))
-            # Store indices for regular edges
-            for edge in G.edges():
-                if edge != last_added_edge:
-                    edge_indices[edge] = current_index
-                    current_index += 1
-        
-        # Add last added edge (highlighted)
-        if last_edge_x:
-            fig.add_trace(go.Scatter(
-                x=last_edge_x, y=last_edge_y,
-                mode='lines',
-                line=dict(width=4, color='blue'),
-                hoverinfo='none',
-                showlegend=False
-            ))
-            # Store index for last added edge
-            if last_added_edge:
-                edge_indices[last_added_edge] = current_index
-                current_index += 1
         
         # Add hover points along edges
         if edge_middle_x:
@@ -424,9 +337,6 @@ class GraphDisplay:
                 hoverinfo='none',
                 showlegend=False
             ))
-        
-        # Store edge indices for later use
-        self._edge_trace_indices = edge_indices
     
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, 
                             current_node_id: Optional[Any], last_added_node: Optional[Any]) -> None:
@@ -440,7 +350,6 @@ class GraphDisplay:
             last_added_node: ID of the most recently added node (if any)
         """
         node_x, node_y, node_text, node_hover_text = [], [], [], []
-        node_colors, node_border_colors = [], []
         
         for node, data in G.nodes(data=True):
             x, y = pos[node]
@@ -463,17 +372,6 @@ class GraphDisplay:
                 hover_text += f"<br><br>{feature_text}"
                 
             node_hover_text.append(hover_text)
-            
-            # Determine node styling based on state
-            is_current = node == current_node_id
-            is_last_added = node == last_added_node
-            
-            node_border_colors.append(
-                NODE_BORDER["current"] if is_current else NODE_BORDER["default"]
-            )
-            node_colors.append(
-                NODE_BACKGROUND["last_added"] if is_last_added else NODE_BACKGROUND["default"]
-            )
         
         # Add the nodes
         base_size = 60
@@ -482,8 +380,8 @@ class GraphDisplay:
             mode='markers+text',
             marker=dict(
                 size=base_size,
-                color=node_colors,
-                line=dict(width=3, color=node_border_colors)
+                color='gray',
+                line=dict(width=3, color='black')
             ),
             text=node_text,
             textposition="middle center",
