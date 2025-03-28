@@ -3,7 +3,7 @@ from pathlib import Path
 from dash import html
 import dash_bootstrap_components as dbc
 
-from graph.dashboard.base_component import BaseComponent
+from graph.dashboard.components.base import BaseComponent
 
 
 class MetaInfoBar(BaseComponent):

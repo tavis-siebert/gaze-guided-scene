@@ -3,7 +3,7 @@ from typing import Dict, List
 import networkx as nx
 import plotly.graph_objects as go
 
-from graph.dashboard.graph_constants import (
+from graph.dashboard.utils.constants import (
     NODE_BACKGROUND, NODE_BORDER, NODE_BASE_SIZE, NODE_FONT_SIZE,
     NODE_FONT_COLOR, EDGE_WIDTH, EDGE_COLOR, EDGE_HOVER_OPACITY,
     EDGE_HOVER_SIZE, EDGE_LABEL_FONT_SIZE, EDGE_LABEL_COLOR,
@@ -14,7 +14,7 @@ from graph.dashboard.utils import (
     format_node_label, format_feature_text, generate_intermediate_points,
     get_angle_symbol
 )
-from graph.dashboard.svg_utils import ICON_X_POINTS, ICON_Y_POINTS
+from graph.dashboard.utils.svg import ICON_X_POINTS, ICON_Y_POINTS
 from logger import get_logger
 
 logger = get_logger(__name__)

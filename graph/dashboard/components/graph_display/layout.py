@@ -4,7 +4,7 @@ import numpy as np
 import networkx as nx
 from logger import get_logger
 
-from graph.dashboard.graph_constants import (
+from graph.dashboard.utils.constants import (
     MAX_ANGLE_NODES, LAYOUT_RADIUS_STEP, LAYOUT_JITTER_SCALE,
     LAYOUT_START_JITTER_SCALE
 )
