@@ -60,7 +60,7 @@ def create_empty_graph() -> go.Figure:
 
 
 def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph, 
-                       pos: Dict, max_edge_hover_points: int) -> None:
+                       pos: Dict, max_edge_hover_points: int, last_added_edge=None) -> None:
     """Add edges to the graph figure.
     
     Args:
@@ -68,10 +68,14 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
         G: NetworkX directed graph
         pos: Dictionary mapping node IDs to positions
         max_edge_hover_points: Maximum number of edges for which to render hover points
+        last_added_edge: Tuple of (source_id, target_id) for the last added edge to highlight
     """
     edge_x, edge_y = [], []
     edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
     edge_labels_x, edge_labels_y, edge_labels_text = [], [], []
+    
+    # Create separate arrays for the highlighted edge
+    highlight_edge_x, highlight_edge_y = [], []
     
     for edge in G.edges(data=True):
         source, target = edge[0], edge[1]
@@ -88,8 +92,13 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
             feature_text = format_feature_text(features)
             edge_info += f"<br><br>{feature_text}"
         
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+        # Check if this is the last added edge
+        if last_added_edge is not None and (source, target) == last_added_edge:
+            highlight_edge_x.extend([x0, x1, None])
+            highlight_edge_y.extend([y0, y1, None])
+        else:
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
         
         if len(G.edges()) <= max_edge_hover_points:
             middle_x, middle_y = generate_intermediate_points(x0, x1, y0, y1, qty=5)
@@ -106,11 +115,22 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
             edge_labels_y.append(label_y)
             edge_labels_text.append(symbol)
     
+    # Add regular edges
     if edge_x:
         fig.add_trace(go.Scatter(
             x=edge_x, y=edge_y,
             mode='lines',
             line=dict(width=EDGE_WIDTH, color=EDGE_COLOR),
+            hoverinfo='none',
+            showlegend=False
+        ))
+    
+    # Add highlighted edge with different color
+    if highlight_edge_x:
+        fig.add_trace(go.Scatter(
+            x=highlight_edge_x, y=highlight_edge_y,
+            mode='lines',
+            line=dict(width=EDGE_WIDTH + 1, color=GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"]),
             hoverinfo='none',
             showlegend=False
         ))
