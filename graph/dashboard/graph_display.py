@@ -64,15 +64,18 @@ class GraphDisplay:
     
     Attributes:
         edge_hover_points: Number of hover points to generate per edge
+        max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
     """
     
-    def __init__(self, edge_hover_points: int = 20):
+    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 16):
         """Initialize the graph display component.
         
         Args:
             edge_hover_points: Number of hover points to generate per edge for better interaction
+            max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
         """
         self.edge_hover_points = edge_hover_points
+        self.max_angle_nodes = max_angle_nodes
     
     def create_figure(self, G: nx.DiGraph, current_node_id: Optional[Any], 
                      last_added_node: Optional[Any], last_added_edge: Optional[Tuple]) -> go.Figure:
@@ -92,8 +95,11 @@ class GraphDisplay:
         if len(G.nodes) == 0:
             return self._create_empty_figure()
             
-        # Initialize positions based on edge angles before using Kamada-Kawai layout
-        pos = self._initialize_positions_from_angles(G)
+        # Initialize positions based on edge angles only for small graphs
+        if len(G.nodes) < self.max_angle_nodes:
+            pos = self._initialize_positions_from_angles(G)
+        else:
+            pos = None
         
         try:
             # Try Kamada-Kawai layout with initial positions for optimization
