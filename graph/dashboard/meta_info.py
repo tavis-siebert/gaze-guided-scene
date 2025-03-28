@@ -3,8 +3,10 @@ from pathlib import Path
 from dash import html
 import dash_bootstrap_components as dbc
 
+from graph.dashboard.base_component import BaseComponent
 
-class MetaInfoBar(html.Div):
+
+class MetaInfoBar(BaseComponent):
     """Component for displaying meta information about the visualization.
     
     This component shows the video and trace file names in a clean, minimal format
@@ -15,24 +17,35 @@ class MetaInfoBar(html.Div):
         trace_path: Path to the trace file
     """
     
-    def __init__(self, video_path: str, trace_path: str):
+    def __init__(self, video_path: str, trace_path: str, **kwargs):
         """Initialize the meta information bar.
         
         Args:
             video_path: Path to the video file
             trace_path: Path to the trace file
+            **kwargs: Additional arguments to pass to BaseComponent
         """
-        super().__init__(
+        self.video_path = video_path
+        self.trace_path = trace_path
+        super().__init__(component_id="meta-info", **kwargs)
+    
+    def create_layout(self) -> html.Div:
+        """Create the component's layout.
+        
+        Returns:
+            Dash component with meta information
+        """
+        return html.Div([
             dbc.Row([
                 dbc.Col([
                     dbc.Badge([
                         html.I(className="fas fa-film me-2"),
-                        html.Span(Path(video_path).name)
+                        html.Span(Path(self.video_path).name)
                     ], color="light", text_color="dark", className="me-3"),
                     dbc.Badge([
                         html.I(className="fas fa-file-code me-2"),
-                        html.Span(Path(trace_path).name)
+                        html.Span(Path(self.trace_path).name)
                     ], color="light", text_color="dark"),
                 ], width="auto")
             ])
-        )
+        ], className="mb-2")

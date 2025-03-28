@@ -1,3 +1,4 @@
+"""Main dashboard component for the graph visualization."""
 from typing import Optional
 import dash
 from dash import dcc, html
@@ -19,15 +20,33 @@ class Dashboard:
         video_path: Optional[str] = None,
         play_interval_ms: int = DEFAULT_PLAY_INTERVAL_MS
     ):
+        """Initialize the dashboard.
+        
+        Args:
+            trace_file_path: Path to the trace file
+            video_path: Optional path to the video file
+            play_interval_ms: Interval between frame updates in milliseconds
+        """
         self.playback = GraphPlayback(trace_file_path)
         self.video_display = VideoDisplay(video_path)
         self.graph_display = GraphDisplay()
-        self.playback_controls = PlaybackControls()
+        self.playback_controls = PlaybackControls(
+            min_frame=self.playback.min_frame,
+            max_frame=self.playback.max_frame,
+            current_frame=self.playback.min_frame,
+            graph_playback=self.playback
+        )
+        self.meta_info = MetaInfoBar(video_path, trace_file_path)
         self.play_interval_ms = play_interval_ms
         
         self.app = self._create_app()
     
     def _create_app(self) -> dash.Dash:
+        """Create and configure the Dash application.
+        
+        Returns:
+            Configured Dash application instance
+        """
         app = dash.Dash(
             __name__, 
             external_stylesheets=[
@@ -51,52 +70,57 @@ class Dashboard:
         return app
     
     def _create_layout(self) -> dbc.Container:
+        """Create the main dashboard layout.
+        
+        Returns:
+            Dash Bootstrap Container with the dashboard layout
+        """
         return dbc.Container([
             dcc.Store(id="play-state", data={'is_playing': False, 'last_update': 0}),
             dcc.Interval(id="auto-advance", interval=self.play_interval_ms, disabled=True, max_intervals=-1),
             
             dbc.Row([
                 dbc.Col([
-                    self.video_display.create_card()
+                    self.video_display.create_layout()
                 ], width=6, className="d-flex"),
                 
                 dbc.Col([
-                    self.graph_display.create_card()
+                    self.graph_display.create_layout()
                 ], width=6, className="d-flex"),
             ], className="mb-3 g-3"),
             
             dbc.Row(dbc.Col(
-                self.playback_controls.create_layout(
-                    self.playback.min_frame, 
-                    self.playback.max_frame, 
-                    self.playback.min_frame,
-                    graph_playback=self.playback
-                )
+                self.playback_controls.create_layout()
             ), className="mb-2"),
             
             dbc.Row(dbc.Col(
-                MetaInfoBar(self.video_display.video_path, self.playback.trace_file_path)
+                self.meta_info.create_layout()
             ), className="mb-2"),
             
             html.Div(id="frame-state", style={"display": "none"}),
         ], fluid=True, className="p-3")
     
     def _register_callbacks(self, app: dash.Dash) -> None:
+        """Register callbacks for the dashboard.
+        
+        Args:
+            app: Dash application instance
+        """
         self.playback_controls.register_callbacks(app)
         
         @app.callback(
-            [Output("video-display", "figure"),
-             Output("graph-display", "figure"),
-             Output("frame-slider", "value"),
+            [Output(f"{self.video_display.component_id}-graph", "figure"),
+             Output(f"{self.graph_display.component_id}-graph", "figure"),
+             Output(f"{self.playback_controls.component_id}-frame", "value"),
              Output("frame-state", "children"),
-             Output("current-time-display", "children")],
-            [Input("frame-slider", "value"),
-             Input("prev-frame", "n_clicks"),
-             Input("next-frame", "n_clicks"),
+             Output(f"{self.playback_controls.component_id}-current-time", "children")],
+            [Input(f"{self.playback_controls.component_id}-frame", "value"),
+             Input(f"{self.playback_controls.component_id}-prev", "n_clicks"),
+             Input(f"{self.playback_controls.component_id}-next", "n_clicks"),
              Input("auto-advance", "n_intervals")],
             [State("play-state", "data"),
-             State("frame-slider", "value"),
-             State("playback-speed", "value")]
+             State(f"{self.playback_controls.component_id}-frame", "value"),
+             State(f"{self.playback_controls.component_id}-speed", "value")]
         )
         def update_displays(slider_frame, prev_clicks, next_clicks, 
                             n_intervals, play_state, current_frame, playback_speed):
@@ -121,4 +145,10 @@ class Dashboard:
             )
     
     def run(self, port: int = 8050, debug: bool = False) -> None:
+        """Run the dashboard server.
+        
+        Args:
+            port: Port number to run the server on
+            debug: Whether to run in debug mode
+        """
         self.app.run(debug=debug, port=port, use_reloader=debug)

@@ -7,8 +7,9 @@ import numpy as np
 import plotly.graph_objects as go
 import base64
 import dash_bootstrap_components as dbc
-from dash import dcc
+from dash import dcc, html
 
+from graph.dashboard.base_component import BaseComponent
 from graph.dashboard.graph_playback import GraphPlayback
 from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 from graph.dashboard.utils import format_label
@@ -16,7 +17,7 @@ from egtea_gaze.constants import RESOLUTION
 
 logger = get_logger(__name__)
 
-class VideoDisplay:
+class VideoDisplay(BaseComponent):
     """Component for displaying video frames with gaze and object overlays.
     
     This component manages the video capture, caching, and creating figures
@@ -35,13 +36,20 @@ class VideoDisplay:
         batch_order: List of batch numbers in FIFO order
     """
     
-    def __init__(self, video_path: Optional[str], max_cache_size: int = 240, batch_size: int = 96):
+    def __init__(
+        self, 
+        video_path: Optional[str], 
+        max_cache_size: int = 240, 
+        batch_size: int = 96,
+        **kwargs
+    ):
         """Initialize the video display component.
         
         Args:
             video_path: Path to the video file or None if no video
             max_cache_size: Maximum number of frames to cache
             batch_size: Number of frames to read at once
+            **kwargs: Additional arguments to pass to BaseComponent
         """
         self.video_path = video_path
         self.video_capture = None
@@ -54,6 +62,25 @@ class VideoDisplay:
         
         self.empty_figure = self._create_empty_figure()
         self._setup_video_capture()
+        
+        super().__init__(component_id="video-display", **kwargs)
+    
+    def create_layout(self) -> dbc.Card:
+        """Create the component's layout.
+        
+        Returns:
+            Dash Bootstrap Card component with video display
+        """
+        return dbc.Card([
+            dbc.CardHeader("Video Feed"),
+            dbc.CardBody([
+                dcc.Graph(
+                    id=f"{self.component_id}-graph",
+                    style={"height": "60vh"},
+                    config={"responsive": True}
+                )
+            ], style={"padding": "0.5rem"})
+        ], className="shadow-sm h-100 w-100")
     
     def _create_empty_figure(self) -> go.Figure:
         """Create an empty figure with proper layout based on constant resolution.
@@ -420,21 +447,4 @@ class VideoDisplay:
         success, buffer = cv2.imencode('.png', frame_bgr)
         if not success:
             return ""
-        return f"data:image/png;base64,{base64.b64encode(buffer).decode()}"
-
-    def create_card(self) -> dbc.Card:
-        """Create a card containing the video display.
-        
-        Returns:
-            Dash Bootstrap Card component with video display
-        """
-        return dbc.Card([
-            dbc.CardHeader("Video Feed"),
-            dbc.CardBody([
-                dcc.Graph(
-                    id="video-display",
-                    style={"height": "60vh", "width": "100%"},
-                    config={"responsive": True}
-                )
-            ], style={"padding": "0.5rem"})
-        ], className="shadow-sm h-100 w-100") 
+        return f"data:image/png;base64,{base64.b64encode(buffer).decode()}" 
