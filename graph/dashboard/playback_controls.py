@@ -3,18 +3,129 @@ from typing import Callable, Dict, Any, List
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
+from graph.dashboard.base_component import BaseComponent
 from graph.dashboard.graph_constants import (
     PLAYBACK_SPEEDS, PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX,
     PLAYBACK_SPEED_DEFAULT, PLAYBACK_SPEED_MARKS, FPS
 )
 
 
-class PlaybackControls:
+class PlaybackControls(BaseComponent):
     """Component for controlling playback of the graph visualization.
     
     This component provides buttons for play/pause, navigation, and a slider
     for jumping to specific frames in the visualization.
     """
+    
+    def __init__(
+        self,
+        min_frame: int,
+        max_frame: int,
+        current_frame: int = None,
+        graph_playback = None,
+        **kwargs
+    ):
+        """Initialize the playback controls component.
+        
+        Args:
+            min_frame: Minimum frame number
+            max_frame: Maximum frame number
+            current_frame: Current frame number (defaults to min_frame if None)
+            graph_playback: GraphPlayback instance for marking frames with node additions
+            **kwargs: Additional arguments to pass to BaseComponent
+        """
+        self.min_frame = min_frame
+        self.max_frame = max_frame
+        self.current_frame = current_frame if current_frame is not None else min_frame
+        self.graph_playback = graph_playback
+        
+        super().__init__(component_id="playback-controls", **kwargs)
+    
+    def create_layout(self) -> dbc.Card:
+        """Create the component's layout.
+        
+        Returns:
+            Dash Bootstrap Card component with playback controls
+        """
+        # Create basic marks for min and max frames
+        slider_marks = {str(self.min_frame): str(self.min_frame), 
+                       str(self.max_frame): str(self.max_frame)}
+        
+        # Add marks for frames with node additions if graph_playback is provided
+        if self.graph_playback:
+            node_frames = self.get_node_addition_frames(self.graph_playback)
+            for frame in node_frames:
+                # Only add label for node frames if they're not too close to other marks
+                if frame != self.min_frame and frame != self.max_frame:
+                    slider_marks[str(frame)] = {
+                        "label": "",  # Empty label to hide text but keep marker
+                    }
+            
+        # Convert frames to time strings
+        current_time_str = self.frame_to_time_str(self.current_frame)
+        total_time_str = self.frame_to_time_str(self.max_frame)
+        
+        return dbc.Card([
+            dbc.CardHeader("Playback Controls"),
+            dbc.CardBody([
+                dbc.Row([
+                    # Navigation buttons
+                    dbc.Col([
+                        dbc.ButtonGroup([
+                            dbc.Button("←", id=f"{self.component_id}-prev", color="secondary", size="m"),
+                            dbc.Button("▶️", id=f"{self.component_id}-play-pause", color="success", size="m"),
+                            dbc.Button("→", id=f"{self.component_id}-next", color="secondary", size="m"),
+                        ]),
+                    ], width="auto", className="me-3"),
+                    
+                    # Speed control
+                    dbc.Col([
+                        html.Div([
+                            dcc.Slider(
+                                id=f"{self.component_id}-speed",
+                                min=PLAYBACK_SPEED_MIN,
+                                max=PLAYBACK_SPEED_MAX,
+                                value=PLAYBACK_SPEED_DEFAULT,
+                                marks=PLAYBACK_SPEED_MARKS,
+                                step=1,
+                                tooltip={"placement": "bottom", "always_visible": True}
+                            ),
+                        ], style={"width": "300px"}),
+                    ], width="auto", className="me-3"),
+                    
+                    # Current time display
+                    dbc.Col([
+                        html.Div(
+                            id=f"{self.component_id}-current-time",
+                            children=current_time_str,
+                            className="text-end me-2"
+                        ),
+                    ], width="auto", style={"minWidth": "50px"}),
+                    
+                    # Frame slider
+                    dbc.Col([
+                        dcc.Slider(
+                            id=f"{self.component_id}-frame",
+                            min=self.min_frame,
+                            max=self.max_frame,
+                            value=self.current_frame,
+                            step=1,
+                            marks=slider_marks,
+                            tooltip={"placement": "bottom", "always_visible": True}
+                        ),
+                    ], className="flex-grow-1"),
+                    
+                    # Total time display
+                    dbc.Col([
+                        html.Div(
+                            id=f"{self.component_id}-total-time",
+                            children=total_time_str,
+                            className="text-start ms-2"
+                        ),
+                    ], width="auto", style={"minWidth": "50px"}),
+                ], className="align-items-center"),
+            ])
+        ], className="mb-3")
     
     def get_node_addition_frames(self, graph_playback) -> List[int]:
         """Get a list of frame numbers where new unique nodes were added.
@@ -56,100 +167,6 @@ class PlaybackControls:
         seconds = total_seconds % 60
         return f"{minutes:02d}:{seconds:02d}"
     
-    def create_layout(self, min_frame: int, max_frame: int, current_frame: int = None, graph_playback = None) -> dbc.Card:
-        """Create a layout with playback controls.
-        
-        Args:
-            min_frame: Minimum frame number
-            max_frame: Maximum frame number
-            current_frame: Current frame number (defaults to min_frame if None)
-            graph_playback: GraphPlayback instance for marking frames with node additions
-            
-        Returns:
-            Dash Bootstrap Card component with playback controls
-        """
-        if current_frame is None:
-            current_frame = min_frame
-            
-        # Create basic marks for min and max frames
-        slider_marks = {str(min_frame): str(min_frame), str(max_frame): str(max_frame)}
-        
-        # Add marks for frames with node additions if graph_playback is provided
-        if graph_playback:
-            node_frames = self.get_node_addition_frames(graph_playback)
-            for frame in node_frames:
-                # Only add label for node frames if they're not too close to other marks
-                if frame != min_frame and frame != max_frame:
-                    slider_marks[str(frame)] = {
-                        "label": "",  # Empty label to hide text but keep marker
-                    }
-            
-        # Convert frames to time strings
-        current_time_str = self.frame_to_time_str(current_frame)
-        total_time_str = self.frame_to_time_str(max_frame)
-        
-        return dbc.Card([
-            dbc.CardHeader("Playback Controls"),
-            dbc.CardBody([
-                dbc.Row([
-                    # Navigation buttons
-                    dbc.Col([
-                        dbc.ButtonGroup([
-                            dbc.Button("←", id="prev-frame", color="secondary", size="m"),
-                            dbc.Button("▶️", id="play-pause", color="success", size="m"),
-                            dbc.Button("→", id="next-frame", color="secondary", size="m"),
-                        ]),
-                    ], width="auto", className="me-3"),
-                    
-                    # Speed control (moved here)
-                    dbc.Col([
-                        html.Div([
-                            dcc.Slider(
-                                id="playback-speed",
-                                min=PLAYBACK_SPEED_MIN,
-                                max=PLAYBACK_SPEED_MAX,
-                                value=PLAYBACK_SPEED_DEFAULT,
-                                marks=PLAYBACK_SPEED_MARKS,
-                                step=1,
-                                tooltip={"placement": "bottom", "always_visible": True}
-                            ),
-                        ], style={"width": "300px"}),
-                    ], width="auto", className="me-3"),
-                    
-                    # Current time display
-                    dbc.Col([
-                        html.Div(
-                            id="current-time-display",
-                            children=current_time_str,
-                            className="text-end me-2"
-                        ),
-                    ], width="auto", style={"minWidth": "50px"}),
-                    
-                    # Frame slider
-                    dbc.Col([
-                        dcc.Slider(
-                            id="frame-slider",
-                            min=min_frame,
-                            max=max_frame,
-                            value=current_frame,
-                            step=1,
-                            marks=slider_marks,
-                            tooltip={"placement": "bottom", "always_visible": True}
-                        ),
-                    ], className="flex-grow-1"),
-                    
-                    # Total time display
-                    dbc.Col([
-                        html.Div(
-                            id="total-time-display",
-                            children=total_time_str,
-                            className="text-start ms-2"
-                        ),
-                    ], width="auto", style={"minWidth": "50px"}),
-                ], className="align-items-center"),
-            ])
-        ], className="mb-3")
-    
     def register_callbacks(self, app) -> None:
         """Register callbacks for the playback controls.
         
@@ -161,8 +178,8 @@ class PlaybackControls:
         @app.callback(
             [Output("play-state", "data"),
              Output("auto-advance", "disabled"),
-             Output("play-pause", "children")],
-            [Input("play-pause", "n_clicks")],
+             Output(f"{self.component_id}-play-pause", "children")],
+            [Input(f"{self.component_id}-play-pause", "n_clicks")],
             [State("play-state", "data")]
         )
         def toggle_play_state(play_clicks, current_state):
@@ -216,9 +233,9 @@ class PlaybackControls:
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         is_playing = play_state.get('is_playing', False)
         
-        if trigger_id == "prev-frame":
+        if trigger_id == f"{self.component_id}-prev":
             return max(min_frame, current_frame - playback_speed)
-        elif trigger_id == "next-frame":
+        elif trigger_id == f"{self.component_id}-next":
             return min(max_frame, current_frame + playback_speed)
         elif trigger_id == "auto-advance" and is_playing:
             frame_number = current_frame + playback_speed

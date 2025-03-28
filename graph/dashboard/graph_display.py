@@ -3,8 +3,9 @@ from typing import Dict, Any, List, Optional, Tuple
 import networkx as nx
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
-from dash import dcc
+from dash import dcc, html
 
+from graph.dashboard.base_component import BaseComponent
 from graph.dashboard.graph_constants import (
     NODE_BACKGROUND, NODE_BORDER, NODE_BASE_SIZE, NODE_FONT_SIZE,
     NODE_FONT_COLOR, EDGE_WIDTH, EDGE_COLOR, EDGE_HOVER_OPACITY,
@@ -187,7 +188,7 @@ def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
     ))
 
 
-class GraphDisplay:
+class GraphDisplay(BaseComponent):
     """Component for displaying the graph visualization.
     
     This component manages the creation of graph figures and handles
@@ -198,10 +199,33 @@ class GraphDisplay:
         _last_graph_hash: Hash of the last processed graph
     """
     
-    def __init__(self):
-        """Initialize the graph display component."""
+    def __init__(self, **kwargs):
+        """Initialize the graph display component.
+        
+        Args:
+            **kwargs: Additional arguments to pass to BaseComponent
+        """
         self._cached_figure = None
         self._last_graph_hash = None
+        
+        super().__init__(component_id="graph-display", **kwargs)
+    
+    def create_layout(self) -> dbc.Card:
+        """Create the component's layout.
+        
+        Returns:
+            Dash Bootstrap Card component with graph display
+        """
+        return dbc.Card([
+            dbc.CardHeader("Graph Visualization"),
+            dbc.CardBody([
+                dcc.Graph(
+                    id=f"{self.component_id}-graph",
+                    style={"height": "60vh"},
+                    config={"responsive": True}
+                )
+            ])
+        ], className="shadow-sm h-100 w-100")
     
     def _get_graph_hash(self, G: nx.DiGraph) -> str:
         """Generate a hash of the graph structure for caching.
@@ -283,15 +307,4 @@ class GraphDisplay:
         for event in events:
             if event.event_type == "frame_processed" and 'node_id' in event.data:
                 return event.data["node_id"]
-        return None
-    
-    def create_card(self) -> dbc.Card:
-        """Create a card containing the graph display.
-        
-        Returns:
-            Dash Bootstrap Card component with graph display
-        """
-        return dbc.Card([
-            dbc.CardHeader("Graph Visualization"),
-            dbc.CardBody(dcc.Graph(id="graph-display"))
-        ], className="shadow-sm h-100 w-100") 
+        return None 
