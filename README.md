@@ -156,7 +156,7 @@ python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port POR
 
 **Dashboard Components**:
 - **Dashboard** - Main component that integrates all others
-- **GraphPlayback** - Handles trace file loading and graph state management
+- **Playback** - Handles trace file loading and graph state management
 - **VideoDisplay** - Manages video frames and overlay visualization
 - **GraphDisplay** - Handles graph visualization and interaction
 - **PlaybackControls** - Playback navigation controls

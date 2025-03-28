@@ -6,7 +6,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
 from graph.dashboard.utils.constants import DEFAULT_PLAY_INTERVAL_MS
-from graph.dashboard.playback import GraphPlayback
+from graph.dashboard.playback import Playback
 from graph.dashboard.components.video_display import VideoDisplay
 from graph.dashboard.components.graph_display import GraphDisplay
 from graph.dashboard.components.playback_controls import PlaybackControls
@@ -27,14 +27,14 @@ class Dashboard:
             video_path: Optional path to the video file
             play_interval_ms: Interval between frame updates in milliseconds
         """
-        self.playback = GraphPlayback(trace_file_path)
+        self.playback = Playback(trace_file_path)
         self.video_display = VideoDisplay(video_path)
         self.graph_display = GraphDisplay()
         self.playback_controls = PlaybackControls(
             min_frame=self.playback.min_frame,
             max_frame=self.playback.max_frame,
             current_frame=self.playback.min_frame,
-            graph_playback=self.playback
+            playback=self.playback
         )
         self.meta_info = MetaInfo(video_path, trace_file_path)
         self.play_interval_ms = play_interval_ms
