@@ -66,14 +66,17 @@ class GraphDisplay:
         edge_hover_points: Number of hover points to generate per edge
         max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
         _cached_positions: Dictionary mapping graph hash to node positions
-        _cached_figure: Cached figure for the current graph state
+        _base_figure: Cached base figure without highlights
         _last_graph_hash: Hash of the last processed graph
         _last_current_node: Last processed current node ID
         _last_added_node: Last processed added node ID
         _last_added_edge: Last processed added edge
+        _node_trace_indices: Dictionary mapping node IDs to their trace indices
+        _edge_trace_indices: Dictionary mapping edge tuples to their trace indices
+        _current_positions: Dictionary mapping node IDs to their current positions
     """
     
-    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 20):
+    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 25):
         """Initialize the graph display component.
         
         Args:
@@ -83,11 +86,14 @@ class GraphDisplay:
         self.edge_hover_points = edge_hover_points
         self.max_angle_nodes = max_angle_nodes
         self._cached_positions = {}
-        self._cached_figure = None
+        self._base_figure = None
         self._last_graph_hash = None
         self._last_current_node = None
         self._last_added_node = None
         self._last_added_edge = None
+        self._node_trace_indices = {}
+        self._edge_trace_indices = {}
+        self._current_positions = {}
     
     def _get_graph_hash(self, G: nx.DiGraph) -> str:
         """Generate a hash of the graph structure for caching.
@@ -106,52 +112,22 @@ class GraphDisplay:
             graph_str += f"_{edge[0]}_{edge[1]}_{edge[2].get('edge_type', '')}"
         return graph_str
     
-    def create_figure(self, G: nx.DiGraph, current_node_id: Optional[Any], 
-                     last_added_node: Optional[Any], last_added_edge: Optional[Tuple]) -> go.Figure:
-        """Create a complete graph visualization figure.
+    def _create_base_figure(self, G: nx.DiGraph, pos: Dict) -> go.Figure:
+        """Create the base figure without any highlights.
         
         Args:
-            G: NetworkX directed graph to visualize
-            current_node_id: ID of the currently active node (if any)
-            last_added_node: ID of the most recently added node (if any)
-            last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
+            G: NetworkX directed graph
+            pos: Dictionary mapping node IDs to positions
             
         Returns:
-            Plotly figure with graph visualization
+            Plotly figure with base graph visualization
         """
-        if len(G.nodes) == 0:
-            return self._create_empty_figure()
-        
-        # Check if we can reuse the cached figure
-        current_graph_hash = self._get_graph_hash(G)
-        state_changed = (
-            current_node_id != self._last_current_node or
-            last_added_node != self._last_added_node or
-            last_added_edge != self._last_added_edge
-        )
-        
-        if (self._cached_figure is not None and 
-            current_graph_hash == self._last_graph_hash and 
-            not state_changed):
-            return self._cached_figure
-        
-        # Initialize positions based on edge angles only for small graphs
-        if len(G.nodes) < self.max_angle_nodes:
-            pos = self._initialize_positions_from_angles(G)
-        else:
-            pos = None
-        
-        try:
-            # Try Kamada-Kawai layout with initial positions for optimization
-            pos = nx.kamada_kawai_layout(G, pos=pos)
-        except Exception as e:
-            # Fall back to spring layout if Kamada-Kawai fails
-            logger.warning(f"Kamada-Kawai layout failed: {e}. Falling back to spring layout.")
-            pos = nx.spring_layout(G, pos=pos, iterations=50, seed=42)
-        
         fig = go.Figure()
-        self._add_edges_to_figure(fig, G, pos, last_added_edge)
-        self._add_nodes_to_figure(fig, G, pos, current_node_id, last_added_node)
+        
+        # Add edges first (so they appear behind nodes)
+        self._add_edges_to_figure(fig, G, pos, None)
+        # Add nodes
+        self._add_nodes_to_figure(fig, G, pos, None, None)
         
         fig.update_layout(
             showlegend=False,
@@ -168,12 +144,108 @@ class GraphDisplay:
             )
         )
         
-        # Update cache
-        self._cached_figure = fig
-        self._last_graph_hash = current_graph_hash
-        self._last_current_node = current_node_id
-        self._last_added_node = last_added_node
-        self._last_added_edge = last_added_edge
+        return fig
+    
+    def _update_highlights(self, fig: go.Figure, G: nx.DiGraph,
+                          current_node_id: Optional[Any], last_added_node: Optional[Any],
+                          last_added_edge: Optional[Tuple]) -> None:
+        """Update the highlights in the figure without recreating it.
+        
+        Args:
+            fig: The Plotly figure to update
+            G: NetworkX directed graph
+            current_node_id: ID of the currently active node (if any)
+            last_added_node: ID of the most recently added node (if any)
+            last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
+        """
+        # Update node highlights
+        for node, data in G.nodes(data=True):
+            is_current = node == current_node_id
+            is_last_added = node == last_added_node
+            
+            # Update node color and border
+            node_idx = self._node_trace_indices.get(node)
+            if node_idx is not None and node_idx < len(fig.data):
+                fig.data[node_idx].marker.color = (
+                    NODE_BACKGROUND["last_added"] if is_last_added else NODE_BACKGROUND["default"]
+                )
+                fig.data[node_idx].marker.line.color = (
+                    NODE_BORDER["current"] if is_current else NODE_BORDER["default"]
+                )
+        
+        # Update edge highlights
+        for edge in G.edges():
+            edge_key = (edge[0], edge[1])
+            is_last_added = edge_key == last_added_edge
+            
+            # Update edge color and width
+            edge_idx = self._edge_trace_indices.get(edge_key)
+            if edge_idx is not None and edge_idx < len(fig.data):
+                fig.data[edge_idx].line.color = 'blue' if is_last_added else '#888'
+                fig.data[edge_idx].line.width = 4 if is_last_added else 2.5
+    
+    def create_figure(self, G: nx.DiGraph, current_node_id: Optional[Any], 
+                     last_added_node: Optional[Any], last_added_edge: Optional[Tuple]) -> go.Figure:
+        """Create a complete graph visualization figure.
+        
+        Args:
+            G: NetworkX directed graph to visualize
+            current_node_id: ID of the currently active node (if any)
+            last_added_node: ID of the most recently added node (if any)
+            last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
+            
+        Returns:
+            Plotly figure with graph visualization
+        """
+        if len(G.nodes) == 0:
+            return self._create_empty_figure()
+        
+        # Check if we need to update the base figure
+        current_graph_hash = self._get_graph_hash(G)
+        if (self._base_figure is None or 
+            current_graph_hash != self._last_graph_hash):
+            
+            # Initialize positions based on edge angles only for small graphs
+            if len(G.nodes) < self.max_angle_nodes:
+                self._current_positions = self._initialize_positions_from_angles(G)
+            else:
+                self._current_positions = None
+            
+            try:
+                # Try Kamada-Kawai layout with initial positions for optimization
+                self._current_positions = nx.kamada_kawai_layout(G, pos=self._current_positions)
+            except Exception as e:
+                # Fall back to spring layout if Kamada-Kawai fails
+                logger.warning(f"Kamada-Kawai layout failed: {e}. Falling back to spring layout.")
+                self._current_positions = nx.spring_layout(G, pos=self._current_positions, iterations=50, seed=42)
+            
+            # Create new base figure
+            self._base_figure = self._create_base_figure(G, self._current_positions)
+            self._last_graph_hash = current_graph_hash
+            
+            # Update trace indices
+            self._node_trace_indices = {
+                node: i for i, node in enumerate(G.nodes())
+            }
+            self._edge_trace_indices = {
+                (edge[0], edge[1]): i for i, edge in enumerate(G.edges())
+            }
+        
+        # Create a copy of the base figure for this update
+        fig = go.Figure(self._base_figure)
+        
+        # Update highlights if state has changed
+        state_changed = (
+            current_node_id != self._last_current_node or
+            last_added_node != self._last_added_node or
+            last_added_edge != self._last_added_edge
+        )
+        
+        if state_changed:
+            self._update_highlights(fig, G, current_node_id, last_added_node, last_added_edge)
+            self._last_current_node = current_node_id
+            self._last_added_node = last_added_node
+            self._last_added_edge = last_added_edge
         
         return fig
     
@@ -235,7 +307,7 @@ class GraphDisplay:
     def _add_edges_to_figure(self, fig: go.Figure, G: nx.DiGraph, 
                             pos: Dict, last_added_edge: Optional[Tuple]) -> None:
         """Add edges to the graph figure.
-        
+
         Args:
             fig: The Plotly figure to add edges to
             G: NetworkX directed graph
@@ -247,6 +319,11 @@ class GraphDisplay:
         edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
         edge_labels_x, edge_labels_y, edge_labels_text = [], [], []
         
+        # Track edge indices for each edge
+        edge_indices = {}
+        current_index = 0
+        
+        # First pass: collect all edge data
         for edge in G.edges(data=True):
             source, target = edge[0], edge[1]
             edge_data = edge[2]
@@ -299,6 +376,11 @@ class GraphDisplay:
                 hoverinfo='none',
                 showlegend=False
             ))
+            # Store indices for regular edges
+            for edge in G.edges():
+                if edge != last_added_edge:
+                    edge_indices[edge] = current_index
+                    current_index += 1
         
         # Add last added edge (highlighted)
         if last_edge_x:
@@ -309,6 +391,10 @@ class GraphDisplay:
                 hoverinfo='none',
                 showlegend=False
             ))
+            # Store index for last added edge
+            if last_added_edge:
+                edge_indices[last_added_edge] = current_index
+                current_index += 1
         
         # Add hover points along edges
         if edge_middle_x:
@@ -333,6 +419,9 @@ class GraphDisplay:
                 hoverinfo='none',
                 showlegend=False
             ))
+        
+        # Store edge indices for later use
+        self._edge_trace_indices = edge_indices
     
     def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, 
                             current_node_id: Optional[Any], last_added_node: Optional[Any]) -> None:
