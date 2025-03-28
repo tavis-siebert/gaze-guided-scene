@@ -65,9 +65,15 @@ class GraphDisplay:
     Attributes:
         edge_hover_points: Number of hover points to generate per edge
         max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
+        _cached_positions: Dictionary mapping graph hash to node positions
+        _cached_figure: Cached figure for the current graph state
+        _last_graph_hash: Hash of the last processed graph
+        _last_current_node: Last processed current node ID
+        _last_added_node: Last processed added node ID
+        _last_added_edge: Last processed added edge
     """
     
-    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 16):
+    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 20):
         """Initialize the graph display component.
         
         Args:
@@ -76,6 +82,29 @@ class GraphDisplay:
         """
         self.edge_hover_points = edge_hover_points
         self.max_angle_nodes = max_angle_nodes
+        self._cached_positions = {}
+        self._cached_figure = None
+        self._last_graph_hash = None
+        self._last_current_node = None
+        self._last_added_node = None
+        self._last_added_edge = None
+    
+    def _get_graph_hash(self, G: nx.DiGraph) -> str:
+        """Generate a hash of the graph structure for caching.
+        
+        Args:
+            G: NetworkX directed graph
+            
+        Returns:
+            String hash of the graph structure
+        """
+        # Create a string representation of the graph structure
+        graph_str = f"{len(G.nodes)}_{len(G.edges)}"
+        for node in sorted(G.nodes(data=True)):
+            graph_str += f"_{node[0]}_{node[1].get('label', '')}"
+        for edge in sorted(G.edges(data=True)):
+            graph_str += f"_{edge[0]}_{edge[1]}_{edge[2].get('edge_type', '')}"
+        return graph_str
     
     def create_figure(self, G: nx.DiGraph, current_node_id: Optional[Any], 
                      last_added_node: Optional[Any], last_added_edge: Optional[Tuple]) -> go.Figure:
@@ -90,11 +119,22 @@ class GraphDisplay:
         Returns:
             Plotly figure with graph visualization
         """
-        fig = go.Figure()
-        
         if len(G.nodes) == 0:
             return self._create_empty_figure()
-            
+        
+        # Check if we can reuse the cached figure
+        current_graph_hash = self._get_graph_hash(G)
+        state_changed = (
+            current_node_id != self._last_current_node or
+            last_added_node != self._last_added_node or
+            last_added_edge != self._last_added_edge
+        )
+        
+        if (self._cached_figure is not None and 
+            current_graph_hash == self._last_graph_hash and 
+            not state_changed):
+            return self._cached_figure
+        
         # Initialize positions based on edge angles only for small graphs
         if len(G.nodes) < self.max_angle_nodes:
             pos = self._initialize_positions_from_angles(G)
@@ -109,6 +149,7 @@ class GraphDisplay:
             logger.warning(f"Kamada-Kawai layout failed: {e}. Falling back to spring layout.")
             pos = nx.spring_layout(G, pos=pos, iterations=50, seed=42)
         
+        fig = go.Figure()
         self._add_edges_to_figure(fig, G, pos, last_added_edge)
         self._add_nodes_to_figure(fig, G, pos, current_node_id, last_added_node)
         
@@ -126,6 +167,13 @@ class GraphDisplay:
                 font_family="Arial"
             )
         )
+        
+        # Update cache
+        self._cached_figure = fig
+        self._last_graph_hash = current_graph_hash
+        self._last_current_node = current_node_id
+        self._last_added_node = last_added_node
+        self._last_added_edge = last_added_edge
         
         return fig
     
