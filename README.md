@@ -67,6 +67,10 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 - **egtea_gaze/**: Action and gaze annotations/processing
 - **graph/**: Scene graph construction and visualization
   - **Core Components**: Graph, Node, GraphBuilder, GraphTracer, GraphVisualizer
+  - **dashboard/**: Interactive visualization dashboard
+    - **components/**: UI components (VideoDisplay, GraphDisplay, PlaybackControls, MetaInfo)
+    - **playback/**: Event handling and graph state management
+    - **utils/**: Utility functions and constants
   - **Key Features**: Processes gaze data, builds scene graphs, extracts features, visualizes construction
 - **models/**: Feature extraction (SIFT) and object detection (CLIP)
 - **config/**: Configuration files and utilities
@@ -110,8 +114,9 @@ python main.py [options] <command>
     - `--enable-tracing`: Enable graph construction tracing for visualization
 - `visualize`: Visualize the graph construction process
   - Options:
-    - `--video-name VIDEO_NAME`: Name of the video to visualize (required)
-    - `--video-path PATH`: Path to the video file (optional)
+    - `--video-name VIDEO_NAME`: Name of the video to visualize (used to locate trace file if trace-path not provided)
+    - `--video-path PATH`: Path to the video file (optional when using --video-name, required with --trace-path)
+    - `--trace-path PATH`: Path to the trace file (alternative to --video-name)
     - `--port PORT`: Server port (default: 8050)
     - `--debug`: Run in debug mode
 
@@ -151,24 +156,26 @@ python main.py build --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
 The interactive dashboard displays the graph construction process:
 
 ```bash
+# Using video name (video and trace files are located using config paths)
 python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
+
+# Using full paths
+python main.py visualize --trace-path /path/to/trace_file.jsonl --video-path /path/to/video.mp4 [--port PORT]
 ```
 
 **Dashboard Components**:
-- **Dashboard** - Main component that integrates all others
-- **GraphPlayback** - Handles trace file loading and graph state management
+- **Dashboard** - Main component that integrates all visualization components
+- **Playback** - Handles trace file loading and graph state management
 - **VideoDisplay** - Manages video frames and overlay visualization
 - **GraphDisplay** - Handles graph visualization and interaction
 - **PlaybackControls** - Playback navigation controls
+- **MetaInfo** - Displays information about the video and trace files
 
 **Key Features**:
-- Video player with gaze position and region-of-interest overlays
-- Graph visualization showing nodes (objects) and their relationships
-- Interactive playback controls for navigating through frames
+- **Interactive Graph Visualization**: Angle-based node positioning with stable layout, directional edges with symbolic notation, node highlight animations, gaze transition arrows, interactive hover details, timeline markers, and improved empty state visualization.
 
-**Direct API Usage**:
-```python
-from graph.visualizer import visualize_graph_construction
+- **Video Playback**: Frame-by-frame playback with gaze overlays, fixation/saccade visualization, object detection highlighting, and synchronized graph display.
 
-visualize_graph_construction("path/to/trace_file.jsonl", "path/to/video.mp4")
-```
+- **Intuitive Controls**: Play/pause with emoji buttons, real-time speed control, timeline slider with event markers, navigation buttons, and MM:SS time display.
+
+- **Performance Optimizations**: Figure caching, optimized layout initialization, FIFO frame caching, precomputed SVG paths, edge hover thresholds, reduced framerate, static background rendering, and batch frame processing.

@@ -37,8 +37,9 @@ def setup_parser() -> argparse.ArgumentParser:
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
-    visualize_parser.add_argument("--video-name", type=str, required=True, help="Name of the video to process")
-    visualize_parser.add_argument("--video-path", type=str, help="Path to the video file (optional)")
+    visualize_parser.add_argument("--video-name", type=str, help="Name of the video to process (used to locate trace file if trace-path not provided)")
+    visualize_parser.add_argument("--video-path", type=str, help="Path to the video file")
+    visualize_parser.add_argument("--trace-path", type=str, help="Path to the trace file")
     visualize_parser.add_argument("--port", type=int, default=8050, help="Port to run the server on")
     visualize_parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode")
     
@@ -121,24 +122,47 @@ def main():
         from graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
         
-        # Construct full paths
-        trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
-        if not trace_file.exists():
-            logger.error(f"No trace file found at: {trace_file}")
-            logger.error("To generate a trace file, run:")
-            logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+        # Validate and resolve trace file path
+        trace_file = None
+        if args.trace_path:
+            trace_file = Path(args.trace_path)
+        elif args.video_name:
+            trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
+        else:
+            logger.error("Either --video-name or --trace-path must be provided")
             sys.exit(1)
             
-        # If video path not provided, try to find it in the default location
+        if not trace_file.exists():
+            logger.error(f"No trace file found at: {trace_file}")
+            if args.video_name:
+                logger.error("To generate a trace file, run:")
+                logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+            sys.exit(1)
+        
+        # Validate and resolve video path
         video_path = args.video_path
-        if video_path is None and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
-            possible_video_path = Path(config.dataset.egtea.raw_videos) / f"{args.video_name}.mp4"
-            if possible_video_path.exists():
-                video_path = str(possible_video_path)
-                logger.info(f"Found video file at {video_path}")
+        if video_path is None:
+            if args.video_name and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
+                possible_video_path = Path(config.dataset.egtea.raw_videos) / f"{args.video_name}.mp4"
+                if possible_video_path.exists():
+                    video_path = str(possible_video_path)
+                    logger.info(f"Found video file at {video_path}")
+                else:
+                    logger.warning(f"Could not find video file at expected location: {possible_video_path}")
+                    logger.warning("Visualization will proceed without video display")
             else:
-                logger.warning(f"Could not find video file at expected location: {possible_video_path}")
-                logger.warning("Visualization will proceed without video display")
+                # If no video_name is provided, video_path is required
+                if not args.video_name:
+                    logger.error("When using --trace-path directly, --video-path must also be provided")
+                    logger.error("Either specify --video-name (to auto-locate video) or both --trace-path and --video-path")
+                    sys.exit(1)
+                else:
+                    logger.warning("No video path provided. Visualization will proceed without video display.")
+        elif not Path(video_path).exists():
+            logger.error(f"Video file does not exist at: {video_path}")
+            sys.exit(1)
+        else:
+            logger.info(f"Using provided video file at {video_path}")
         
         # Launch visualization dashboard
         visualize_graph_construction(

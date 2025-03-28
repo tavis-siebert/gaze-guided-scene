@@ -13,8 +13,8 @@ from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 
 # Dashboard imports
-from graph.dashboard.graph_event import GraphEvent
-from graph.dashboard.graph_playback import GraphPlayback
+from graph.dashboard.playback.event import GraphEvent
+from graph.dashboard.playback import Playback
 
 # Utility functions
 from graph.utils import get_roi, FeatureMatcher
@@ -52,7 +52,7 @@ __all__ = [
     # Tracing and visualization
     'GraphTracer',
     'GraphEvent',
-    'GraphPlayback',
+    'Playback',
     'visualize_graph_construction',
     
     # Functions
