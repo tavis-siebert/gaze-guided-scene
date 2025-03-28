@@ -172,22 +172,10 @@ python main.py visualize --trace-path /path/to/trace_file.jsonl --video-path /pa
 - **MetaInfo** - Displays information about the video and trace files
 
 **Key Features**:
-- **Interactive Graph Visualization**:
-  - Dynamic force-directed graph layout
-  - Node highlighting for recently added objects
-  - Edge visualization with directional indicators
-  - Interactive hover information showing object details
-- **Video Playback and Analysis**:
-  - Frame-by-frame video playback with gaze point overlays
-  - Real-time visualization of fixations and saccades
-  - Object detection region highlighting
-  - Synchronized video and graph displays
-- **Intuitive Playback Controls**:
-  - Play/pause functionality with adjustable playback speed
-  - Timeline slider with markers at key graph events
-  - Frame-by-frame navigation buttons
-  - Time display in MM:SS format
-- **Performance Optimizations**:
-  - Efficient frame caching for smooth video playback
-  - Graph rendering optimizations with state caching
-  - Responsive layout that adapts to different screen sizes
+- **Interactive Graph Visualization**: Angle-based node positioning with stable layout, directional edges with symbolic notation, node highlight animations, gaze transition arrows, interactive hover details, timeline markers, and improved empty state visualization.
+
+- **Video Playback**: Frame-by-frame playback with gaze overlays, fixation/saccade visualization, object detection highlighting, and synchronized graph display.
+
+- **Intuitive Controls**: Play/pause with emoji buttons, real-time speed control, timeline slider with event markers, navigation buttons, and MM:SS time display.
+
+- **Performance Optimizations**: Figure caching, optimized layout initialization, FIFO frame caching, precomputed SVG paths, edge hover thresholds, reduced framerate, static background rendering, and batch frame processing.
