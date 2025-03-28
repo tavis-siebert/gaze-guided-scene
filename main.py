@@ -37,8 +37,9 @@ def setup_parser() -> argparse.ArgumentParser:
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
-    visualize_parser.add_argument("--video-name", type=str, required=True, help="Name of the video to process")
-    visualize_parser.add_argument("--video-path", type=str, help="Path to the video file (optional)")
+    visualize_parser.add_argument("--video-name", type=str, help="Name of the video to process (used to locate trace file if trace-path not provided)")
+    visualize_parser.add_argument("--video-path", type=str, help="Path to the video file")
+    visualize_parser.add_argument("--trace-path", type=str, help="Path to the trace file")
     visualize_parser.add_argument("--port", type=int, default=8050, help="Port to run the server on")
     visualize_parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode")
     
@@ -121,17 +122,30 @@ def main():
         from graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
         
-        # Construct full paths
-        trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
-        if not trace_file.exists():
-            logger.error(f"No trace file found at: {trace_file}")
-            logger.error("To generate a trace file, run:")
-            logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+        # Define trace file path
+        trace_file = None
+        
+        # If trace path is explicitly provided, use it
+        if hasattr(args, "trace_path") and args.trace_path:
+            trace_file = Path(args.trace_path)
+            if not trace_file.exists():
+                logger.error(f"No trace file found at: {trace_file}")
+                sys.exit(1)
+        # Otherwise, try to find trace file based on video name
+        elif hasattr(args, "video_name") and args.video_name:
+            trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
+            if not trace_file.exists():
+                logger.error(f"No trace file found at: {trace_file}")
+                logger.error("To generate a trace file, run:")
+                logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+                sys.exit(1)
+        else:
+            logger.error("Either --video-name or --trace-path must be provided")
             sys.exit(1)
             
-        # If video path not provided, try to find it in the default location
+        # Get video path
         video_path = args.video_path
-        if video_path is None and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
+        if video_path is None and hasattr(args, "video_name") and args.video_name and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
             possible_video_path = Path(config.dataset.egtea.raw_videos) / f"{args.video_name}.mp4"
             if possible_video_path.exists():
                 video_path = str(possible_video_path)
