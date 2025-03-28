@@ -23,15 +23,14 @@ from logger import get_logger
 logger = get_logger(__name__)
 
 
-def create_empty_figure() -> go.Figure:
-    """Create an empty figure with appropriate layout.
+def create_empty_graph() -> go.Figure:
+    """Create an empty graph visualization with placeholder message.
     
     Returns:
-        Empty Plotly figure with placeholder message
+        Plotly figure with empty graph visualization
     """
     fig = go.Figure()
     
-    # Add the SVG shape using precomputed points
     fig.add_trace(go.Scatter(
         x=ICON_X_POINTS, y=ICON_Y_POINTS,
         mode='lines',
@@ -42,7 +41,6 @@ def create_empty_figure() -> go.Figure:
         showlegend=False
     ))
     
-    # Add placeholder text
     fig.add_annotation(
         text="Empty Graph",
         xref="paper", yref="paper",
@@ -52,7 +50,6 @@ def create_empty_figure() -> go.Figure:
         align="center"
     )
     
-    # Configure layout
     fig.update_layout(
         showlegend=False,
         margin=FIGURE_MARGIN,
@@ -66,14 +63,13 @@ def create_empty_figure() -> go.Figure:
 
 
 def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph, 
-                       pos: Dict, last_added_edge: Optional[Tuple], max_edge_hover_points: int) -> None:
+                       pos: Dict, max_edge_hover_points: int) -> None:
     """Add edges to the graph figure.
     
     Args:
         fig: The Plotly figure to add edges to
         G: NetworkX directed graph
         pos: Dictionary mapping node IDs to positions
-        last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
         max_edge_hover_points: Maximum number of edges for which to render hover points
     """
     edge_x, edge_y = [], []
@@ -90,24 +86,20 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
         edge_type = edge_data.get('edge_type', 'unknown')
         features = edge_data.get('features', {})
         
-        # Create hover text
         edge_info = f"Edge: {source} → {target}<br>Type: {edge_type}"
         if features:
             feature_text = format_feature_text(features)
             edge_info += f"<br><br>{feature_text}"
         
-        # Add main edge lines
         edge_x.extend([x0, x1, None])
         edge_y.extend([y0, y1, None])
         
-        # Add hover points if under threshold
         if len(G.edges()) <= max_edge_hover_points:
             middle_x, middle_y = generate_intermediate_points(x0, x1, y0, y1, qty=5)
             edge_middle_x.extend(middle_x)
             edge_middle_y.extend(middle_y)
             edge_hover_texts.extend([edge_info] * len(middle_x))
         
-        # Add angle label if available
         if 'angle_degrees' in features:
             angle = features['angle_degrees']
             symbol = get_angle_symbol(angle)
@@ -117,7 +109,6 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
             edge_labels_y.append(label_y)
             edge_labels_text.append(symbol)
     
-    # Add edges
     if edge_x:
         fig.add_trace(go.Scatter(
             x=edge_x, y=edge_y,
@@ -127,7 +118,6 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
             showlegend=False
         ))
     
-    # Add hover points
     if edge_middle_x:
         fig.add_trace(go.Scatter(
             x=edge_middle_x, y=edge_middle_y,
@@ -139,7 +129,6 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
             showlegend=False
         ))
     
-    # Add angle labels
     if edge_labels_x:
         fig.add_trace(go.Scatter(
             x=edge_labels_x, y=edge_labels_y,
@@ -152,16 +141,13 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
         ))
 
 
-def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, 
-                       current_node_id: Optional[Any], last_added_node: Optional[Any]) -> None:
+def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
     """Add nodes to the graph figure.
     
     Args:
         fig: The Plotly figure to add nodes to
         G: NetworkX directed graph
         pos: Dictionary mapping node IDs to positions
-        current_node_id: ID of the currently active node (if any)
-        last_added_node: ID of the most recently added node (if any)
     """
     node_x, node_y, node_text, node_hover_text = [], [], [], []
     
@@ -170,16 +156,13 @@ def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict,
         node_x.append(x)
         node_y.append(y)
         
-        # Format labels
         raw_label = data['label']
         formatted_label = format_node_label(raw_label)
         node_text.append(formatted_label)
         
-        # Create hover text
         hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
         hover_text = f"Node {node}: {hover_label}"
         
-        # Add features to hover text
         features = data.get('features', {})
         if features:
             feature_text = format_feature_text(features)
@@ -187,7 +170,6 @@ def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict,
             
         node_hover_text.append(hover_text)
     
-    # Add nodes
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
         mode='markers+text',
@@ -212,22 +194,14 @@ class GraphDisplay:
     styling and interaction for the graph visualization.
     
     Attributes:
-        _cached_positions: Dictionary mapping graph hash to node positions
-        _base_figure: Cached base figure without highlights
+        _cached_figure: Cached figure for the last processed graph
         _last_graph_hash: Hash of the last processed graph
-        _node_trace_indices: Dictionary mapping node IDs to their trace indices
-        _edge_trace_indices: Dictionary mapping edge tuples to their trace indices
-        _current_positions: Dictionary mapping node IDs to their current positions
     """
     
     def __init__(self):
         """Initialize the graph display component."""
-        self._cached_positions = {}
-        self._base_figure = None
+        self._cached_figure = None
         self._last_graph_hash = None
-        self._node_trace_indices = {}
-        self._edge_trace_indices = {}
-        self._current_positions = {}
     
     def _get_graph_hash(self, G: nx.DiGraph) -> str:
         """Generate a hash of the graph structure for caching.
@@ -245,22 +219,20 @@ class GraphDisplay:
             graph_str += f"_{edge[0]}_{edge[1]}_{edge[2].get('edge_type', '')}"
         return graph_str
     
-    def _create_base_figure(self, G: nx.DiGraph, pos: Dict) -> go.Figure:
-        """Create the base figure without any highlights.
+    def _create_figure(self, G: nx.DiGraph, pos: Dict) -> go.Figure:
+        """Create a complete graph visualization figure.
         
         Args:
             G: NetworkX directed graph
             pos: Dictionary mapping node IDs to positions
             
         Returns:
-            Plotly figure with base graph visualization
+            Plotly figure with graph visualization
         """
         fig = go.Figure()
         
-        # Add edges first (so they appear behind nodes)
-        add_edges_to_figure(fig, G, pos, None, MAX_EDGE_HOVER_POINTS)
-        # Add nodes
-        add_nodes_to_figure(fig, G, pos, None, None)
+        add_edges_to_figure(fig, G, pos, MAX_EDGE_HOVER_POINTS)
+        add_nodes_to_figure(fig, G, pos)
         
         fig.update_layout(
             showlegend=False,
@@ -275,44 +247,29 @@ class GraphDisplay:
         
         return fig
     
-    def create_figure(self, G: nx.DiGraph, current_node_id: Optional[Any], 
-                     last_added_node: Optional[Any], last_added_edge: Optional[Tuple]) -> go.Figure:
-        """Create a complete graph visualization figure.
+    def get_figure(self, G: nx.DiGraph) -> go.Figure:
+        """Get a complete graph visualization figure.
         
         Args:
             G: NetworkX directed graph to visualize
-            current_node_id: ID of the currently active node (if any)
-            last_added_node: ID of the most recently added node (if any)
-            last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
             
         Returns:
             Plotly figure with graph visualization
         """
         if len(G.nodes) == 0:
-            return create_empty_figure()
+            return create_empty_graph()
         
-        # Check if we need to update the base figure
         current_graph_hash = self._get_graph_hash(G)
-        if (self._base_figure is None or 
-            current_graph_hash != self._last_graph_hash):
-            
-            # Compute new layout
-            self._current_positions = compute_graph_layout(G)
-            
-            # Create new base figure
-            self._base_figure = self._create_base_figure(G, self._current_positions)
-            self._last_graph_hash = current_graph_hash
-            
-            # Update trace indices
-            self._node_trace_indices = {
-                node: i for i, node in enumerate(G.nodes())
-            }
-            self._edge_trace_indices = {
-                (edge[0], edge[1]): i for i, edge in enumerate(G.edges())
-            }
+        if current_graph_hash == self._last_graph_hash and self._cached_figure is not None:
+            return go.Figure(self._cached_figure)
         
-        # Create a copy of the base figure for this update
-        return go.Figure(self._base_figure)
+        pos = compute_graph_layout(G)
+        fig = self._create_figure(G, pos)
+        
+        self._cached_figure = fig
+        self._last_graph_hash = current_graph_hash
+        
+        return fig
     
     def get_current_node_id(self, events: List) -> Optional[Any]:
         """Extract the current node ID from frame processing events.

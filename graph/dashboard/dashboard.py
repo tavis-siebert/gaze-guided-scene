@@ -113,11 +113,8 @@ class Dashboard:
             current_time = self.playback_controls.frame_to_time_str(frame_number)
             
             return (
-                self.video_display.create_figure(frame_number, self.playback),
-                self.graph_display.create_figure(
-                    graph, current_node_id, 
-                    self.playback.last_added_node, self.playback.last_added_edge
-                ),
+                self.video_display.get_figure(frame_number, self.playback),
+                self.graph_display.get_figure(graph),
                 frame_number,
                 str(frame_number),
                 current_time
