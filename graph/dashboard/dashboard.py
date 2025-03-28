@@ -5,12 +5,12 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
-from graph.dashboard.graph_constants import DEFAULT_PLAY_INTERVAL_MS
-from graph.dashboard.graph_playback import GraphPlayback
-from graph.dashboard.video_display import VideoDisplay
-from graph.dashboard.graph_display import GraphDisplay
-from graph.dashboard.playback_controls import PlaybackControls
-from graph.dashboard.meta_info import MetaInfoBar
+from graph.dashboard.utils.constants import DEFAULT_PLAY_INTERVAL_MS
+from graph.dashboard.playback import GraphPlayback
+from graph.dashboard.components.video_display import VideoDisplay
+from graph.dashboard.components.graph_display import GraphDisplay
+from graph.dashboard.components.playback_controls import PlaybackControls
+from graph.dashboard.components.meta_info import MetaInfoBar
 
 
 class Dashboard:

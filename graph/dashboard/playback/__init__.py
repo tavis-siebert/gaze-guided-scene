@@ -6,7 +6,7 @@ import json
 import networkx as nx
 import math
 
-from graph.dashboard.graph_event import GraphEvent
+from graph.dashboard.playback.event import GraphEvent
 
 
 class GraphPlayback:

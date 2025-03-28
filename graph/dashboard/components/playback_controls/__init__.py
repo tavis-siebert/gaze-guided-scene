@@ -3,8 +3,8 @@ from typing import Callable, Dict, Any, List
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
-from graph.dashboard.base_component import BaseComponent
-from graph.dashboard.graph_constants import (
+from graph.dashboard.components.base import BaseComponent
+from graph.dashboard.utils.constants import (
     PLAYBACK_SPEEDS, PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX,
     PLAYBACK_SPEED_DEFAULT, PLAYBACK_SPEED_MARKS, FPS
 )

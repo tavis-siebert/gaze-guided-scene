@@ -9,9 +9,9 @@ import base64
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from graph.dashboard.base_component import BaseComponent
-from graph.dashboard.graph_playback import GraphPlayback
-from graph.dashboard.graph_constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
+from graph.dashboard.components.base import BaseComponent
+from graph.dashboard.playback import GraphPlayback
+from graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 from graph.dashboard.utils import format_label
 from egtea_gaze.constants import RESOLUTION
 

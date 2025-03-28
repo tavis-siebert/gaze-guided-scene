@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 from svg.path import parse_path
 
-from graph.dashboard.graph_constants import DIAGRAM_PROJECT_ICON_PATH
+from graph.dashboard.utils.constants import DIAGRAM_PROJECT_ICON_PATH
 
 def precompute_svg_points(n_samples: int = 250) -> Tuple[np.ndarray, np.ndarray]:
     """Precompute normalized points for the SVG diagram-project icon.
