@@ -65,6 +65,7 @@ class GraphDisplay:
     Attributes:
         edge_hover_points: Number of hover points to generate per edge
         max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
+        max_edge_hover_points: Maximum number of edges for which to render hover points
         _cached_positions: Dictionary mapping graph hash to node positions
         _base_figure: Cached base figure without highlights
         _last_graph_hash: Hash of the last processed graph
@@ -76,15 +77,17 @@ class GraphDisplay:
         _current_positions: Dictionary mapping node IDs to their current positions
     """
     
-    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 25):
+    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 25, max_edge_hover_points: int = 50):
         """Initialize the graph display component.
         
         Args:
             edge_hover_points: Number of hover points to generate per edge for better interaction
             max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
+            max_edge_hover_points: Maximum number of edges for which to render hover points
         """
         self.edge_hover_points = edge_hover_points
         self.max_angle_nodes = max_angle_nodes
+        self.max_edge_hover_points = max_edge_hover_points
         self._cached_positions = {}
         self._base_figure = None
         self._last_graph_hash = None
@@ -348,13 +351,15 @@ class GraphDisplay:
                 regular_edge_x.extend([x0, x1, None])
                 regular_edge_y.extend([y0, y1, None])
             
-            # Add intermediate points for better hover detection
-            middle_x, middle_y = generate_intermediate_points(
-                x0, x1, y0, y1, self.edge_hover_points
-            )
-            edge_middle_x.extend(middle_x)
-            edge_middle_y.extend(middle_y)
-            edge_hover_texts.extend([edge_info] * len(middle_x))
+            # Only add hover points if we're under the threshold
+            if len(G.edges()) <= self.max_edge_hover_points:
+                # Add intermediate points for better hover detection
+                middle_x, middle_y = generate_intermediate_points(
+                    x0, x1, y0, y1, self.edge_hover_points
+                )
+                edge_middle_x.extend(middle_x)
+                edge_middle_y.extend(middle_y)
+                edge_hover_texts.extend([edge_info] * len(middle_x))
             
             # Add angle label if angle_degrees feature exists
             if 'angle_degrees' in features:
