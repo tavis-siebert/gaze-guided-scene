@@ -16,7 +16,7 @@ from graph.dashboard.utils import (
     format_node_label, format_feature_text, generate_intermediate_points,
     get_angle_symbol
 )
-from graph.dashboard.layout_utils import compute_graph_layout
+from graph.dashboard.graph_layout import compute_graph_layout
 from graph.dashboard.svg_utils import ICON_X_POINTS, ICON_Y_POINTS
 from logger import get_logger
 
