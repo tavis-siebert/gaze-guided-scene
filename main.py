@@ -122,37 +122,41 @@ def main():
         from graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
         
-        # Define trace file path
+        # Validate and resolve trace file path
         trace_file = None
-        
-        # If trace path is explicitly provided, use it
-        if hasattr(args, "trace_path") and args.trace_path:
+        if args.trace_path:
             trace_file = Path(args.trace_path)
-            if not trace_file.exists():
-                logger.error(f"No trace file found at: {trace_file}")
-                sys.exit(1)
-        # Otherwise, try to find trace file based on video name
-        elif hasattr(args, "video_name") and args.video_name:
+        elif args.video_name:
             trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
-            if not trace_file.exists():
-                logger.error(f"No trace file found at: {trace_file}")
-                logger.error("To generate a trace file, run:")
-                logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
-                sys.exit(1)
         else:
             logger.error("Either --video-name or --trace-path must be provided")
             sys.exit(1)
             
-        # Get video path
+        if not trace_file.exists():
+            logger.error(f"No trace file found at: {trace_file}")
+            if args.video_name:
+                logger.error("To generate a trace file, run:")
+                logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+            sys.exit(1)
+        
+        # Validate and resolve video path
         video_path = args.video_path
-        if video_path is None and hasattr(args, "video_name") and args.video_name and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
-            possible_video_path = Path(config.dataset.egtea.raw_videos) / f"{args.video_name}.mp4"
-            if possible_video_path.exists():
-                video_path = str(possible_video_path)
-                logger.info(f"Found video file at {video_path}")
+        if video_path is None:
+            if args.video_name and hasattr(config, 'dataset') and hasattr(config.dataset, 'egtea'):
+                possible_video_path = Path(config.dataset.egtea.raw_videos) / f"{args.video_name}.mp4"
+                if possible_video_path.exists():
+                    video_path = str(possible_video_path)
+                    logger.info(f"Found video file at {video_path}")
+                else:
+                    logger.warning(f"Could not find video file at expected location: {possible_video_path}")
+                    logger.warning("Visualization will proceed without video display")
             else:
-                logger.warning(f"Could not find video file at expected location: {possible_video_path}")
-                logger.warning("Visualization will proceed without video display")
+                logger.warning("No video path provided. Visualization will proceed without video display.")
+        elif not Path(video_path).exists():
+            logger.error(f"Video file does not exist at: {video_path}")
+            sys.exit(1)
+        else:
+            logger.info(f"Using provided video file at {video_path}")
         
         # Launch visualization dashboard
         visualize_graph_construction(
