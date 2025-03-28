@@ -3,6 +3,21 @@ from typing import Dict, Any, List, Tuple
 from collections import deque
 
 
+def get_angle_symbol(angle_degrees: float) -> str:
+    """Map angle degrees to corresponding arrow symbol.
+    
+    Args:
+        angle_degrees: Angle in degrees
+        
+    Returns:
+        Arrow symbol representing the angle bin
+    """
+    symbols = ["→", "↗", "↑", "↖", "←", "↙", "↓", "↘"]
+    bin_size = 360 / len(symbols)
+    bin_index = int((angle_degrees % 360) / bin_size)
+    return symbols[bin_index]
+
+
 def format_node_info(node: Any, prev_obj: str, theta: Any) -> Dict[str, Any]:
     """Format node information for display.
     
