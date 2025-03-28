@@ -190,10 +190,10 @@ class VideoDisplay:
             
             elif event.event_type == "edge_added" and event.data["edge_type"] == "saccade":
                 features = event.data["features"]
-                prev_x = features["prev_x"] * self.frame_width
-                prev_y = features["prev_y"] * self.frame_height
-                curr_x = features["curr_x"] * self.frame_width
-                curr_y = features["curr_y"] * self.frame_height
+                prev_x = features["prev_pos"][0] * self.frame_width
+                prev_y = features["prev_pos"][1] * self.frame_height
+                curr_x = features["curr_pos"][0] * self.frame_width
+                curr_y = features["curr_pos"][1] * self.frame_height
                 
                 # Add line trace
                 traces.append(go.Scatter(
