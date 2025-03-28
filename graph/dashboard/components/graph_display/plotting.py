@@ -8,7 +8,7 @@ from graph.dashboard.utils.constants import (
     NODE_FONT_COLOR, EDGE_WIDTH, EDGE_COLOR, EDGE_HOVER_OPACITY,
     EDGE_HOVER_SIZE, EDGE_LABEL_FONT_SIZE, EDGE_LABEL_COLOR,
     FIGURE_HEIGHT, FIGURE_MARGIN, FIGURE_BG_COLOR, FIGURE_PAPER_BG_COLOR,
-    FIGURE_HOVER_LABEL, MAX_EDGE_HOVER_POINTS
+    FIGURE_HOVER_LABEL, MAX_EDGE_HOVER_POINTS, GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 )
 from graph.dashboard.utils import (
     format_node_label, format_feature_text, generate_intermediate_points,
@@ -138,15 +138,17 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
         ))
 
 
-def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
+def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, last_added_node=None) -> None:
     """Add nodes to the graph figure.
     
     Args:
         fig: The Plotly figure to add nodes to
         G: NetworkX directed graph
         pos: Dictionary mapping node IDs to positions
+        last_added_node: ID of the last added node to highlight
     """
     node_x, node_y, node_text, node_hover_text = [], [], [], []
+    node_colors = []
     
     for node, data in G.nodes(data=True):
         x, y = pos[node]
@@ -166,13 +168,19 @@ def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict) -> None:
             hover_text += f"<br><br>{feature_text}"
             
         node_hover_text.append(hover_text)
+        
+        # Use blue color from GAZE_TYPE_INFO for the last added node
+        if node == last_added_node:
+            node_colors.append(GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"])
+        else:
+            node_colors.append(NODE_BACKGROUND)
     
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
         mode='markers+text',
         marker=dict(
             size=NODE_BASE_SIZE,
-            color=NODE_BACKGROUND,
+            color=node_colors,
             line=dict(width=3, color=NODE_BORDER)
         ),
         text=node_text,

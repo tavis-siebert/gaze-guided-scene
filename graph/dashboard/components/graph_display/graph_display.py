@@ -28,14 +28,16 @@ class GraphDisplay(BaseComponent):
         _last_graph_hash: Hash of the last processed graph
     """
     
-    def __init__(self, **kwargs):
+    def __init__(self, playback=None, **kwargs):
         """Initialize the graph display component.
         
         Args:
+            playback: Playback instance for accessing the last added node
             **kwargs: Additional arguments to pass to BaseComponent
         """
         self._cached_figure = None
         self._last_graph_hash = None
+        self.playback = playback
         
         super().__init__(component_id="graph-display", **kwargs)
     
@@ -72,12 +74,13 @@ class GraphDisplay(BaseComponent):
             graph_str += f"_{edge[0]}_{edge[1]}_{edge[2].get('edge_type', '')}"
         return graph_str
     
-    def _create_figure(self, G: nx.DiGraph, pos: Dict) -> go.Figure:
+    def _create_figure(self, G: nx.DiGraph, pos: Dict, last_added_node=None) -> go.Figure:
         """Create a complete graph visualization figure.
         
         Args:
             G: NetworkX directed graph
             pos: Dictionary mapping node IDs to positions
+            last_added_node: ID of the last added node to highlight
             
         Returns:
             Plotly figure with graph visualization
@@ -85,7 +88,7 @@ class GraphDisplay(BaseComponent):
         fig = go.Figure()
         
         add_edges_to_figure(fig, G, pos, MAX_EDGE_HOVER_POINTS)
-        add_nodes_to_figure(fig, G, pos)
+        add_nodes_to_figure(fig, G, pos, last_added_node)
         
         fig.update_layout(
             showlegend=False,
@@ -100,15 +103,21 @@ class GraphDisplay(BaseComponent):
         
         return fig
     
-    def get_figure(self, G: nx.DiGraph) -> go.Figure:
-        """Get a complete graph visualization figure.
+    def get_figure(self, frame_number: int) -> go.Figure:
+        """Get a complete graph visualization figure for the specified frame.
         
         Args:
-            G: NetworkX directed graph to visualize
+            frame_number: Frame number to build the graph up to
             
         Returns:
             Plotly figure with graph visualization
         """
+        if not self.playback:
+            return create_empty_graph()
+            
+        # Build the graph using playback
+        G = self.playback.build_graph_until_frame(frame_number)
+        
         if len(G.nodes) == 0:
             return create_empty_graph()
         
@@ -117,23 +126,10 @@ class GraphDisplay(BaseComponent):
             return go.Figure(self._cached_figure)
         
         pos = compute_graph_layout(G)
-        fig = self._create_figure(G, pos)
+        last_added_node = self.playback.last_added_node
+        fig = self._create_figure(G, pos, last_added_node)
         
         self._cached_figure = fig
         self._last_graph_hash = current_graph_hash
         
         return fig
-    
-    def get_current_node_id(self, events: List) -> Optional[Any]:
-        """Extract the current node ID from frame processing events.
-        
-        Args:
-            events: List of events for the current frame
-            
-        Returns:
-            Current node ID or None if not found
-        """
-        for event in events:
-            if event.event_type == "frame_processed" and 'node_id' in event.data:
-                return event.data["node_id"]
-        return None 

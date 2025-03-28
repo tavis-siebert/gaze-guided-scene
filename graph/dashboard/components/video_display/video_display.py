@@ -41,6 +41,7 @@ class VideoDisplay(BaseComponent):
         video_path: Optional[str], 
         max_cache_size: int = 240, 
         batch_size: int = 96,
+        playback = None,
         **kwargs
     ):
         """Initialize the video display component.
@@ -49,6 +50,7 @@ class VideoDisplay(BaseComponent):
             video_path: Path to the video file or None if no video
             max_cache_size: Maximum number of frames to cache
             batch_size: Number of frames to read at once
+            playback: Playback instance for event access
             **kwargs: Additional arguments to pass to BaseComponent
         """
         self.video_path = video_path
@@ -59,6 +61,7 @@ class VideoDisplay(BaseComponent):
         self.batch_size = batch_size
         self.frame_width, self.frame_height = RESOLUTION
         self.batch_order = []  # Track batch order for FIFO
+        self.playback = playback
         
         self.empty_figure = self._create_empty_figure()
         self._setup_video_capture()
@@ -399,12 +402,11 @@ class VideoDisplay(BaseComponent):
             f"Potential labels:<br>{potential_labels_text}"
         )
     
-    def get_figure(self, frame_number: int, playback: Playback) -> go.Figure:
+    def get_figure(self, frame_number: int) -> go.Figure:
         """Get a complete figure with the video frame and overlays.
         
         Args:
             frame_number: The current frame number
-            playback: The Playback instance for event access
             
         Returns:
             Plotly figure with video frame and overlays
@@ -431,9 +433,9 @@ class VideoDisplay(BaseComponent):
         
         # Collect overlay traces
         traces = []
-        events = playback.get_events_for_frame(frame_number)
+        events = self.playback.get_events_for_frame(frame_number) if self.playback else []
         self._get_gaze_traces(events, traces, fig)
-        self._get_detection_traces(playback, frame_number, traces)
+        self._get_detection_traces(self.playback, frame_number, traces) if self.playback else None
         
         fig.add_traces(traces)
         return fig
