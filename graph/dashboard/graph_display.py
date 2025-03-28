@@ -4,56 +4,205 @@ import networkx as nx
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from dash import dcc
-from svg.path import parse_path
-import numpy as np
 
-from graph.dashboard.graph_constants import NODE_BACKGROUND, NODE_BORDER
-from graph.dashboard.utils import format_node_label, format_feature_text, generate_intermediate_points
+from graph.dashboard.graph_constants import (
+    NODE_BACKGROUND, NODE_BORDER, NODE_BASE_SIZE, NODE_FONT_SIZE,
+    NODE_FONT_COLOR, EDGE_WIDTH, EDGE_COLOR, EDGE_HOVER_OPACITY,
+    EDGE_HOVER_SIZE, EDGE_LABEL_FONT_SIZE, EDGE_LABEL_COLOR,
+    FIGURE_HEIGHT, FIGURE_MARGIN, FIGURE_BG_COLOR, FIGURE_PAPER_BG_COLOR,
+    FIGURE_HOVER_LABEL, MAX_EDGE_HOVER_POINTS
+)
+from graph.dashboard.utils import (
+    format_node_label, format_feature_text, generate_intermediate_points,
+    get_angle_symbol
+)
+from graph.dashboard.layout_utils import compute_graph_layout
+from graph.dashboard.svg_utils import ICON_X_POINTS, ICON_Y_POINTS
 from logger import get_logger
 
 logger = get_logger(__name__)
 
 
-# Precompute SVG path points for the diagram-project icon
-def _precompute_svg_points():
-    """Precompute the normalized points for the SVG diagram-project icon.
+def create_empty_figure() -> go.Figure:
+    """Create an empty figure with appropriate layout.
     
     Returns:
-        Tuple of x and y normalized coordinates for the SVG path
+        Empty Plotly figure with placeholder message
     """
-    # SVG path data for diagram-project icon (FontAwesome diagram-project)
-    path_data = "M0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 16 192 0 0-16c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-16-192 0 0 16c0 1.7-.1 3.4-.3 5L272 288l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-1.7 .1-3.4 .3-5L144 224l-96 0c-26.5 0-48-21.5-48-48L0 80z"
+    fig = go.Figure()
     
-    # Parse and sample points from SVG path
-    path = parse_path(path_data)
-    n_samples = 250
-    points = np.array([(path.point(i/n_samples).real, path.point(i/n_samples).imag) for i in range(n_samples)])
+    # Add the SVG shape using precomputed points
+    fig.add_trace(go.Scatter(
+        x=ICON_X_POINTS, y=ICON_Y_POINTS,
+        mode='lines',
+        line=dict(width=1, color='#555'),
+        fill='toself',
+        fillcolor='#666',
+        hoverinfo='none',
+        showlegend=False
+    ))
     
-    # Normalize to fit in center 10% of figure
-    min_coords = points.min(axis=0)
-    max_coords = points.max(axis=0)
-    x_norm = 0.45 + 0.1 * (points[:, 0] - min_coords[0]) / (max_coords[0] - min_coords[0])
-    y_norm = 0.45 + 0.1 * (points[:, 1] - min_coords[1]) / (max_coords[1] - min_coords[1])
+    # Add placeholder text
+    fig.add_annotation(
+        text="Empty Graph",
+        xref="paper", yref="paper",
+        x=0.5, y=0.4,
+        showarrow=False,
+        font=dict(size=16, color="#444"),
+        align="center"
+    )
     
-    return x_norm, y_norm
+    # Configure layout
+    fig.update_layout(
+        showlegend=False,
+        margin=FIGURE_MARGIN,
+        xaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
+        yaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
+        height=FIGURE_HEIGHT,
+        plot_bgcolor=FIGURE_BG_COLOR,
+        paper_bgcolor=FIGURE_PAPER_BG_COLOR
+    )
+    return fig
 
-# Precompute the SVG path points at module initialization
-ICON_X_POINTS, ICON_Y_POINTS = _precompute_svg_points()
 
-
-def get_angle_symbol(angle_degrees: float) -> str:
-    """Map angle degrees to corresponding arrow symbol.
+def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph, 
+                       pos: Dict, last_added_edge: Optional[Tuple], max_edge_hover_points: int) -> None:
+    """Add edges to the graph figure.
     
     Args:
-        angle_degrees: Angle in degrees
-        
-    Returns:
-        Arrow symbol representing the angle bin
+        fig: The Plotly figure to add edges to
+        G: NetworkX directed graph
+        pos: Dictionary mapping node IDs to positions
+        last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
+        max_edge_hover_points: Maximum number of edges for which to render hover points
     """
-    symbols = ["→", "↗", "↑", "↖", "←", "↙", "↓", "↘"]
-    bin_size = 360 / len(symbols)
-    bin_index = int((angle_degrees % 360) / bin_size)
-    return symbols[bin_index]
+    edge_x, edge_y = [], []
+    edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
+    edge_labels_x, edge_labels_y, edge_labels_text = [], [], []
+    
+    for edge in G.edges(data=True):
+        source, target = edge[0], edge[1]
+        edge_data = edge[2]
+        
+        x0, y0 = pos[source]
+        x1, y1 = pos[target]
+        
+        edge_type = edge_data.get('edge_type', 'unknown')
+        features = edge_data.get('features', {})
+        
+        # Create hover text
+        edge_info = f"Edge: {source} → {target}<br>Type: {edge_type}"
+        if features:
+            feature_text = format_feature_text(features)
+            edge_info += f"<br><br>{feature_text}"
+        
+        # Add main edge lines
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+        
+        # Add hover points if under threshold
+        if len(G.edges()) <= max_edge_hover_points:
+            middle_x, middle_y = generate_intermediate_points(x0, x1, y0, y1, qty=5)
+            edge_middle_x.extend(middle_x)
+            edge_middle_y.extend(middle_y)
+            edge_hover_texts.extend([edge_info] * len(middle_x))
+        
+        # Add angle label if available
+        if 'angle_degrees' in features:
+            angle = features['angle_degrees']
+            symbol = get_angle_symbol(angle)
+            label_x = (x0 + x1) / 2
+            label_y = (y0 + y1) / 2
+            edge_labels_x.append(label_x)
+            edge_labels_y.append(label_y)
+            edge_labels_text.append(symbol)
+    
+    # Add edges
+    if edge_x:
+        fig.add_trace(go.Scatter(
+            x=edge_x, y=edge_y,
+            mode='lines',
+            line=dict(width=EDGE_WIDTH, color=EDGE_COLOR),
+            hoverinfo='none',
+            showlegend=False
+        ))
+    
+    # Add hover points
+    if edge_middle_x:
+        fig.add_trace(go.Scatter(
+            x=edge_middle_x, y=edge_middle_y,
+            mode='markers',
+            marker=dict(size=EDGE_HOVER_SIZE, opacity=EDGE_HOVER_OPACITY),
+            hoverinfo='text',
+            hovertext=edge_hover_texts,
+            hovertemplate='%{hovertext}<extra></extra>',
+            showlegend=False
+        ))
+    
+    # Add angle labels
+    if edge_labels_x:
+        fig.add_trace(go.Scatter(
+            x=edge_labels_x, y=edge_labels_y,
+            mode='text',
+            text=edge_labels_text,
+            textposition="middle center",
+            textfont=dict(size=EDGE_LABEL_FONT_SIZE, color=EDGE_LABEL_COLOR),
+            hoverinfo='none',
+            showlegend=False
+        ))
+
+
+def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, 
+                       current_node_id: Optional[Any], last_added_node: Optional[Any]) -> None:
+    """Add nodes to the graph figure.
+    
+    Args:
+        fig: The Plotly figure to add nodes to
+        G: NetworkX directed graph
+        pos: Dictionary mapping node IDs to positions
+        current_node_id: ID of the currently active node (if any)
+        last_added_node: ID of the most recently added node (if any)
+    """
+    node_x, node_y, node_text, node_hover_text = [], [], [], []
+    
+    for node, data in G.nodes(data=True):
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        
+        # Format labels
+        raw_label = data['label']
+        formatted_label = format_node_label(raw_label)
+        node_text.append(formatted_label)
+        
+        # Create hover text
+        hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
+        hover_text = f"Node {node}: {hover_label}"
+        
+        # Add features to hover text
+        features = data.get('features', {})
+        if features:
+            feature_text = format_feature_text(features)
+            hover_text += f"<br><br>{feature_text}"
+            
+        node_hover_text.append(hover_text)
+    
+    # Add nodes
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        marker=dict(
+            size=NODE_BASE_SIZE,
+            color=NODE_BACKGROUND,
+            line=dict(width=3, color=NODE_BORDER)
+        ),
+        text=node_text,
+        textposition="middle center",
+        textfont=dict(size=NODE_FONT_SIZE, color=NODE_FONT_COLOR),
+        hovertext=node_hover_text,
+        hoverinfo='text',
+        showlegend=False
+    ))
 
 
 class GraphDisplay:
@@ -63,9 +212,6 @@ class GraphDisplay:
     styling and interaction for the graph visualization.
     
     Attributes:
-        edge_hover_points: Number of hover points to generate per edge
-        max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
-        max_edge_hover_points: Maximum number of edges for which to render hover points
         _cached_positions: Dictionary mapping graph hash to node positions
         _base_figure: Cached base figure without highlights
         _last_graph_hash: Hash of the last processed graph
@@ -74,17 +220,8 @@ class GraphDisplay:
         _current_positions: Dictionary mapping node IDs to their current positions
     """
     
-    def __init__(self, edge_hover_points: int = 20, max_angle_nodes: int = 25, max_edge_hover_points: int = 50):
-        """Initialize the graph display component.
-        
-        Args:
-            edge_hover_points: Number of hover points to generate per edge for better interaction
-            max_angle_nodes: Maximum number of nodes for which to use angle-based initialization
-            max_edge_hover_points: Maximum number of edges for which to render hover points
-        """
-        self.edge_hover_points = edge_hover_points
-        self.max_angle_nodes = max_angle_nodes
-        self.max_edge_hover_points = max_edge_hover_points
+    def __init__(self):
+        """Initialize the graph display component."""
         self._cached_positions = {}
         self._base_figure = None
         self._last_graph_hash = None
@@ -101,7 +238,6 @@ class GraphDisplay:
         Returns:
             String hash of the graph structure
         """
-        # Create a string representation of the graph structure
         graph_str = f"{len(G.nodes)}_{len(G.edges)}"
         for node in sorted(G.nodes(data=True)):
             graph_str += f"_{node[0]}_{node[1].get('label', '')}"
@@ -122,23 +258,19 @@ class GraphDisplay:
         fig = go.Figure()
         
         # Add edges first (so they appear behind nodes)
-        self._add_edges_to_figure(fig, G, pos, None)
+        add_edges_to_figure(fig, G, pos, None, MAX_EDGE_HOVER_POINTS)
         # Add nodes
-        self._add_nodes_to_figure(fig, G, pos, None, None)
+        add_nodes_to_figure(fig, G, pos, None, None)
         
         fig.update_layout(
             showlegend=False,
-            margin=dict(l=20, r=20, t=20, b=20),
+            margin=FIGURE_MARGIN,
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
             yaxis=dict(showgrid=False, zeroline=False, visible=False),
-            height=450,
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            hoverlabel=dict(
-                bgcolor="white",
-                font_size=12,
-                font_family="Arial"
-            )
+            height=FIGURE_HEIGHT,
+            plot_bgcolor=FIGURE_BG_COLOR,
+            paper_bgcolor=FIGURE_PAPER_BG_COLOR,
+            hoverlabel=FIGURE_HOVER_LABEL
         )
         
         return fig
@@ -157,26 +289,15 @@ class GraphDisplay:
             Plotly figure with graph visualization
         """
         if len(G.nodes) == 0:
-            return self._create_empty_figure()
+            return create_empty_figure()
         
         # Check if we need to update the base figure
         current_graph_hash = self._get_graph_hash(G)
         if (self._base_figure is None or 
             current_graph_hash != self._last_graph_hash):
             
-            # Initialize positions based on edge angles only for small graphs
-            if len(G.nodes) < self.max_angle_nodes:
-                self._current_positions = self._initialize_positions_from_angles(G)
-            else:
-                self._current_positions = None
-            
-            try:
-                # Try Kamada-Kawai layout with initial positions for optimization
-                self._current_positions = nx.kamada_kawai_layout(G, pos=self._current_positions)
-            except Exception as e:
-                # Fall back to spring layout if Kamada-Kawai fails
-                logger.warning(f"Kamada-Kawai layout failed: {e}. Falling back to spring layout.")
-                self._current_positions = nx.spring_layout(G, pos=self._current_positions, iterations=50, seed=42)
+            # Compute new layout
+            self._current_positions = compute_graph_layout(G)
             
             # Create new base figure
             self._base_figure = self._create_base_figure(G, self._current_positions)
@@ -206,299 +327,6 @@ class GraphDisplay:
             if event.event_type == "frame_processed" and 'node_id' in event.data:
                 return event.data["node_id"]
         return None
-    
-    def _create_empty_figure(self) -> go.Figure:
-        """Create an empty figure with appropriate layout.
-        
-        Returns:
-            Empty Plotly figure with placeholder message
-        """
-        fig = go.Figure()
-        
-        # Add the SVG shape using precomputed points
-        fig.add_trace(go.Scatter(
-            x=ICON_X_POINTS, y=ICON_Y_POINTS,
-            mode='lines',
-            line=dict(width=1, color='#555'),
-            fill='toself',
-            fillcolor='#666',
-            hoverinfo='none',
-            showlegend=False
-        ))
-        
-        # Add placeholder text
-        fig.add_annotation(
-            text="Empty Graph",
-            xref="paper", yref="paper",
-            x=0.5, y=0.4,
-            showarrow=False,
-            font=dict(size=16, color="#444"),
-            align="center"
-        )
-        
-        # Configure layout
-        fig.update_layout(
-            showlegend=False,
-            margin=dict(l=20, r=20, t=20, b=20),
-            xaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
-            yaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
-            height=450,
-            plot_bgcolor='white',
-            paper_bgcolor='white'
-        )
-        return fig
-    
-    def _add_edges_to_figure(self, fig: go.Figure, G: nx.DiGraph, 
-                            pos: Dict, last_added_edge: Optional[Tuple]) -> None:
-        """Add edges to the graph figure.
-
-        Args:
-            fig: The Plotly figure to add edges to
-            G: NetworkX directed graph
-            pos: Dictionary mapping node IDs to positions
-            last_added_edge: Tuple of (source_id, target_id) for the most recently added edge
-        """
-        edge_x, edge_y = [], []
-        edge_middle_x, edge_middle_y, edge_hover_texts = [], [], []
-        edge_labels_x, edge_labels_y, edge_labels_text = [], [], []
-        
-        # First pass: collect all edge data
-        for edge in G.edges(data=True):
-            source, target = edge[0], edge[1]
-            edge_data = edge[2]
-            
-            x0, y0 = pos[source]
-            x1, y1 = pos[target]
-            
-            edge_type = edge_data.get('edge_type', 'unknown')
-            features = edge_data.get('features', {})
-            
-            # Create hover text with edge information
-            edge_info = f"Edge: {source} → {target}<br>Type: {edge_type}"
-            if features:
-                feature_text = format_feature_text(features)
-                edge_info += f"<br><br>{feature_text}"
-            
-            # Add the main edge lines
-            edge_x.extend([x0, x1, None])
-            edge_y.extend([y0, y1, None])
-            
-            # Only add hover points if we're under the threshold
-            if len(G.edges()) <= self.max_edge_hover_points:
-                # Add intermediate points for better hover detection
-                middle_x, middle_y = generate_intermediate_points(
-                    x0, x1, y0, y1, self.edge_hover_points
-                )
-                edge_middle_x.extend(middle_x)
-                edge_middle_y.extend(middle_y)
-                edge_hover_texts.extend([edge_info] * len(middle_x))
-            
-            # Add angle label if angle_degrees feature exists
-            if 'angle_degrees' in features:
-                angle = features['angle_degrees']
-                symbol = get_angle_symbol(angle)
-                # Position label at the middle of the edge
-                label_x = (x0 + x1) / 2
-                label_y = (y0 + y1) / 2
-                edge_labels_x.append(label_x)
-                edge_labels_y.append(label_y)
-                edge_labels_text.append(symbol)
-        
-        # Add edges
-        if edge_x:
-            fig.add_trace(go.Scatter(
-                x=edge_x, y=edge_y,
-                mode='lines',
-                line=dict(width=2.5, color='#888'),
-                hoverinfo='none',
-                showlegend=False
-            ))
-        
-        # Add hover points along edges
-        if edge_middle_x:
-            fig.add_trace(go.Scatter(
-                x=edge_middle_x, y=edge_middle_y,
-                mode='markers',
-                marker=dict(size=6, opacity=0.1),
-                hoverinfo='text',
-                hovertext=edge_hover_texts,
-                hovertemplate='%{hovertext}<extra></extra>',
-                showlegend=False
-            ))
-            
-        # Add angle labels
-        if edge_labels_x:
-            fig.add_trace(go.Scatter(
-                x=edge_labels_x, y=edge_labels_y,
-                mode='text',
-                text=edge_labels_text,
-                textposition="middle center",
-                textfont=dict(size=18, color='#000'),
-                hoverinfo='none',
-                showlegend=False
-            ))
-    
-    def _add_nodes_to_figure(self, fig: go.Figure, G: nx.DiGraph, pos: Dict, 
-                            current_node_id: Optional[Any], last_added_node: Optional[Any]) -> None:
-        """Add nodes to the graph figure.
-        
-        Args:
-            fig: The Plotly figure to add nodes to
-            G: NetworkX directed graph
-            pos: Dictionary mapping node IDs to positions
-            current_node_id: ID of the currently active node (if any)
-            last_added_node: ID of the most recently added node (if any)
-        """
-        node_x, node_y, node_text, node_hover_text = [], [], [], []
-        
-        for node, data in G.nodes(data=True):
-            x, y = pos[node]
-            node_x.append(x)
-            node_y.append(y)
-            
-            # Format the node label
-            raw_label = data['label']
-            formatted_label = format_node_label(raw_label)
-            node_text.append(formatted_label)
-            
-            # Create hover text with node info and features
-            hover_label = ' '.join([word.capitalize() for word in raw_label.split('_')])
-            hover_text = f"Node {node}: {hover_label}"
-            
-            # Add features to hover text if available
-            features = data.get('features', {})
-            if features:
-                feature_text = format_feature_text(features)
-                hover_text += f"<br><br>{feature_text}"
-                
-            node_hover_text.append(hover_text)
-        
-        # Add the nodes
-        base_size = 60
-        fig.add_trace(go.Scatter(
-            x=node_x, y=node_y,
-            mode='markers+text',
-            marker=dict(
-                size=base_size,
-                color='gray',
-                line=dict(width=3, color='black')
-            ),
-            text=node_text,
-            textposition="middle center",
-            textfont=dict(size=11, color='white'),
-            hovertext=node_hover_text,
-            hoverinfo='text',
-            showlegend=False
-        ))
-    
-    def _initialize_positions_from_angles(self, G: nx.DiGraph) -> Dict:
-        """Initialize node positions based on edge angle features.
-        
-        This creates an initial layout where connected nodes are positioned
-        according to their angular relationships, which serves as a starting
-        point for the Kamada-Kawai algorithm.
-        
-        Args:
-            G: NetworkX directed graph to lay out
-            
-        Returns:
-            Dictionary mapping node IDs to (x,y) positions
-        """
-        pos = {}
-        processed_nodes = set()
-        
-        # Start with a node that has outgoing edges with angle information
-        start_node = None
-        for node in G.nodes():
-            if any('angle_degrees' in G[node][target].get('features', {}) 
-                   for target in G.successors(node)):
-                start_node = node
-                break
-        
-        # If no suitable start node found, fall back to first node
-        if start_node is None and G.nodes:
-            start_node = list(G.nodes())[0]
-        
-        if start_node is None:
-            return {}
-        
-        # Create deterministic jitter based on node hash
-        def get_jitter(node_id, scale=0.05):
-            """Generate deterministic jitter based on node ID."""
-            # Use hash of node ID to create consistent jitter values
-            node_hash = hash(str(node_id))
-            # Use modulo to constrain values within desired range
-            jitter_x = ((node_hash % 1000) / 1000.0 - 0.5) * scale
-            jitter_y = ((node_hash // 1000 % 1000) / 1000.0 - 0.5) * scale
-            return jitter_x, jitter_y
-            
-        # Place the start node at the center with small deterministic jitter
-        jitter_x, jitter_y = get_jitter(start_node, scale=0.02)
-        pos[start_node] = (jitter_x, jitter_y)
-        processed_nodes.add(start_node)
-        
-        # Process nodes in breadth-first order to propagate positions
-        nodes_to_process = [start_node]
-        radius = 1.0  # Distance from center for first layer
-        
-        while nodes_to_process:
-            current_nodes = nodes_to_process.copy()
-            nodes_to_process = []
-            
-            for node in current_nodes:
-                # Process outgoing edges with angle information
-                for target in G.successors(node):
-                    if target in processed_nodes:
-                        continue
-                    
-                    edge_data = G[node][target]
-                    angle_degrees = edge_data.get('features', {}).get('angle_degrees')
-                    
-                    if angle_degrees is not None:
-                        # Convert angle to radians (adjust as needed for your angle convention)
-                        angle_rad = np.radians(angle_degrees)
-                        # Get deterministic jitter for this target node
-                        jitter_x, jitter_y = get_jitter(target)
-                        # Position target based on angle and radius with deterministic jitter
-                        x = pos[node][0] + radius * np.cos(angle_rad) + jitter_x
-                        y = pos[node][1] + radius * np.sin(angle_rad) + jitter_y
-                        pos[target] = (x, y)
-                        processed_nodes.add(target)
-                        nodes_to_process.append(target)
-                
-                # Process incoming edges with angle information
-                for source in G.predecessors(node):
-                    if source in processed_nodes:
-                        continue
-                    
-                    edge_data = G[source][node]
-                    angle_degrees = edge_data.get('features', {}).get('angle_degrees')
-                    
-                    if angle_degrees is not None:
-                        # For incoming edges, use opposite angle
-                        angle_rad = np.radians((angle_degrees + 180) % 360)
-                        # Get deterministic jitter for this source node
-                        jitter_x, jitter_y = get_jitter(source)
-                        # Position source based on angle and radius with deterministic jitter
-                        x = pos[node][0] + radius * np.cos(angle_rad) + jitter_x
-                        y = pos[node][1] + radius * np.sin(angle_rad) + jitter_y
-                        pos[source] = (x, y)
-                        processed_nodes.add(source)
-                        nodes_to_process.append(source)
-            
-            # Increase radius for next layer to avoid overlaps
-            radius += 0.5
-        
-        # For any remaining nodes without angle information, place them using deterministic positions
-        for node in G.nodes():
-            if node not in pos:
-                # Use deterministic values based on node hash
-                node_hash = hash(str(node))
-                x = -2 + 4 * ((node_hash % 1000) / 1000.0)
-                y = -2 + 4 * ((node_hash // 1000 % 1000) / 1000.0)
-                pos[node] = (x, y)
-        
-        return pos
     
     def create_card(self) -> dbc.Card:
         """Create a card containing the graph display.
