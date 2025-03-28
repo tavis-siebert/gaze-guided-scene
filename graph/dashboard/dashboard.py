@@ -88,7 +88,8 @@ class Dashboard:
             [Output("video-display", "figure"),
              Output("graph-display", "figure"),
              Output("frame-slider", "value"),
-             Output("frame-state", "children")],
+             Output("frame-state", "children"),
+             Output("current-time-display", "children")],
             [Input("frame-slider", "value"),
              Input("prev-frame", "n_clicks"),
              Input("next-frame", "n_clicks"),
@@ -108,6 +109,9 @@ class Dashboard:
             events = self.playback.get_events_for_frame(frame_number)
             current_node_id = self.graph_display.get_current_node_id(events)
             
+            # Convert frame number to time string
+            current_time = self.playback_controls.frame_to_time_str(frame_number)
+            
             return (
                 self.video_display.create_figure(frame_number, self.playback),
                 self.graph_display.create_figure(
@@ -115,7 +119,8 @@ class Dashboard:
                     self.playback.last_added_node, self.playback.last_added_edge
                 ),
                 frame_number,
-                str(frame_number)
+                str(frame_number),
+                current_time
             )
     
     def run(self, port: int = 8050, debug: bool = False) -> None:

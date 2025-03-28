@@ -186,21 +186,6 @@ class PlaybackControls:
             
             return new_state, not is_playing, "⏸️" if is_playing else "▶️"
     
-        @app.callback(
-            Output("current-time-display", "children"),
-            [Input("frame-slider", "value")]
-        )
-        def update_current_time(frame_number):
-            """Update the current time display based on the frame number.
-            
-            Args:
-                frame_number: Current frame number
-                
-            Returns:
-                Current time string in MM:SS format
-            """
-            return self.frame_to_time_str(frame_number)
-    
     def determine_frame_number(
         self, 
         ctx, 
