@@ -372,8 +372,8 @@ class VideoDisplay:
             f"Potential labels:<br>{potential_labels_text}"
         )
     
-    def create_figure(self, frame_number: int, playback: GraphPlayback) -> go.Figure:
-        """Create a complete figure with the video frame and overlays.
+    def get_figure(self, frame_number: int, playback: GraphPlayback) -> go.Figure:
+        """Get a complete figure with the video frame and overlays.
         
         Args:
             frame_number: The current frame number
