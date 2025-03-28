@@ -28,8 +28,8 @@ class Dashboard:
             play_interval_ms: Interval between frame updates in milliseconds
         """
         self.playback = Playback(trace_file_path)
-        self.video_display = VideoDisplay(video_path)
-        self.graph_display = GraphDisplay()
+        self.video_display = VideoDisplay(video_path, playback=self.playback)
+        self.graph_display = GraphDisplay(playback=self.playback)
         self.playback_controls = PlaybackControls(
             min_frame=self.playback.min_frame,
             max_frame=self.playback.max_frame,
@@ -129,16 +129,12 @@ class Dashboard:
                 self.playback.min_frame, self.playback.max_frame, playback_speed
             )
             
-            graph = self.playback.build_graph_until_frame(frame_number)
-            events = self.playback.get_events_for_frame(frame_number)
-            current_node_id = self.graph_display.get_current_node_id(events)
-            
             # Convert frame number to time string
             current_time = self.playback_controls.frame_to_time_str(frame_number)
             
             return (
-                self.video_display.get_figure(frame_number, self.playback),
-                self.graph_display.get_figure(graph),
+                self.video_display.get_figure(frame_number),
+                self.graph_display.get_figure(frame_number),
                 frame_number,
                 str(frame_number),
                 current_time
