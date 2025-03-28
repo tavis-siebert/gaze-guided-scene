@@ -22,7 +22,7 @@ class PlaybackControls(BaseComponent):
         min_frame: int,
         max_frame: int,
         current_frame: int = None,
-        graph_playback = None,
+        playback = None,
         **kwargs
     ):
         """Initialize the playback controls component.
@@ -31,13 +31,13 @@ class PlaybackControls(BaseComponent):
             min_frame: Minimum frame number
             max_frame: Maximum frame number
             current_frame: Current frame number (defaults to min_frame if None)
-            graph_playback: GraphPlayback instance for marking frames with node additions
+            playback: Playback instance for marking frames with node additions
             **kwargs: Additional arguments to pass to BaseComponent
         """
         self.min_frame = min_frame
         self.max_frame = max_frame
         self.current_frame = current_frame if current_frame is not None else min_frame
-        self.graph_playback = graph_playback
+        self.playback = playback
         
         super().__init__(component_id="playback-controls", **kwargs)
     
@@ -51,9 +51,9 @@ class PlaybackControls(BaseComponent):
         slider_marks = {str(self.min_frame): str(self.min_frame), 
                        str(self.max_frame): str(self.max_frame)}
         
-        # Add marks for frames with node additions if graph_playback is provided
-        if self.graph_playback:
-            node_frames = self.get_node_addition_frames(self.graph_playback)
+        # Add marks for frames with node additions if playback is provided
+        if self.playback:
+            node_frames = self.get_node_addition_frames(self.playback)
             for frame in node_frames:
                 # Only add label for node frames if they're not too close to other marks
                 if frame != self.min_frame and frame != self.max_frame:
@@ -127,11 +127,11 @@ class PlaybackControls(BaseComponent):
             ])
         ], className="mb-3")
     
-    def get_node_addition_frames(self, graph_playback) -> List[int]:
+    def get_node_addition_frames(self, playback) -> List[int]:
         """Get a list of frame numbers where new unique nodes were added.
         
         Args:
-            graph_playback: GraphPlayback instance containing event data
+            playback: Playback instance containing event data
             
         Returns:
             List of frame numbers where unique node addition events occurred
@@ -139,10 +139,10 @@ class PlaybackControls(BaseComponent):
         node_frames = {}  # Maps node_id to first frame it appears in
         
         # Sort frames to ensure we find the first occurrence of each node
-        sorted_frames = sorted(graph_playback.frame_to_events.keys())
+        sorted_frames = sorted(playback.frame_to_events.keys())
         
         for frame_num in sorted_frames:
-            events = graph_playback.frame_to_events[frame_num]
+            events = playback.frame_to_events[frame_num]
             for event in events:
                 if event.event_type == "node_added":
                     node_id = event.data["node_id"]

@@ -10,7 +10,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from graph.dashboard.components.base import BaseComponent
-from graph.dashboard.playback import GraphPlayback
+from graph.dashboard.playback import Playback
 from graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 from graph.dashboard.utils import format_label
 from egtea_gaze.constants import RESOLUTION
@@ -263,14 +263,14 @@ class VideoDisplay(BaseComponent):
     
     def _get_detection_traces(
         self, 
-        playback: GraphPlayback, 
+        playback: Playback, 
         frame_number: int,
         traces: List[go.Trace]
     ) -> None:
         """Add object detection bounding box and label traces to the provided traces list.
         
         Args:
-            playback: The GraphPlayback instance for event access
+            playback: The Playback instance for event access
             frame_number: The current frame number
             traces: List to append detection traces to
         """
@@ -399,12 +399,12 @@ class VideoDisplay(BaseComponent):
             f"Potential labels:<br>{potential_labels_text}"
         )
     
-    def get_figure(self, frame_number: int, playback: GraphPlayback) -> go.Figure:
+    def get_figure(self, frame_number: int, playback: Playback) -> go.Figure:
         """Get a complete figure with the video frame and overlays.
         
         Args:
             frame_number: The current frame number
-            playback: The GraphPlayback instance for event access
+            playback: The Playback instance for event access
             
         Returns:
             Plotly figure with video frame and overlays

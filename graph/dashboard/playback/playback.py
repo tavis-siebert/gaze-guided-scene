@@ -9,7 +9,7 @@ import math
 from graph.dashboard.playback.event import GraphEvent
 
 
-class GraphPlayback:
+class Playback:
     """Manages graph construction playback from a trace file.
     
     This class loads events from a trace file and builds the graph incrementally.
