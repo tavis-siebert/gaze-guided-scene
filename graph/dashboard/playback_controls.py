@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 
 from graph.dashboard.graph_constants import (
     PLAYBACK_SPEEDS, PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX,
-    PLAYBACK_SPEED_DEFAULT, PLAYBACK_SPEED_MARKS
+    PLAYBACK_SPEED_DEFAULT, PLAYBACK_SPEED_MARKS, FPS
 )
 
 
@@ -42,6 +42,20 @@ class PlaybackControls:
         # Return sorted list of unique frames where new nodes appeared
         return sorted(set(node_frames.values()))
     
+    def frame_to_time_str(self, frame_number: int) -> str:
+        """Convert frame number to time string in MM:SS format.
+        
+        Args:
+            frame_number: Frame number to convert
+            
+        Returns:
+            Time string in MM:SS format
+        """
+        total_seconds = int(frame_number / FPS)
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        return f"{minutes:02d}:{seconds:02d}"
+    
     def create_layout(self, min_frame: int, max_frame: int, current_frame: int = None, graph_playback = None) -> dbc.Card:
         """Create a layout with playback controls.
         
@@ -70,6 +84,10 @@ class PlaybackControls:
                         "label": "",  # Empty label to hide text but keep marker
                     }
             
+        # Convert frames to time strings
+        current_time_str = self.frame_to_time_str(current_frame)
+        total_time_str = self.frame_to_time_str(max_frame)
+        
         return dbc.Card([
             dbc.CardHeader("Playback Controls"),
             dbc.CardBody([
@@ -83,6 +101,15 @@ class PlaybackControls:
                         ]),
                     ], width="auto", className="me-3"),
                     
+                    # Current time display
+                    dbc.Col([
+                        html.Div(
+                            id="current-time-display",
+                            children=current_time_str,
+                            className="text-end me-2"
+                        ),
+                    ], width="auto", style={"minWidth": "50px"}),
+                    
                     # Frame slider
                     dbc.Col([
                         dcc.Slider(
@@ -95,6 +122,15 @@ class PlaybackControls:
                             tooltip={"placement": "bottom", "always_visible": True}
                         ),
                     ], className="flex-grow-1"),
+                    
+                    # Total time display
+                    dbc.Col([
+                        html.Div(
+                            id="total-time-display",
+                            children=total_time_str,
+                            className="text-start ms-2"
+                        ),
+                    ], width="auto", style={"minWidth": "50px"}),
                     
                     # Speed control
                     dbc.Col([
@@ -149,6 +185,21 @@ class PlaybackControls:
             }
             
             return new_state, not is_playing, "⏸️" if is_playing else "▶️"
+    
+        @app.callback(
+            Output("current-time-display", "children"),
+            [Input("frame-slider", "value")]
+        )
+        def update_current_time(frame_number):
+            """Update the current time display based on the frame number.
+            
+            Args:
+                frame_number: Current frame number
+                
+            Returns:
+                Current time string in MM:SS format
+            """
+            return self.frame_to_time_str(frame_number)
     
     def determine_frame_number(
         self, 
