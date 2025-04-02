@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple, Any, Optional, NamedTuple
 from collections import defaultdict
 from tqdm import tqdm
 
-from graph.graph import Graph
+from graph.graph import Graph, GraphCheckpoint
 from graph.node import Node
 from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
 from graph.utils import get_roi
@@ -21,49 +21,6 @@ from logger import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)
-
-class GraphCheckpoint:
-    """
-    Encapsulates graph state at a specific timestamp.
-    
-    Stores features, edges, and labels for a graph at a given frame.
-    """
-    
-    def __init__(
-        self, 
-        node_features: torch.Tensor,
-        edge_index: torch.Tensor,
-        edge_attr: torch.Tensor,
-        action_labels: Dict[str, torch.Tensor]
-    ):
-        """
-        Initialize a new checkpoint.
-        
-        Args:
-            node_features: Tensor of node features
-            edge_index: Tensor of edge indices
-            edge_attr: Tensor of edge attributes
-            action_labels: Dictionary of action labels
-        """
-        self.node_features = node_features
-        self.edge_index = edge_index
-        self.edge_attr = edge_attr
-        self.action_labels = action_labels
-    
-    @property
-    def dataset_format(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        """
-        Get data in dataset-compatible format.
-        
-        Returns:
-            Tuple of (x, edge_index, edge_attr, y) where y is the full action_labels dictionary
-        """
-        return (
-            self.node_features,
-            self.edge_index,
-            self.edge_attr,
-            self.action_labels
-        )
 
 class GraphBuilder:
     """
@@ -136,7 +93,6 @@ class GraphBuilder:
             'frame_num': 0,
             'relative_frame_num': 0
         }
-        checkpoints = []
 
         # Process video frames
         for frame, _, is_black_frame in video_processor:
@@ -145,7 +101,7 @@ class GraphBuilder:
             # Process current frame
             should_continue = self._process_frame(
                 frame, is_black_frame, frame_num, scene_graph, tracking,
-                timestamps, gaze_data, records, vid_length, checkpoints
+                timestamps, gaze_data, records, vid_length
             )
             
             if not should_continue:
@@ -164,7 +120,7 @@ class GraphBuilder:
             logger.info("\nFinal graph structure:")
             scene_graph.print_graph()
         
-        return checkpoints
+        return scene_graph.get_checkpoints()
 
     def _process_frame(
         self, 
@@ -176,8 +132,7 @@ class GraphBuilder:
         timestamps: List[int],
         gaze_data: Any,
         records: List[Record],
-        vid_length: int,
-        checkpoints: List[GraphCheckpoint]
+        vid_length: int
     ) -> bool:
         """Process a single frame and update the scene graph accordingly.
         
@@ -201,10 +156,8 @@ class GraphBuilder:
 
         # Check if we need to save graph state at this timestamp
         if scene_graph.edges and (frame_num in timestamps or frame_num >= len(gaze_data)):
-            checkpoint = self._save_graph_state(scene_graph, tracking, records, frame_num, 
-                                              timestamps, gaze_data, vid_length)
-            if checkpoint:
-                checkpoints.append(checkpoint)
+            self._save_graph_state(scene_graph, tracking, records, frame_num, 
+                                  timestamps, gaze_data, vid_length)
             
             # Exit if we've reached the final condition
             if frame_num == timestamps[-1] or frame_num >= len(gaze_data):
@@ -361,22 +314,12 @@ class GraphBuilder:
         timestamps: List[int],
         gaze_data: Any,
         vid_length: int
-    ) -> Optional[GraphCheckpoint]:
+    ) -> None:
         """
         Save the current state of the graph at a timestamp.
-        
-        Returns:
-            GraphCheckpoint object if successful, None otherwise
         """
         # Get future action labels
         action_labels = get_future_action_labels(records, frame_num, self.action_to_idx)
-        if action_labels is None:
-            logger.info(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
-            return None
-        
-        logger.info(f"\n[Frame {frame_num}] Saving graph state:")
-        logger.info(f"- Current nodes: {scene_graph.num_nodes}")
-        logger.info(f"- Edge count: {len(scene_graph.edges)}")
         
         # Calculate timestamp fraction
         timestamp_ratios = self.config.dataset.timestamps[self.split]
@@ -386,49 +329,16 @@ class GraphBuilder:
         else:
             timestamp_fraction = frame_num / vid_length
         
-        # Get graph features using the scene graph's method
-        node_features, edge_indices, edge_features = scene_graph.get_feature_tensor(
+        # Save checkpoint directly in the graph
+        scene_graph.save_checkpoint(
             vid_length,
             frame_num,
             tracking['relative_frame_num'],
             timestamp_fraction,
             self.labels_to_int,
-            len(self.obj_labels)
+            len(self.obj_labels),
+            action_labels
         )
-        
-        # Create and return a checkpoint
-        return GraphCheckpoint(
-            node_features=node_features,
-            edge_index=edge_indices,
-            edge_attr=edge_features,
-            action_labels=action_labels
-        )
-
-def dataset_from_checkpoints(checkpoints: List[GraphCheckpoint]) -> Dict[str, List]:
-    """
-    Convert a list of checkpoints to a dataset dictionary.
-    
-    Args:
-        checkpoints: List of GraphCheckpoint objects
-        
-    Returns:
-        Dictionary with x, edge_index, edge_attr, and y keys where y contains all action label data
-    """
-    dataset = {
-        'x': [],
-        'edge_index': [],
-        'edge_attr': [],
-        'y': []
-    }
-    
-    for checkpoint in checkpoints:
-        x, edge_index, edge_attr, y = checkpoint.dataset_format
-        dataset['x'].append(x)
-        dataset['edge_index'].append(edge_index)
-        dataset['edge_attr'].append(edge_attr)
-        dataset['y'].append(y)
-    
-    return dataset
 
 def build_graph(
     video_list: List[str], 
@@ -465,12 +375,25 @@ def build_graph(
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
         
-        # Process video and collect individual checkpoints
+        # Process video and collect checkpoints
         video_checkpoints = builder.process_video(video_name, print_graph)
         
-        # Convert individual results into checkpoints
-        for checkpoint in video_checkpoints:
-            all_checkpoints.append(checkpoint)
+        # Add video checkpoints to overall list
+        all_checkpoints.extend(video_checkpoints)
     
-    # Convert checkpoints to final dataset format
-    return dataset_from_checkpoints(all_checkpoints)
+    # Convert all checkpoints to dataset format
+    dataset = {
+        'x': [],
+        'edge_index': [],
+        'edge_attr': [],
+        'y': []
+    }
+    
+    for checkpoint in all_checkpoints:
+        x, edge_index, edge_attr, y = checkpoint.dataset_format
+        dataset['x'].append(x)
+        dataset['edge_index'].append(edge_index)
+        dataset['edge_attr'].append(edge_attr)
+        dataset['y'].append(y)
+    
+    return dataset

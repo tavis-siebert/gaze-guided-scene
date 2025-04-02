@@ -21,6 +21,49 @@ EdgeId = Tuple[NodeId, NodeId]  # (source_id, target_id)
 # Initialize logger for this module
 logger = get_logger(__name__)
 
+class GraphCheckpoint:
+    """
+    Encapsulates graph state at a specific timestamp.
+    
+    Stores features, edges, and labels for a graph at a given frame.
+    """
+    
+    def __init__(
+        self, 
+        node_features: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: torch.Tensor,
+        action_labels: Dict[str, torch.Tensor]
+    ):
+        """
+        Initialize a new checkpoint.
+        
+        Args:
+            node_features: Tensor of node features
+            edge_index: Tensor of edge indices
+            edge_attr: Tensor of edge attributes
+            action_labels: Dictionary of action labels
+        """
+        self.node_features = node_features
+        self.edge_index = edge_index
+        self.edge_attr = edge_attr
+        self.action_labels = action_labels
+    
+    @property
+    def dataset_format(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Get data in dataset-compatible format.
+        
+        Returns:
+            Tuple of (x, edge_index, edge_attr, y) where y is the full action_labels dictionary
+        """
+        return (
+            self.node_features,
+            self.edge_index,
+            self.edge_attr,
+            self.action_labels
+        )
+
 class Graph:
     """
     A scene graph representing objects and their spatial relationships.
@@ -49,6 +92,9 @@ class Graph:
         
         # The tracer will be set from outside (in build_graph.py)
         self.tracer = None
+        
+        # Store checkpoints
+        self.checkpoints: List[GraphCheckpoint] = []
         
     def get_all_nodes(self) -> List[Node]:
         """
@@ -349,3 +395,94 @@ class Graph:
             if edge.source_id == source_id and edge.target_id == target_id:
                 return edge
         return None
+        
+    def save_checkpoint(
+        self,
+        video_length: int,
+        current_frame: int,
+        relative_frame: int,
+        timestamp_fraction: float,
+        labels_to_int: Dict[str, int],
+        num_object_classes: int,
+        action_labels: Dict[str, torch.Tensor]
+    ) -> Optional[GraphCheckpoint]:
+        """
+        Save the current state of the graph at a timestamp.
+        
+        Args:
+            video_length: Total length of the video
+            current_frame: Current frame number
+            relative_frame: Relative frame number
+            timestamp_fraction: Fraction of video at current timestamp
+            labels_to_int: Mapping from object labels to class indices
+            num_object_classes: Number of object classes
+            action_labels: Dictionary of action labels
+            
+        Returns:
+            GraphCheckpoint object if successful, None otherwise
+        """
+        if action_labels is None:
+            logger.info(f"[Frame {current_frame}] Skipping checkpoint - insufficient action data")
+            return None
+            
+        if not self.edges:
+            logger.info(f"[Frame {current_frame}] Skipping checkpoint - no edges in graph")
+            return None
+            
+        logger.info(f"\n[Frame {current_frame}] Saving graph state:")
+        logger.info(f"- Current nodes: {self.num_nodes}")
+        logger.info(f"- Edge count: {len(self.edges)}")
+        
+        # Get graph features
+        node_features, edge_indices, edge_features = self.get_feature_tensor(
+            video_length,
+            current_frame,
+            relative_frame,
+            timestamp_fraction,
+            labels_to_int,
+            num_object_classes
+        )
+        
+        # Create checkpoint
+        checkpoint = GraphCheckpoint(
+            node_features=node_features,
+            edge_index=edge_indices,
+            edge_attr=edge_features,
+            action_labels=action_labels
+        )
+        
+        # Save checkpoint
+        self.checkpoints.append(checkpoint)
+        return checkpoint
+        
+    def get_checkpoints(self) -> List[GraphCheckpoint]:
+        """
+        Get all saved checkpoints.
+        
+        Returns:
+            List of GraphCheckpoint objects
+        """
+        return self.checkpoints
+        
+    def dataset_format(self) -> Dict[str, List]:
+        """
+        Convert all checkpoints to a dataset dictionary.
+        
+        Returns:
+            Dictionary with x, edge_index, edge_attr, and y keys
+        """
+        dataset = {
+            'x': [],
+            'edge_index': [],
+            'edge_attr': [],
+            'y': []
+        }
+        
+        for checkpoint in self.checkpoints:
+            x, edge_index, edge_attr, y = checkpoint.dataset_format
+            dataset['x'].append(x)
+            dataset['edge_index'].append(edge_index)
+            dataset['edge_attr'].append(edge_attr)
+            dataset['y'].append(y)
+        
+        return dataset
