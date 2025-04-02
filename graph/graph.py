@@ -74,9 +74,7 @@ class Graph:
     def add_node(
         self, 
         label: str, 
-        visit: VisitRecord, 
-        keypoints: List[Any], 
-        descriptors: List[Any]
+        visit: VisitRecord
     ) -> Node:
         """
         Add a new node to the graph.
@@ -84,8 +82,6 @@ class Graph:
         Args:
             label: The object label
             visit: The visit period [start_frame, end_frame]
-            keypoints: The keypoints from feature detector
-            descriptors: The descriptors from feature detector
             
         Returns:
             The newly created node
@@ -93,9 +89,7 @@ class Graph:
         node = Node.create(
             node_id=self.num_nodes,
             label=label,
-            visit=visit,
-            keypoints=keypoints,
-            descriptors=descriptors
+            visit=visit
         )
         # Store the node in our nodes dictionary
         self.nodes[node.id] = node
@@ -179,12 +173,9 @@ class Graph:
         self, 
         label_counts: Dict[str, int], 
         visit: VisitRecord, 
-        keypoints: List[Any], 
-        descriptors: List[Any], 
         prev_gaze_pos: GazePosition, 
         curr_gaze_pos: GazePosition, 
-        num_bins: int = 8, 
-        inlier_thresh: float = 0.3
+        num_bins: int = 8
     ) -> Node:
         """
         Update the graph with a new observation.
@@ -192,12 +183,9 @@ class Graph:
         Args:
             label_counts: Dictionary of object labels and their counts
             visit: First and last frame of the object fixation
-            keypoints: SIFT keypoints for the object
-            descriptors: SIFT descriptors for the object
             prev_gaze_pos: Previous gaze position (x,y)
             curr_gaze_pos: Current gaze position (x,y)
             num_bins: Number of angle bins
-            inlier_thresh: Inlier threshold for RANSAC
             
         Returns:
             The next node (either existing or newly created)
@@ -206,9 +194,7 @@ class Graph:
         most_likely_label = max(label_counts, key=label_counts.get)
         
         # Try to find matching node
-        matching_node = self._find_matching_node(
-            keypoints, descriptors, most_likely_label, inlier_thresh
-        )
+        matching_node = self._find_matching_node(most_likely_label)
         next_node = Node.merge(visit, matching_node)
         
         # Create new node if no match found
@@ -223,7 +209,7 @@ class Graph:
             )
             logger.info(f"Node {next_node.id} updated with new visit at frames {visit}")
         else:
-            next_node = self.add_node(most_likely_label, visit, keypoints, descriptors)
+            next_node = self.add_node(most_likely_label, visit)
         
         # Connect nodes if not already connected and not self-loop
         if (next_node != self.current_node and 
@@ -242,19 +228,13 @@ class Graph:
     
     def _find_matching_node(
         self,
-        keypoints: List[Any], 
-        descriptors: List[Any], 
-        label: str, 
-        inlier_thresh: float
+        label: str
     ) -> Optional[Node]:
         """
         Find a matching node by searching from current node.
         
         Args:
-            keypoints: SIFT keypoints for the object
-            descriptors: SIFT descriptors for the object
             label: Object label to match
-            inlier_thresh: Inlier threshold for RANSAC
             
         Returns:
             Matching node if found, None otherwise
@@ -263,10 +243,7 @@ class Graph:
         return Node.find_matching(
             graph=self,
             curr_node=self.current_node, 
-            keypoints=keypoints, 
-            descriptors=descriptors, 
-            label=label, 
-            inlier_thresh=inlier_thresh
+            label=label
         )
     
     def print_graph(self, use_degrees: bool = True) -> None:
