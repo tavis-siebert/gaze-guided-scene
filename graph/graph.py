@@ -283,7 +283,7 @@ class Graph:
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees, self.edges, self)
     
-    def get_features_tensor(
+    def get_feature_tensor(
         self,
         video_length: int,
         current_frame: int,
@@ -310,7 +310,7 @@ class Graph:
         nodes = []
         for node in self.nodes.values():
             if node.id >= 0:  # Skip root node
-                features_tensor = node.get_features_tensor(
+                features_tensor = node.get_feature_tensor(
                     video_length,
                     current_frame,
                     relative_frame,
@@ -349,7 +349,7 @@ class Graph:
             edge_index[1].append(edge.target_id)
             
             # Add edge features
-            edge_attrs.append(edge.get_features_tensor())
+            edge_attrs.append(edge.get_feature_tensor())
         
         # Convert to tensors
         edge_index_tensor = torch.tensor(edge_index, dtype=torch.long) if edge_index[0] else torch.tensor([[],[]], dtype=torch.long)

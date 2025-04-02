@@ -126,7 +126,7 @@ class Edge:
             "curr_pos": self.curr_gaze_pos
         }
     
-    def get_features_tensor(self) -> EdgeFeature:
+    def get_feature_tensor(self) -> EdgeFeature:
         """
         Get features for this edge as a tensor, with values ready for machine learning.
         
@@ -172,7 +172,7 @@ class Edge:
             edge_index[1].append(edge.target_id)
             
         # Extract edge features
-        edge_attr = [edge.get_features_tensor() for edge in edges]
+        edge_attr = [edge.get_feature_tensor() for edge in edges]
         
         return torch.tensor(edge_index, dtype=torch.long), torch.stack(edge_attr)
     

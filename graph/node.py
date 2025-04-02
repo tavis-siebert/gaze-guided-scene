@@ -218,7 +218,7 @@ class Node:
             "object_label": self.object_label
         }
     
-    def get_features_tensor(
+    def get_feature_tensor(
         self,
         video_length: int,
         current_frame: int,

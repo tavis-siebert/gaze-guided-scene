@@ -400,7 +400,7 @@ class GraphBuilder:
             timestamp_fraction = frame_num / vid_length
         
         # Get graph features using the scene graph's method
-        node_features, edge_indices, edge_features = scene_graph.get_features_tensor(
+        node_features, edge_indices, edge_features = scene_graph.get_feature_tensor(
             vid_length,
             frame_num,
             tracking['relative_frame_num'],
