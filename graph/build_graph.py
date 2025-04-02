@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from graph.graph import Graph, GraphCheckpoint
 from graph.node import Node
-from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
+from graph.io import Record, DataLoader, VideoProcessor
 from graph.utils import get_roi
 from graph.graph_tracer import GraphTracer
 from models.clip import ClipModel
@@ -20,6 +20,62 @@ from config.config_utils import DotDict
 from logger import get_logger
 
 logger = get_logger(__name__)
+
+def get_future_action_labels(
+    records: List[Record], 
+    current_frame: int, 
+    action_to_class: Dict[Tuple[int, int], int]
+) -> Optional[Dict[str, torch.Tensor]]:
+    """
+    Create action label tensors for future actions.
+    
+    Args:
+        records: List of action records for a video
+        current_frame: Current frame number
+        action_to_class: Mapping from action tuples to class indices
+        
+    Returns:
+        Dictionary containing:
+        - 'next_action': Tensor of the next action class
+        - 'future_actions': Binary tensor indicating which actions occur in the future
+        - 'future_actions_ordered': Ordered tensor of future action classes
+    """
+    num_action_classes = len(action_to_class)
+    
+    # Split records into past and future
+    past_records = [record for record in records if record.end_frame <= current_frame]
+    future_records = [record for record in records if record.start_frame > current_frame]
+    
+    # Ensure we have enough data
+    if len(past_records) < 3 or len(future_records) < 3:
+        return None
+    
+    # Sort future records by end frame
+    future_records = sorted(future_records, key=lambda record: record.end_frame)
+    
+    # Extract future actions
+    future_actions = [
+        action_to_class[(record.label[0], record.label[1])] 
+        for record in future_records if (record.label[0], record.label[1]) in action_to_class
+    ]
+    
+    # If no valid future actions, return None
+    if not future_actions:
+        return None
+        
+    # Create target tensors
+    next_action_label = torch.tensor(future_actions[0], dtype=torch.long)
+    future_action_labels_ordered = torch.tensor(future_actions, dtype=torch.long)
+    
+    # Create binary target vector
+    future_action_labels = torch.zeros(num_action_classes, dtype=torch.long)
+    future_action_labels[list(set(future_actions))] = 1
+    
+    return {
+        'next_action': next_action_label,
+        'future_actions': future_action_labels,
+        'future_actions_ordered': future_action_labels_ordered
+    }
 
 class GraphBuilder:
     """
@@ -67,7 +123,35 @@ class GraphBuilder:
         self.vid_length = 0
         self.timestamps = []
     
-    def process_video(self, video_name: str, print_graph: bool = False) -> List[GraphCheckpoint]:
+    @staticmethod
+    def build_dataset_from_graphs(graphs: List[Graph]) -> Dict:
+        """
+        Convert a list of graphs to a dataset ready for model training.
+        
+        Args:
+            graphs: List of Graph objects with checkpoints
+            
+        Returns:
+            Dictionary with x, edge_index, edge_attr, and y keys for all videos
+        """
+        dataset = {
+            'x': [],
+            'edge_index': [],
+            'edge_attr': [],
+            'y': []
+        }
+        
+        for graph in graphs:
+            for checkpoint in graph.get_checkpoints():
+                x, edge_index, edge_attr, y = checkpoint.dataset_format
+                dataset['x'].append(x)
+                dataset['edge_index'].append(edge_index)
+                dataset['edge_attr'].append(edge_attr)
+                dataset['y'].append(y)
+        
+        return dataset
+    
+    def process_video(self, video_name: str, print_graph: bool = False) -> Graph:
         """
         Process a video to build its scene graph.
         
@@ -76,7 +160,7 @@ class GraphBuilder:
             print_graph: Whether to print the final graph structure
             
         Returns:
-            List of GraphCheckpoint objects representing graph states at different timestamps
+            Graph instance representing the scene graph
         """
         logger.info(f"\nProcessing video: {video_name}")
         
@@ -92,7 +176,11 @@ class GraphBuilder:
         self.vid_length = self.vid_lengths[video_name]
         self.timestamps = [int(ratio * self.vid_length) for ratio in sorted(self.config.dataset.timestamps[self.split])]
         
-        self.scene_graph = Graph()
+        self.scene_graph = Graph(
+            labels_to_int=self.labels_to_int,
+            num_object_classes=len(self.obj_labels),
+            video_length=self.vid_length
+        )
         self.scene_graph.tracer = self.tracer
         
         self._reset_tracking_state()
@@ -113,7 +201,7 @@ class GraphBuilder:
             logger.info("\nFinal graph structure:")
             self.scene_graph.print_graph()
         
-        return self.scene_graph.get_checkpoints()
+        return self.scene_graph
 
     def _reset_tracking_state(self):
         """Reset all tracking state variables."""
@@ -283,12 +371,9 @@ class GraphBuilder:
             timestamp_fraction = self.frame_num / self.vid_length
         
         self.scene_graph.save_checkpoint(
-            self.vid_length,
             self.frame_num,
             self.relative_frame_num,
             timestamp_fraction,
-            self.labels_to_int,
-            len(self.obj_labels),
             action_labels
         )
 
@@ -318,29 +403,14 @@ def build_graph(
     
     builder = GraphBuilder(config, split, enable_tracing=enable_tracing)
     
-    all_checkpoints = []
+    all_graphs = []
     progress_desc = desc or f"Processing {split} videos"
     
     for video_name in tqdm(video_list, desc=progress_desc):
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
         
-        video_checkpoints = builder.process_video(video_name, print_graph)
-        
-        all_checkpoints.extend(video_checkpoints)
+        graph = builder.process_video(video_name, print_graph)
+        all_graphs.append(graph)
     
-    dataset = {
-        'x': [],
-        'edge_index': [],
-        'edge_attr': [],
-        'y': []
-    }
-    
-    for checkpoint in all_checkpoints:
-        x, edge_index, edge_attr, y = checkpoint.dataset_format
-        dataset['x'].append(x)
-        dataset['edge_index'].append(edge_index)
-        dataset['edge_attr'].append(edge_attr)
-        dataset['y'].append(y)
-    
-    return dataset
+    return GraphBuilder.build_dataset_from_graphs(all_graphs)
