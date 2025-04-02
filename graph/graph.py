@@ -290,8 +290,7 @@ class Graph:
         relative_frame: int,
         timestamp_fraction: float,
         labels_to_int: Dict[str, int],
-        num_object_classes: int,
-        node_data: Optional[Dict[int, torch.Tensor]] = None
+        num_object_classes: int
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get graph features as tensors for model input.
@@ -303,53 +302,37 @@ class Graph:
             timestamp_fraction: Fraction of video at current timestamp
             labels_to_int: Mapping from object labels to class indices
             num_object_classes: Number of object classes
-            node_data: Optional dictionary of pre-computed node features
             
         Returns:
             Tuple of (node_features, edge_indices, edge_features)
         """
-        # If node_data is provided, use it
-        if node_data is not None and node_data:
-            # Stack node features
-            node_features = torch.stack(list(node_data.values()))
-            
-            # Normalize visit duration by relative frame number
-            node_features[:, 0] /= relative_frame
-            
-            # Normalize number of visits by maximum value
-            if node_features[:, 1].max() > 0:
-                node_features[:, 1] /= node_features[:, 1].max()
-            
-            # Set timestamp fraction
-            node_features[:, 4] = timestamp_fraction
-        else:
-            # Collect node features (skipping root node)
-            nodes = []
-            for node in self.nodes.values():
-                if node.id >= 0:  # Skip root node
-                    features_tensor = node.get_features_tensor(
-                        video_length,
-                        current_frame,
-                        relative_frame,
-                        timestamp_fraction,
-                        labels_to_int,
-                        num_object_classes
-                    )
-                    nodes.append(features_tensor)
-            
-            # Handle empty graph case
-            if not nodes:
-                return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
-            
-            # Stack node features
-            node_features = torch.stack(nodes)
-            
-            # Normalize visit duration by relative frame number
-            node_features[:, 0] /= relative_frame
-            
-            # Normalize number of visits by maximum value
-            if node_features[:, 1].max() > 0:
-                node_features[:, 1] /= node_features[:, 1].max()
+        # Collect node features (skipping root node)
+        nodes = []
+        for node in self.nodes.values():
+            if node.id >= 0:  # Skip root node
+                features_tensor = node.get_features_tensor(
+                    video_length,
+                    current_frame,
+                    relative_frame,
+                    timestamp_fraction,
+                    labels_to_int,
+                    num_object_classes
+                )
+                nodes.append(features_tensor)
+        
+        # Handle empty graph case
+        if not nodes:
+            return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
+        
+        # Stack node features
+        node_features = torch.stack(nodes)
+        
+        # Normalize visit duration by relative frame number
+        node_features[:, 0] /= relative_frame
+        
+        # Normalize number of visits by maximum value
+        if node_features[:, 1].max() > 0:
+            node_features[:, 1] /= node_features[:, 1].max()
         
         # Extract edge data in the original format
         edge_index = [[], []]
