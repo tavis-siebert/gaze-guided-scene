@@ -235,7 +235,7 @@ class GraphBuilder:
             return True
 
         if self.scene_graph.edges and (self.frame_num in self.timestamps or self.frame_num >= len(self.gaze_data)):
-            self._save_graph_state()
+            self._save_graph_checkpoint()
             
             if self.frame_num == self.timestamps[-1] or self.frame_num >= len(self.gaze_data):
                 logger.info(f"[Frame {self.frame_num}] Reached final timestamp or end of gaze data")
@@ -357,12 +357,23 @@ class GraphBuilder:
             last_gaze_pos
         )
     
-    def _save_graph_state(self) -> None:
+    def _save_graph_checkpoint(self) -> None:
         """
-        Save the current state of the graph at a timestamp.
+        Create and save a checkpoint of the current graph state.
         """
         action_labels = get_future_action_labels(self.records_current, self.frame_num, self.action_to_idx)
         
+        # Skip checkpoint if there's insufficient action data
+        if action_labels is None:
+            logger.info(f"[Frame {self.frame_num}] Skipping checkpoint - insufficient action data")
+            return
+            
+        # Skip checkpoint if there are no edges in the graph
+        if not self.scene_graph.edges:
+            logger.info(f"[Frame {self.frame_num}] Skipping checkpoint - no edges in graph")
+            return
+        
+        # Calculate timestamp fraction
         timestamp_ratios = self.config.dataset.timestamps[self.split]
         if self.frame_num < len(self.gaze_data):
             timestamp_idx = self.timestamps.index(self.frame_num) 
@@ -370,12 +381,29 @@ class GraphBuilder:
         else:
             timestamp_fraction = self.frame_num / self.vid_length
         
-        self.scene_graph.save_checkpoint(
+        logger.info(f"\n[Frame {self.frame_num}] Saving graph state:")
+        logger.info(f"- Current nodes: {self.scene_graph.num_nodes}")
+        logger.info(f"- Edge count: {len(self.scene_graph.edges)}")
+        
+        # Get feature tensors
+        node_features, edge_indices, edge_features = self.scene_graph.get_feature_tensor(
+            self.scene_graph.video_length,
             self.frame_num,
             self.relative_frame_num,
             timestamp_fraction,
-            action_labels
+            self.scene_graph.labels_to_int,
+            self.scene_graph.num_object_classes
         )
+        
+        # Create checkpoint and add to graph
+        checkpoint = GraphCheckpoint(
+            node_features=node_features,
+            edge_index=edge_indices,
+            edge_attr=edge_features,
+            action_labels=action_labels
+        )
+        
+        self.scene_graph.checkpoints.append(checkpoint)
 
 def build_graph(
     video_list: List[str], 

@@ -372,56 +372,6 @@ class Graph:
                 return edge
         return None
         
-    def save_checkpoint(
-        self,
-        current_frame: int,
-        relative_frame: int,
-        timestamp_fraction: float,
-        action_labels: Dict[str, torch.Tensor]
-    ) -> Optional[GraphCheckpoint]:
-        """
-        Save the current state of the graph at a timestamp.
-        
-        Args:
-            current_frame: Current frame number
-            relative_frame: Relative frame number
-            timestamp_fraction: Fraction of video at current timestamp
-            action_labels: Dictionary of action labels
-            
-        Returns:
-            GraphCheckpoint object if successful, None otherwise
-        """
-        if action_labels is None:
-            logger.info(f"[Frame {current_frame}] Skipping checkpoint - insufficient action data")
-            return None
-            
-        if not self.edges:
-            logger.info(f"[Frame {current_frame}] Skipping checkpoint - no edges in graph")
-            return None
-            
-        logger.info(f"\n[Frame {current_frame}] Saving graph state:")
-        logger.info(f"- Current nodes: {self.num_nodes}")
-        logger.info(f"- Edge count: {len(self.edges)}")
-        
-        node_features, edge_indices, edge_features = self.get_feature_tensor(
-            self.video_length,
-            current_frame,
-            relative_frame,
-            timestamp_fraction,
-            self.labels_to_int,
-            self.num_object_classes
-        )
-        
-        checkpoint = GraphCheckpoint(
-            node_features=node_features,
-            edge_index=edge_indices,
-            edge_attr=edge_features,
-            action_labels=action_labels
-        )
-        
-        self.checkpoints.append(checkpoint)
-        return checkpoint
-        
     def get_checkpoints(self) -> List[GraphCheckpoint]:
         """
         Get all saved checkpoints.
