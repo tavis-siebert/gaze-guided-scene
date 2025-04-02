@@ -144,12 +144,11 @@ class Edge:
         prev_x, prev_y = features["prev_pos"]
         curr_x, curr_y = features["curr_pos"]
         
-        # Combine all features into a single tensor
+        # Format edge data to match the original implementation
+        # (contains only gaze positions, not the angle and distance)
         return torch.tensor([
             prev_x, prev_y,          # Previous gaze position
-            curr_x, curr_y,          # Current gaze position
-            features["angle"],       # Discretized angle bin
-            features["distance"]     # Euclidean distance
+            curr_x, curr_y           # Current gaze position
         ])
     
     @staticmethod

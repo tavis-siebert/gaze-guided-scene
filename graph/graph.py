@@ -134,7 +134,7 @@ class Graph:
         prev_gaze_pos: GazePosition, 
         curr_gaze_pos: GazePosition, 
         num_bins: int = 8
-    ) -> None:
+    ) -> Tuple[Optional[Edge], Optional[Edge]]:
         """
         Add an edge between two nodes.
         
@@ -144,6 +144,9 @@ class Graph:
             prev_gaze_pos: The previous gaze position (x,y)
             curr_gaze_pos: The current gaze position (x,y)
             num_bins: The number of angle bins
+            
+        Returns:
+            Tuple of (forward_edge, backward_edge) - backward_edge may be None
         """
         if not self.has_neighbor(source_node.id, target_node.id):
             # Check if source is root node
@@ -167,6 +170,10 @@ class Graph:
             if backward_edge:
                 self.edges.append(backward_edge)
                 self.adjacency[target_node.id].append(source_node.id)
+                
+            return forward_edge, backward_edge
+        
+        return None, None
     
     def update_graph(
         self, 
@@ -284,7 +291,7 @@ class Graph:
         timestamp_fraction: float,
         labels_to_int: Dict[str, int],
         num_object_classes: int,
-        normalize: bool = True
+        node_data: Optional[Dict[int, torch.Tensor]] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get graph features as tensors for model input.
@@ -296,34 +303,16 @@ class Graph:
             timestamp_fraction: Fraction of video at current timestamp
             labels_to_int: Mapping from object labels to class indices
             num_object_classes: Number of object classes
-            normalize: Whether to normalize the node features
+            node_data: Optional dictionary of pre-computed node features
             
         Returns:
             Tuple of (node_features, edge_indices, edge_features)
         """
-        # Collect node features (skipping root node)
-        nodes = []
-        for node in self.nodes.values():
-            if node.id >= 0:  # Skip root node
-                features_tensor = node.get_features_tensor(
-                    video_length,
-                    current_frame,
-                    relative_frame,
-                    timestamp_fraction,
-                    labels_to_int,
-                    num_object_classes
-                )
-                nodes.append(features_tensor)
-        
-        # Handle empty graph case
-        if not nodes:
-            return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
-        
-        # Stack node features
-        node_features = torch.stack(nodes)
-        
-        # Normalize node features if requested
-        if normalize:
+        # If node_data is provided, use it
+        if node_data is not None and node_data:
+            # Stack node features
+            node_features = torch.stack(list(node_data.values()))
+            
             # Normalize visit duration by relative frame number
             node_features[:, 0] /= relative_frame
             
@@ -333,11 +322,57 @@ class Graph:
             
             # Set timestamp fraction
             node_features[:, 4] = timestamp_fraction
+        else:
+            # Collect node features (skipping root node)
+            nodes = []
+            for node in self.nodes.values():
+                if node.id >= 0:  # Skip root node
+                    features_tensor = node.get_features_tensor(
+                        video_length,
+                        current_frame,
+                        relative_frame,
+                        timestamp_fraction,
+                        labels_to_int,
+                        num_object_classes
+                    )
+                    nodes.append(features_tensor)
+            
+            # Handle empty graph case
+            if not nodes:
+                return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
+            
+            # Stack node features
+            node_features = torch.stack(nodes)
+            
+            # Normalize visit duration by relative frame number
+            node_features[:, 0] /= relative_frame
+            
+            # Normalize number of visits by maximum value
+            if node_features[:, 1].max() > 0:
+                node_features[:, 1] /= node_features[:, 1].max()
         
-        # Get edge features using Edge's static method
-        edge_indices, edge_features = Edge.get_edges_tensor(self.edges)
+        # Extract edge data in the original format
+        edge_index = [[], []]
+        edge_attrs = []
         
-        return node_features, edge_indices, edge_features
+        # Process all edges (skipping edges to/from root)
+        for edge in self.edges:
+            # Skip edges connecting to root
+            if edge.source_id < 0 or edge.target_id < 0:
+                continue
+                
+            # Add edge indices
+            edge_index[0].append(edge.source_id)
+            edge_index[1].append(edge.target_id)
+            
+            # Add edge features
+            edge_attrs.append(edge.get_features_tensor())
+        
+        # Convert to tensors
+        edge_index_tensor = torch.tensor(edge_index, dtype=torch.long) if edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
+        edge_attr_tensor = torch.stack(edge_attrs) if edge_attrs else torch.tensor([])
+            
+        return node_features, edge_index_tensor, edge_attr_tensor
     
     def get_edge(self, source_id: NodeId, target_id: NodeId) -> Optional[Edge]:
         """
