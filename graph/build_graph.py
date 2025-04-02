@@ -51,18 +51,18 @@ class GraphCheckpoint:
         self.action_labels = action_labels
     
     @property
-    def dataset_format(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def dataset_format(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Get data in dataset-compatible format.
         
         Returns:
-            Tuple of (x, edge_index, edge_attr, y) where y is the future_actions tensor
+            Tuple of (x, edge_index, edge_attr, y) where y is the full action_labels dictionary
         """
         return (
             self.node_features,
             self.edge_index,
             self.edge_attr,
-            self.action_labels['future_actions'].unsqueeze(0)
+            self.action_labels
         )
 
 class GraphBuilder:
@@ -101,7 +101,7 @@ class GraphBuilder:
         self.records, self.records_by_vid = DataLoader.load_records(ann_file)
         self.action_to_idx = DataLoader.create_action_index(self.records)
     
-    def process_video(self, video_name: str, print_graph: bool = False) -> Dict[str, List]:
+    def process_video(self, video_name: str, print_graph: bool = False) -> List[GraphCheckpoint]:
         """
         Process a video to build its scene graph.
         
@@ -110,7 +110,7 @@ class GraphBuilder:
             print_graph: Whether to print the final graph structure
             
         Returns:
-            Dictionary with x, edge_index, edge_attr, and y lists for the video
+            List of GraphCheckpoint objects representing graph states at different timestamps
         """
         logger.info(f"\nProcessing video: {video_name}")
         
@@ -128,21 +128,18 @@ class GraphBuilder:
         
         # Initialize structures
         scene_graph = Graph()
-        # Set the tracer in the scene graph
         scene_graph.tracer = self.tracer
         
         tracking = {
-            'video_name': video_name,
             'prev_gaze_pos': (-1, -1),
             'potential_labels': defaultdict(int),
             'keypoints': [],
             'descriptors': [],
             'visit': [],
             'frame_num': 0,
-            'relative_frame_num': 0,
-            'node_data': {}
+            'relative_frame_num': 0
         }
-        results = {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
+        checkpoints = []
 
         # Process video frames
         for frame, _, is_black_frame in video_processor:
@@ -151,7 +148,7 @@ class GraphBuilder:
             # Process current frame
             should_continue = self._process_frame(
                 frame, is_black_frame, frame_num, scene_graph, tracking,
-                timestamps, gaze_data, records, vid_length, results
+                timestamps, gaze_data, records, vid_length, checkpoints
             )
             
             if not should_continue:
@@ -170,7 +167,7 @@ class GraphBuilder:
             logger.info("\nFinal graph structure:")
             scene_graph.print_graph()
         
-        return results
+        return checkpoints
 
     def _process_frame(
         self, 
@@ -183,7 +180,7 @@ class GraphBuilder:
         gaze_data: Any,
         records: List[Record],
         vid_length: int,
-        results: Dict[str, List]
+        checkpoints: List[GraphCheckpoint]
     ) -> bool:
         """Process a single frame and update the scene graph accordingly.
         
@@ -207,8 +204,10 @@ class GraphBuilder:
 
         # Check if we need to save graph state at this timestamp
         if scene_graph.edges and (frame_num in timestamps or frame_num >= len(gaze_data)):
-            self._save_graph_state(scene_graph, tracking, records, frame_num, 
-                                 timestamps, gaze_data, vid_length, results)
+            checkpoint = self._save_graph_state(scene_graph, tracking, records, frame_num, 
+                                              timestamps, gaze_data, vid_length)
+            if checkpoint:
+                checkpoints.append(checkpoint)
             
             # Exit if we've reached the final condition
             if frame_num == timestamps[-1] or frame_num >= len(gaze_data):
@@ -329,23 +328,8 @@ class GraphBuilder:
                     self.tracer.log_edge_added(frame_num, prev_node_id, next_node.id, "saccade", edge_features)
         else:
             logger.info(f"- Merged with existing node: {next_node.id}")
-        
-        # Update node features
-        tracking['node_data'][next_node.id] = next_node.get_features_tensor(
-            self.vid_lengths[tracking['video_name']],
-            frame_num,
-            tracking['relative_frame_num'],
-            -1,  # Placeholder for timestamp fraction
-            self.labels_to_int,
-            len(self.obj_labels)
-        )
-        
-        # Log feature update
-        if next_node.id in tracking['node_data']:
             logger.info(f"- Updated node features: visits={len(next_node.visits)}, "
                       f"total_frames={next_node.get_visit_duration()}")
-        else:
-            logger.info("- Created new node features")
         
         # Reset tracking data for next fixation
         tracking['visit'] = []
@@ -389,15 +373,19 @@ class GraphBuilder:
         frame_num: int,
         timestamps: List[int],
         gaze_data: Any,
-        vid_length: int,
-        results: Dict[str, List]
-    ) -> None:
-        """Save the current state of the graph at a timestamp."""
+        vid_length: int
+    ) -> Optional[GraphCheckpoint]:
+        """
+        Save the current state of the graph at a timestamp.
+        
+        Returns:
+            GraphCheckpoint object if successful, None otherwise
+        """
         # Get future action labels
         action_labels = get_future_action_labels(records, frame_num, self.action_to_idx)
         if action_labels is None:
             logger.info(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
-            return
+            return None
         
         logger.info(f"\n[Frame {frame_num}] Saving graph state:")
         logger.info(f"- Current nodes: {scene_graph.num_nodes}")
@@ -418,24 +406,16 @@ class GraphBuilder:
             tracking['relative_frame_num'],
             timestamp_fraction,
             self.labels_to_int,
-            len(self.obj_labels),
-            tracking['node_data']
+            len(self.obj_labels)
         )
         
-        # Create a checkpoint
-        checkpoint = GraphCheckpoint(
+        # Create and return a checkpoint
+        return GraphCheckpoint(
             node_features=node_features,
             edge_index=edge_indices,
             edge_attr=edge_features,
             action_labels=action_labels
         )
-        
-        # Store results in dataset format
-        x, edge_index, edge_attr, y = checkpoint.dataset_format
-        results['x'].append(x)
-        results['edge_index'].append(edge_index)
-        results['edge_attr'].append(edge_attr)
-        results['y'].append(y)
 
 def dataset_from_checkpoints(checkpoints: List[GraphCheckpoint]) -> Dict[str, List]:
     """
@@ -445,7 +425,7 @@ def dataset_from_checkpoints(checkpoints: List[GraphCheckpoint]) -> Dict[str, Li
         checkpoints: List of GraphCheckpoint objects
         
     Returns:
-        Dictionary with x, edge_index, edge_attr, and y keys
+        Dictionary with x, edge_index, edge_attr, and y keys where y contains all action label data
     """
     dataset = {
         'x': [],
@@ -499,17 +479,10 @@ def build_graph(
             logger.info(f"Building graph with tracing for {video_name}")
         
         # Process video and collect individual checkpoints
-        video_results = builder.process_video(video_name, print_graph)
+        video_checkpoints = builder.process_video(video_name, print_graph)
         
         # Convert individual results into checkpoints
-        for i in range(len(video_results['x'])):
-            checkpoint = GraphCheckpoint(
-                node_features=video_results['x'][i],
-                edge_index=video_results['edge_index'][i],
-                edge_attr=video_results['edge_attr'][i],
-                # Create a dummy action_labels dict since we already have the future_actions tensor
-                action_labels={'future_actions': video_results['y'][i].squeeze(0)}
-            )
+        for checkpoint in video_checkpoints:
             all_checkpoints.append(checkpoint)
     
     # Convert checkpoints to final dataset format
