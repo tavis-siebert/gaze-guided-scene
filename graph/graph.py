@@ -11,14 +11,12 @@ from graph.visualizer import GraphVisualizer
 from egtea_gaze.utils import resolution
 from logger import get_logger
 
-# Type aliases for better readability
 GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor
 EdgeIndex = List[List[int]]
 NodeId = int
-EdgeId = Tuple[NodeId, NodeId]  # (source_id, target_id)
+EdgeId = Tuple[NodeId, NodeId]
 
-# Initialize logger for this module
 logger = get_logger(__name__)
 
 class GraphCheckpoint:
@@ -75,25 +73,13 @@ class Graph:
     
     def __init__(self):
         """Initialize an empty graph with a root node."""
-        # Create the root node (special node with ID -1)
         self.root = Node(id=-1, object_label='root')
         self.current_node = self.root
-        
-        # Track nodes by ID for efficient lookup
         self.nodes: Dict[NodeId, Node] = {-1: self.root}
-        self.num_nodes = 0  # Counter for normal (non-root) nodes
-        
-        # Store all edges in the graph
+        self.num_nodes = 0
         self.edges: List[Edge] = []
-        
-        # Adjacency mapping for efficient edge lookups
-        # Maps node ID to list of neighbor node IDs
         self.adjacency = defaultdict(list)
-        
-        # The tracer will be set from outside (in build_graph.py)
         self.tracer = None
-        
-        # Store checkpoints
         self.checkpoints: List[GraphCheckpoint] = []
         
     def get_all_nodes(self) -> List[Node]:
@@ -137,7 +123,6 @@ class Graph:
             label=label,
             visit=visit
         )
-        # Store the node in our nodes dictionary
         self.nodes[node.id] = node
         self.num_nodes += 1
         return node
@@ -189,10 +174,8 @@ class Graph:
             Tuple of (forward_edge, backward_edge) - backward_edge may be None
         """
         if not self.has_neighbor(source_node.id, target_node.id):
-            # Check if source is root node
             is_root = source_node.id == self.root.id
             
-            # Create bidirectional edges
             forward_edge, backward_edge = Edge.create_bidirectional_edges(
                 source_id=source_node.id,
                 target_id=target_node.id,
@@ -202,11 +185,9 @@ class Graph:
                 num_bins=num_bins
             )
             
-            # Add forward edge
             self.edges.append(forward_edge)
             self.adjacency[source_node.id].append(target_node.id)
             
-            # Add backward edge if exists (not connecting to root)
             if backward_edge:
                 self.edges.append(backward_edge)
                 self.adjacency[target_node.id].append(source_node.id)
@@ -236,16 +217,13 @@ class Graph:
         Returns:
             The next node (either existing or newly created)
         """
-        # Find most likely object label
         most_likely_label = max(label_counts, key=label_counts.get)
         
-        # Try to find matching node
         matching_node = self._find_matching_node(most_likely_label)
         next_node = Node.merge(visit, matching_node)
         
-        # Create new node if no match found
         if next_node:
-            frame_number = visit[1]  # Use end frame of the visit
+            frame_number = visit[1]
             self.tracer.log_node_updated(
                 frame_number,
                 next_node.id,
@@ -257,7 +235,6 @@ class Graph:
         else:
             next_node = self.add_node(most_likely_label, visit)
         
-        # Connect nodes if not already connected and not self-loop
         if (next_node != self.current_node and 
             not self.has_neighbor(self.current_node.id, next_node.id)):
             self.add_edge(
@@ -268,7 +245,6 @@ class Graph:
                 num_bins
             )
         
-        # Update current node
         self.current_node = next_node
         return next_node
     
@@ -285,7 +261,6 @@ class Graph:
         Returns:
             Matching node if found, None otherwise
         """
-        # Use Node's static method but pass graph instance
         return Node.find_matching(
             graph=self,
             curr_node=self.current_node, 
@@ -329,10 +304,9 @@ class Graph:
         Returns:
             Tuple of (node_features, edge_indices, edge_features)
         """
-        # Collect node features (skipping root node)
         nodes = []
         for node in self.nodes.values():
-            if node.id >= 0:  # Skip root node
+            if node.id >= 0:
                 features_tensor = node.get_feature_tensor(
                     video_length,
                     current_frame,
@@ -343,38 +317,28 @@ class Graph:
                 )
                 nodes.append(features_tensor)
         
-        # Handle empty graph case
         if not nodes:
             return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
         
-        # Stack node features
         node_features = torch.stack(nodes)
         
-        # Normalize visit duration by relative frame number
         node_features[:, 0] /= relative_frame
         
-        # Normalize number of visits by maximum value
         if node_features[:, 1].max() > 0:
             node_features[:, 1] /= node_features[:, 1].max()
         
-        # Extract edge data in the original format
         edge_index = [[], []]
         edge_attrs = []
         
-        # Process all edges (skipping edges to/from root)
         for edge in self.edges:
-            # Skip edges connecting to root
             if edge.source_id < 0 or edge.target_id < 0:
                 continue
                 
-            # Add edge indices
             edge_index[0].append(edge.source_id)
             edge_index[1].append(edge.target_id)
             
-            # Add edge features
             edge_attrs.append(edge.get_feature_tensor())
         
-        # Convert to tensors
         edge_index_tensor = torch.tensor(edge_index, dtype=torch.long) if edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
         edge_attr_tensor = torch.stack(edge_attrs) if edge_attrs else torch.tensor([])
             
@@ -433,7 +397,6 @@ class Graph:
         logger.info(f"- Current nodes: {self.num_nodes}")
         logger.info(f"- Edge count: {len(self.edges)}")
         
-        # Get graph features
         node_features, edge_indices, edge_features = self.get_feature_tensor(
             video_length,
             current_frame,
@@ -443,7 +406,6 @@ class Graph:
             num_object_classes
         )
         
-        # Create checkpoint
         checkpoint = GraphCheckpoint(
             node_features=node_features,
             edge_index=edge_indices,
@@ -451,7 +413,6 @@ class Graph:
             action_labels=action_labels
         )
         
-        # Save checkpoint
         self.checkpoints.append(checkpoint)
         return checkpoint
         
