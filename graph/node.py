@@ -2,7 +2,6 @@ from typing import List, Optional, Any, Tuple, Union, Set, Dict
 from collections import deque
 import torch
 
-# Type aliases for better readability
 VisitRecord = List[int]
 NodeSet = Set['Node']
 NodeList = List['Node']
@@ -91,10 +90,8 @@ class Node:
                 continue
 
             if node.object_label == label:
-                # Assume only one instance of each object class
                 return node
 
-            # Continue BFS using graph's adjacency information
             for neighbor_id in graph.get_node_neighbors(node_id):
                 if neighbor_id not in visited:
                     visited.add(neighbor_id)
@@ -199,19 +196,14 @@ class Node:
         Returns:
             Feature tensor for the node
         """
-        # Get basic features first
         features = self.get_features()
-        
-        # Calculate normalization factor for frame positions
         normalization_factor = video_length - current_frame + relative_frame
         
-        # Normalize temporal features
         first_frame = features["first_visit_frame"]
         last_frame = features["last_visit_frame"]
         first_frame_normalized = first_frame / normalization_factor if first_frame else 0
         last_frame_normalized = last_frame / normalization_factor if last_frame else 0
         
-        # Create temporal features tensor
         temporal_features = torch.tensor([
             features["total_frames_visited"],
             features["num_visits"],
@@ -220,12 +212,10 @@ class Node:
             timestamp_fraction
         ])
         
-        # Create one-hot encoding for object label
         class_idx = labels_to_int.get(features["object_label"], 0)
         one_hot = torch.zeros(num_object_classes)
         one_hot[class_idx] = 1
         
-        # Combine and return features
         return torch.cat([temporal_features, one_hot])
     
     def __eq__(self, other: object) -> bool:
