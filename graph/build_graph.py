@@ -87,7 +87,6 @@ class GraphBuilder:
         # Initialize models
         self.clip_model = ClipModel(self.config.models.clip.model_id)
         self.clip_model.load_model(Path(self.config.models.clip.model_dir))
-        self.sift = SIFT()
         
         # Load object labels
         noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
@@ -133,8 +132,6 @@ class GraphBuilder:
         tracking = {
             'prev_gaze_pos': (-1, -1),
             'potential_labels': defaultdict(int),
-            'keypoints': [],
-            'descriptors': [],
             'visit': [],
             'frame_num': 0,
             'relative_frame_num': 0
@@ -262,11 +259,6 @@ class GraphBuilder:
         current_label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
         tracking['potential_labels'][current_label] += 1
         
-        # Extract SIFT features
-        kp, desc = self.sift.extract_features(frame)
-        tracking['keypoints'].append(kp)
-        tracking['descriptors'].append(desc)
-        
         logger.info(f"[Frame {frame_num}] CLIP detected: {current_label} (count: {tracking['potential_labels'][current_label]})")
         
         # Get the current most likely label (the one with the highest count)
@@ -305,8 +297,6 @@ class GraphBuilder:
         next_node = scene_graph.update_graph(
             tracking['potential_labels'],
             tracking['visit'],
-            tracking['keypoints'],
-            tracking['descriptors'],
             tracking['prev_gaze_pos'],
             curr_gaze_pos
         )
@@ -333,7 +323,6 @@ class GraphBuilder:
         
         # Reset tracking data for next fixation
         tracking['visit'] = []
-        tracking['keypoints'], tracking['descriptors'] = [], []
         tracking['prev_gaze_pos'] = curr_gaze_pos
         tracking['potential_labels'] = defaultdict(int)
     
@@ -359,8 +348,6 @@ class GraphBuilder:
         scene_graph.update_graph(
             tracking['potential_labels'],
             tracking['visit'], 
-            tracking['keypoints'],
-            tracking['descriptors'],
             tracking['prev_gaze_pos'],
             last_gaze_pos
         )
