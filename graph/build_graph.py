@@ -4,7 +4,7 @@ Graph building module for creating scene graphs from video data.
 
 import torch
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, NamedTuple
 from collections import defaultdict
 from tqdm import tqdm
 
@@ -21,6 +21,49 @@ from logger import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)
+
+class GraphCheckpoint:
+    """
+    Encapsulates graph state at a specific timestamp.
+    
+    Stores features, edges, and labels for a graph at a given frame.
+    """
+    
+    def __init__(
+        self, 
+        node_features: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: torch.Tensor,
+        action_labels: Dict[str, torch.Tensor]
+    ):
+        """
+        Initialize a new checkpoint.
+        
+        Args:
+            node_features: Tensor of node features
+            edge_index: Tensor of edge indices
+            edge_attr: Tensor of edge attributes
+            action_labels: Dictionary of action labels
+        """
+        self.node_features = node_features
+        self.edge_index = edge_index
+        self.edge_attr = edge_attr
+        self.action_labels = action_labels
+    
+    @property
+    def dataset_format(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Get data in dataset-compatible format.
+        
+        Returns:
+            Tuple of (x, edge_index, edge_attr, y) where y is the future_actions tensor
+        """
+        return (
+            self.node_features,
+            self.edge_index,
+            self.edge_attr,
+            self.action_labels['future_actions'].unsqueeze(0)
+        )
 
 class GraphBuilder:
     """
@@ -59,7 +102,16 @@ class GraphBuilder:
         self.action_to_idx = DataLoader.create_action_index(self.records)
     
     def process_video(self, video_name: str, print_graph: bool = False) -> Dict[str, List]:
-        """Process a video to build its scene graph."""
+        """
+        Process a video to build its scene graph.
+        
+        Args:
+            video_name: Name of the video to process
+            print_graph: Whether to print the final graph structure
+            
+        Returns:
+            Dictionary with x, edge_index, edge_attr, and y lists for the video
+        """
         logger.info(f"\nProcessing video: {video_name}")
         
         # Update tracer with new video name
@@ -343,7 +395,7 @@ class GraphBuilder:
         """Save the current state of the graph at a timestamp."""
         # Get future action labels
         action_labels = get_future_action_labels(records, frame_num, self.action_to_idx)
-        if action_labels.numel() == 0:
+        if action_labels is None:
             logger.info(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
             return
         
@@ -359,21 +411,57 @@ class GraphBuilder:
         else:
             timestamp_fraction = frame_num / vid_length
         
-        # Get graph features directly using the new API
+        # Get graph features using the scene graph's method
         node_features, edge_indices, edge_features = scene_graph.get_features_tensor(
             vid_length,
             frame_num,
             tracking['relative_frame_num'],
             timestamp_fraction,
             self.labels_to_int,
-            len(self.obj_labels)
+            len(self.obj_labels),
+            tracking['node_data']
         )
         
-        # Store results
-        results['x'].append(node_features)
-        results['edge_index'].append(edge_indices)
-        results['edge_attr'].append(edge_features)
-        results['y'].append(action_labels)
+        # Create a checkpoint
+        checkpoint = GraphCheckpoint(
+            node_features=node_features,
+            edge_index=edge_indices,
+            edge_attr=edge_features,
+            action_labels=action_labels
+        )
+        
+        # Store results in dataset format
+        x, edge_index, edge_attr, y = checkpoint.dataset_format
+        results['x'].append(x)
+        results['edge_index'].append(edge_index)
+        results['edge_attr'].append(edge_attr)
+        results['y'].append(y)
+
+def dataset_from_checkpoints(checkpoints: List[GraphCheckpoint]) -> Dict[str, List]:
+    """
+    Convert a list of checkpoints to a dataset dictionary.
+    
+    Args:
+        checkpoints: List of GraphCheckpoint objects
+        
+    Returns:
+        Dictionary with x, edge_index, edge_attr, and y keys
+    """
+    dataset = {
+        'x': [],
+        'edge_index': [],
+        'edge_attr': [],
+        'y': []
+    }
+    
+    for checkpoint in checkpoints:
+        x, edge_index, edge_attr, y = checkpoint.dataset_format
+        dataset['x'].append(x)
+        dataset['edge_index'].append(edge_index)
+        dataset['edge_attr'].append(edge_attr)
+        dataset['y'].append(y)
+    
+    return dataset
 
 def build_graph(
     video_list: List[str], 
@@ -383,25 +471,46 @@ def build_graph(
     desc: Optional[str] = None, 
     enable_tracing: bool = False
 ) -> Dict:
-    """Build graph representations for a list of videos."""
+    """
+    Build graph representations for a list of videos.
+    
+    Args:
+        video_list: List of video names to process
+        config: Configuration dictionary
+        split: Dataset split ('train' or 'val')
+        print_graph: Whether to print final graph structure
+        desc: Description for progress bar
+        enable_tracing: Whether to enable detailed tracing
+        
+    Returns:
+        Dictionary with x, edge_index, edge_attr, and y keys for all videos
+    """
     logger.info(f"Building graph for {len(video_list)} videos in {split} split")
     
     # Initialize graph builder
     builder = GraphBuilder(config, split, enable_tracing=enable_tracing)
     
-    # Process each video and collect results
-    all_results = {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
+    # Process each video and collect checkpoints
+    all_checkpoints = []
     progress_desc = desc or f"Processing {split} videos"
     
     for video_name in tqdm(video_list, desc=progress_desc):
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
         
-        # Process video and collect results
-        result = builder.process_video(video_name, print_graph)
+        # Process video and collect individual checkpoints
+        video_results = builder.process_video(video_name, print_graph)
         
-        # Extend results
-        for key in all_results:
-            all_results[key].extend(result[key])
+        # Convert individual results into checkpoints
+        for i in range(len(video_results['x'])):
+            checkpoint = GraphCheckpoint(
+                node_features=video_results['x'][i],
+                edge_index=video_results['edge_index'][i],
+                edge_attr=video_results['edge_attr'][i],
+                # Create a dummy action_labels dict since we already have the future_actions tensor
+                action_labels={'future_actions': video_results['y'][i].squeeze(0)}
+            )
+            all_checkpoints.append(checkpoint)
     
-    return all_results
+    # Convert checkpoints to final dataset format
+    return dataset_from_checkpoints(all_checkpoints)
