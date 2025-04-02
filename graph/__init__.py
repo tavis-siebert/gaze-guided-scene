@@ -8,7 +8,7 @@ and visualizing scene graphs based on gaze data and object detection.
 # Core graph components
 from graph.node import Node, VisitRecord
 from graph.edge import Edge
-from graph.graph import Graph
+from graph.graph import Graph, GraphCheckpoint
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 
@@ -34,6 +34,7 @@ __all__ = [
     'VisitRecord',
     'Edge',
     'Graph',
+    'GraphCheckpoint',
     'AngleUtils',
     'GraphTraversal',
     'GraphVisualizer',
