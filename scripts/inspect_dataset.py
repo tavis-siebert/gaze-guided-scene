@@ -9,7 +9,7 @@ import numpy as np
 def explore_dataset_structure(obj: Any, prefix: str = "", max_depth: int = 10, 
                              current_depth: int = 0, visited: Set[int] = None) -> None:
     """
-    Recursively explore and pretty print the structure of a PyTorch dataset.
+    Recursively explore and print the structure of a PyTorch dataset in a compact JSON-like format.
     
     Args:
         obj: The object to explore
@@ -21,67 +21,70 @@ def explore_dataset_structure(obj: Any, prefix: str = "", max_depth: int = 10,
     if visited is None:
         visited = set()
     
-    # Prevent infinite recursion
     if current_depth > max_depth:
-        print(f"{prefix}[MAX DEPTH REACHED]")
+        print(f"{prefix}[...]")
         return
     
-    # Handle circular references
     obj_id = id(obj)
     if obj_id in visited:
-        print(f"{prefix}[CIRCULAR REFERENCE]")
+        print(f"{prefix}[circular]")
         return
     
-    # Add current object to visited set for complex types
     if isinstance(obj, (dict, list, tuple, set, torch.Tensor, np.ndarray)):
         visited.add(obj_id)
     
-    # Print information based on object type
     if obj is None:
-        print(f"{prefix}None")
+        print(f"{prefix}null")
     elif isinstance(obj, (int, float, str, bool)):
-        print(f"{prefix}Type: {type(obj).__name__}, Value: {obj}")
+        print(f"{prefix}{type(obj).__name__}: {obj}")
     elif isinstance(obj, dict):
-        print(f"{prefix}Dict with {len(obj)} keys:")
+        print(f"{prefix}{{")
         for key in obj:
-            print(f"{prefix}  Key: {key}")
-            explore_dataset_structure(obj[key], f"{prefix}    ", 
-                                     max_depth, current_depth + 1, visited)
+            print(f"{prefix}  \"{key}\": ", end="")
+            explore_dataset_structure(obj[key], "", max_depth, current_depth + 1, visited)
+        print(f"{prefix}}}")
     elif isinstance(obj, (list, tuple)):
         container_type = type(obj).__name__
-        print(f"{prefix}{container_type} with {len(obj)} items:")
-        if len(obj) > 0:
-            print(f"{prefix}  First item:")
-            explore_dataset_structure(obj[0], f"{prefix}    ", 
-                                     max_depth, current_depth + 1, visited)
+        if len(obj) == 0:
+            print(f"{prefix}{container_type}: []")
+        else:
+            print(f"{prefix}{container_type}[{len(obj)}]: [")
+            print(f"{prefix}  ", end="")
+            explore_dataset_structure(obj[0], "", max_depth, current_depth + 1, visited)
             if len(obj) > 1:
-                print(f"{prefix}  ... ({len(obj)-1} more items)")
+                print(f"{prefix}  ... ({len(obj)-1} more)")
+            print(f"{prefix}]")
     elif isinstance(obj, torch.Tensor):
-        print(f"{prefix}Tensor: shape={obj.shape}, dtype={obj.dtype}")
-        if obj.numel() > 0 and obj.numel() < 10:
-            print(f"{prefix}  Value: {obj}")
-        elif obj.numel() > 0:
+        shape_str = "×".join(str(d) for d in obj.shape)
+        if obj.numel() == 0:
+            print(f"{prefix}Tensor({shape_str}, {obj.dtype}): []")
+        elif obj.numel() < 5:
+            print(f"{prefix}Tensor({shape_str}, {obj.dtype}): {obj.tolist()}")
+        else:
             flat = obj.flatten()
-            print(f"{prefix}  Sample values: {flat[:3].tolist()}...")
+            print(f"{prefix}Tensor({shape_str}, {obj.dtype}): [{flat[0].item()}, {flat[1].item()}, ... ]")
     elif isinstance(obj, np.ndarray):
-        print(f"{prefix}NumPy Array: shape={obj.shape}, dtype={obj.dtype}")
-        if obj.size > 0 and obj.size < 10:
-            print(f"{prefix}  Value: {obj}")
-        elif obj.size > 0:
+        shape_str = "×".join(str(d) for d in obj.shape)
+        if obj.size == 0:
+            print(f"{prefix}ndarray({shape_str}, {obj.dtype}): []")
+        elif obj.size < 5:
+            print(f"{prefix}ndarray({shape_str}, {obj.dtype}): {obj.tolist()}")
+        else:
             flat = obj.flatten()
-            print(f"{prefix}  Sample values: {flat[:3].tolist()}...")
+            print(f"{prefix}ndarray({shape_str}, {obj.dtype}): [{flat[0]}, {flat[1]}, ... ]")
     else:
-        print(f"{prefix}Object of type: {type(obj).__name__}")
-        # Try to get additional info for unknown objects
+        attrs = {}
         try:
             if hasattr(obj, "__dict__"):
-                print(f"{prefix}  Attributes:")
+                print(f"{prefix}{type(obj).__name__}: {{")
                 for key, value in obj.__dict__.items():
-                    print(f"{prefix}    {key}:")
-                    explore_dataset_structure(value, f"{prefix}      ", 
-                                           max_depth, current_depth + 1, visited)
+                    print(f"{prefix}  \"{key}\": ", end="")
+                    explore_dataset_structure(value, "", max_depth, current_depth + 1, visited)
+                print(f"{prefix}}}")
+            else:
+                print(f"{prefix}{type(obj).__name__}")
         except:
-            pass
+            print(f"{prefix}{type(obj).__name__}")
 
 
 def analyze_dataset(dataset_path: str, max_depth: int = 5) -> None:
