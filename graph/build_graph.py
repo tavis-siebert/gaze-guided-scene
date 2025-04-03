@@ -8,11 +8,13 @@ from typing import Dict, List, Tuple, Any, Optional, NamedTuple
 from collections import defaultdict
 from tqdm import tqdm
 
-from graph.graph import Graph, GraphCheckpoint
+from graph.graph import Graph
 from graph.node import Node
 from graph.io import Record, DataLoader, VideoProcessor
 from graph.utils import get_roi
 from graph.graph_tracer import GraphTracer
+from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
+from graph.action_utils import ActionUtils
 from models.clip import ClipModel
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
@@ -21,70 +23,11 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
-def get_future_action_labels(
-    records: List[Record], 
-    current_frame: int, 
-    action_to_class: Dict[Tuple[int, int], int]
-) -> Optional[Dict[str, torch.Tensor]]:
-    """
-    Create action label tensors for future actions.
-    
-    Args:
-        records: List of action records for a video
-        current_frame: Current frame number
-        action_to_class: Mapping from action tuples to class indices
-        
-    Returns:
-        Dictionary containing:
-        - 'next_action': Tensor of the next action class
-        - 'future_actions': Binary tensor indicating which actions occur in the future
-        - 'future_actions_ordered': Ordered tensor of future action classes
-    """
-    num_action_classes = len(action_to_class)
-    
-    # Split records into past and future
-    past_records = [record for record in records if record.end_frame <= current_frame]
-    future_records = [record for record in records if record.start_frame > current_frame]
-    
-    # Ensure we have enough data
-    if len(past_records) < 3 or len(future_records) < 3:
-        return None
-    
-    # Sort future records by end frame
-    future_records = sorted(future_records, key=lambda record: record.end_frame)
-    
-    # Extract future actions
-    future_actions = [
-        action_to_class[(record.label[0], record.label[1])] 
-        for record in future_records if (record.label[0], record.label[1]) in action_to_class
-    ]
-    
-    # If no valid future actions, return None
-    if not future_actions:
-        return None
-        
-    # Create target tensors
-    next_action_label = torch.tensor(future_actions[0], dtype=torch.long)
-    future_action_labels_ordered = torch.tensor(future_actions, dtype=torch.long)
-    
-    # Create binary target vector
-    future_action_labels = torch.zeros(num_action_classes, dtype=torch.long)
-    future_action_labels[list(set(future_actions))] = 1
-    
-    return {
-        'next_action': next_action_label,
-        'future_actions': future_action_labels,
-        'future_actions_ordered': future_action_labels_ordered
-    }
-
 class GraphBuilder:
-    """
-    Builds scene graphs from video data and gaze information.
-    """
+    """Builds scene graphs from video data and gaze information."""
     
     def __init__(self, config: DotDict, split: str, enable_tracing: bool = False):
-        """
-        Initialize the graph builder.
+        """Initialize the graph builder.
         
         Args:
             config: Configuration dictionary
@@ -117,43 +60,15 @@ class GraphBuilder:
         self.relative_frame_num = 0
         
         self.scene_graph = None
+        self.checkpoint_manager = None
         self.video_name = ""
         self.gaze_data = None
         self.records_current = None
         self.vid_length = 0
         self.timestamps = []
     
-    @staticmethod
-    def build_dataset_from_graphs(graphs: List[Graph]) -> Dict:
-        """
-        Convert a list of graphs to a dataset ready for model training.
-        
-        Args:
-            graphs: List of Graph objects with checkpoints
-            
-        Returns:
-            Dictionary with x, edge_index, edge_attr, and y keys for all videos
-        """
-        dataset = {
-            'x': [],
-            'edge_index': [],
-            'edge_attr': [],
-            'y': []
-        }
-        
-        for graph in graphs:
-            for checkpoint in graph.get_checkpoints():
-                x, edge_index, edge_attr, y = checkpoint.dataset_format
-                dataset['x'].append(x)
-                dataset['edge_index'].append(edge_index)
-                dataset['edge_attr'].append(edge_attr)
-                dataset['y'].append(y)
-        
-        return dataset
-    
     def process_video(self, video_name: str, print_graph: bool = False) -> Graph:
-        """
-        Process a video to build its scene graph.
+        """Process a video to build its scene graph.
         
         Args:
             video_name: Name of the video to process
@@ -163,9 +78,7 @@ class GraphBuilder:
             Graph instance representing the scene graph
         """
         logger.info(f"\nProcessing video: {video_name}")
-        
         self.video_name = video_name
-        
         self.tracer = GraphTracer(self.config.directories.repo.traces, video_name, enabled=self.enable_tracing)
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
@@ -183,14 +96,22 @@ class GraphBuilder:
         )
         self.scene_graph.tracer = self.tracer
         
+        self.checkpoint_manager = CheckpointManager(
+            graph=self.scene_graph,
+            checkpoint_frames=self.timestamps,
+            timestamps=self.timestamps,
+            timestamp_ratios=self.config.dataset.timestamps[self.split],
+            records=self.records_current,
+            action_to_idx=self.action_to_idx,
+            gaze_data_length=len(self.gaze_data)
+        )
+        
         self._reset_tracking_state()
 
         for frame, _, is_black_frame in video_processor:
             should_continue = self._process_frame(frame, is_black_frame)
-            
             if not should_continue:
                 break
-            
             self.relative_frame_num += 1
             self.frame_num += 1
 
@@ -212,12 +133,8 @@ class GraphBuilder:
         self.frame_num = 0
         self.relative_frame_num = 0
 
-    def _process_frame(
-        self, 
-        frame: torch.Tensor,
-        is_black_frame: bool
-    ) -> bool:
-        """Process a single frame and update the scene graph accordingly.
+    def _process_frame(self, frame: torch.Tensor, is_black_frame: bool) -> bool:
+        """Process a single frame and update the scene graph.
         
         Returns:
             bool: False if processing should stop, True to continue
@@ -234,22 +151,26 @@ class GraphBuilder:
         if is_black_frame:
             return True
 
-        if self.scene_graph.edges and (self.frame_num in self.timestamps or self.frame_num >= len(self.gaze_data)):
-            self._save_graph_checkpoint()
-            
-            if self.frame_num == self.timestamps[-1] or self.frame_num >= len(self.gaze_data):
-                logger.info(f"[Frame {self.frame_num}] Reached final timestamp or end of gaze data")
-                return False
+        checkpoint = self.checkpoint_manager.checkpoint_if_needed(
+            frame_num=self.frame_num,
+            relative_frame=self.relative_frame_num
+        )
+        
+        should_stop = (
+            self.frame_num >= len(self.gaze_data) or 
+            (self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1])
+        )
+        
+        if should_stop:
+            logger.info(f"[Frame {self.frame_num}] Reached final timestamp or end of gaze data")
+            return False
 
         if self.frame_num < len(self.gaze_data):
             self._process_frame_with_gaze(frame)
             
         return True
 
-    def _process_frame_with_gaze(
-        self,
-        frame: torch.Tensor
-    ) -> None:
+    def _process_frame_with_gaze(self, frame: torch.Tensor) -> None:
         """Process a frame using available gaze data."""
         gaze_type = int(self.gaze_data[self.frame_num, 2])
         gaze_pos = self.gaze_data[self.frame_num, :2]
@@ -259,11 +180,7 @@ class GraphBuilder:
         elif gaze_type == 2 and self.potential_labels:
             self._handle_saccade(gaze_pos)
 
-    def _handle_fixation(
-        self,
-        frame: torch.Tensor,
-        gaze_pos: Tuple[float, float]
-    ) -> None:
+    def _handle_fixation(self, frame: torch.Tensor, gaze_pos: Tuple[float, float]) -> None:
         """Handle a fixation frame."""
         if self.visit_start == -1:
             self.visit_start = self.relative_frame_num
@@ -290,10 +207,7 @@ class GraphBuilder:
             dict(self.potential_labels)
         )
     
-    def _handle_saccade(
-        self,
-        curr_gaze_pos: Tuple[float, float]
-    ) -> None:
+    def _handle_saccade(self, curr_gaze_pos: Tuple[float, float]) -> None:
         """Handle a saccade between fixations."""
         self.visit_end = self.relative_frame_num - 1
         fixation_duration = self.visit_end - self.visit_start + 1
@@ -316,7 +230,6 @@ class GraphBuilder:
         
         if next_node.id != prev_node_id:
             logger.info(f"- New node created: {next_node.id}")
-            
             self.tracer.log_node_added(self.frame_num, next_node.id, next_node.object_label, next_node.get_features())
             
             if prev_node_id >= 0:
@@ -341,7 +254,6 @@ class GraphBuilder:
     def _finish_final_fixation(self) -> None:
         """Process the final fixation if video ends during one."""
         logger.info("- Final fixation detected, updating graph...")
-        
         self.visit_end = self.relative_frame_num - 1
         visit_record = [self.visit_start, self.visit_end]
         
@@ -356,54 +268,6 @@ class GraphBuilder:
             self.prev_gaze_pos,
             last_gaze_pos
         )
-    
-    def _save_graph_checkpoint(self) -> None:
-        """
-        Create and save a checkpoint of the current graph state.
-        """
-        action_labels = get_future_action_labels(self.records_current, self.frame_num, self.action_to_idx)
-        
-        # Skip checkpoint if there's insufficient action data
-        if action_labels is None:
-            logger.info(f"[Frame {self.frame_num}] Skipping checkpoint - insufficient action data")
-            return
-            
-        # Skip checkpoint if there are no edges in the graph
-        if not self.scene_graph.edges:
-            logger.info(f"[Frame {self.frame_num}] Skipping checkpoint - no edges in graph")
-            return
-        
-        # Calculate timestamp fraction
-        timestamp_ratios = self.config.dataset.timestamps[self.split]
-        if self.frame_num < len(self.gaze_data):
-            timestamp_idx = self.timestamps.index(self.frame_num) 
-            timestamp_fraction = timestamp_ratios[timestamp_idx]
-        else:
-            timestamp_fraction = self.frame_num / self.vid_length
-        
-        logger.info(f"\n[Frame {self.frame_num}] Saving graph state:")
-        logger.info(f"- Current nodes: {self.scene_graph.num_nodes}")
-        logger.info(f"- Edge count: {len(self.scene_graph.edges)}")
-        
-        # Get feature tensors
-        node_features, edge_indices, edge_features = self.scene_graph.get_feature_tensor(
-            self.scene_graph.video_length,
-            self.frame_num,
-            self.relative_frame_num,
-            timestamp_fraction,
-            self.scene_graph.labels_to_int,
-            self.scene_graph.num_object_classes
-        )
-        
-        # Create checkpoint and add to graph
-        checkpoint = GraphCheckpoint(
-            node_features=node_features,
-            edge_index=edge_indices,
-            edge_attr=edge_features,
-            action_labels=action_labels
-        )
-        
-        self.scene_graph.checkpoints.append(checkpoint)
 
 def build_graph(
     video_list: List[str], 
@@ -413,8 +277,7 @@ def build_graph(
     desc: Optional[str] = None, 
     enable_tracing: bool = False
 ) -> Dict:
-    """
-    Build graph representations for a list of videos.
+    """Build graph representations for a list of videos.
     
     Args:
         video_list: List of video names to process
@@ -428,17 +291,14 @@ def build_graph(
         Dictionary with x, edge_index, edge_attr, and y keys for all videos
     """
     logger.info(f"Building graph for {len(video_list)} videos in {split} split")
-    
     builder = GraphBuilder(config, split, enable_tracing=enable_tracing)
-    
     all_graphs = []
     progress_desc = desc or f"Processing {split} videos"
     
     for video_name in tqdm(video_list, desc=progress_desc):
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
-        
         graph = builder.process_video(video_name, print_graph)
         all_graphs.append(graph)
     
-    return GraphBuilder.build_dataset_from_graphs(all_graphs)
+    return CheckpointManager.build_dataset_from_graphs(all_graphs)

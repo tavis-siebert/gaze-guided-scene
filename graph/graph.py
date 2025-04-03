@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from collections import deque, defaultdict
 import math
+from typing import TYPE_CHECKING
 
 from graph.node import Node, VisitRecord
 from graph.edge import Edge
@@ -10,6 +11,9 @@ from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 from egtea_gaze.utils import resolution
 from logger import get_logger
+
+if TYPE_CHECKING:
+    from graph.checkpoint_manager import GraphCheckpoint
 
 GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor
@@ -19,61 +23,11 @@ EdgeId = Tuple[NodeId, NodeId]
 
 logger = get_logger(__name__)
 
-class GraphCheckpoint:
-    """
-    Encapsulates graph state at a specific timestamp.
-    
-    Stores features, edges, and labels for a graph at a given frame.
-    """
-    
-    def __init__(
-        self, 
-        node_features: torch.Tensor,
-        edge_index: torch.Tensor,
-        edge_attr: torch.Tensor,
-        action_labels: Dict[str, torch.Tensor]
-    ):
-        """
-        Initialize a new checkpoint.
-        
-        Args:
-            node_features: Tensor of node features
-            edge_index: Tensor of edge indices
-            edge_attr: Tensor of edge attributes
-            action_labels: Dictionary of action labels
-        """
-        self.node_features = node_features
-        self.edge_index = edge_index
-        self.edge_attr = edge_attr
-        self.action_labels = action_labels
-    
-    @property
-    def dataset_format(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        """
-        Get data in dataset-compatible format.
-        
-        Returns:
-            Tuple of (x, edge_index, edge_attr, y) where y is the full action_labels dictionary
-        """
-        return (
-            self.node_features,
-            self.edge_index,
-            self.edge_attr,
-            self.action_labels
-        )
-
 class Graph:
-    """
-    A scene graph representing objects and their spatial relationships.
-    
-    The graph consists of nodes (objects) connected by edges (spatial relationships).
-    Each node represents an object in the scene, and edges represent the spatial
-    relationships between objects.
-    """
+    """A scene graph representing objects and their spatial relationships."""
     
     def __init__(self, labels_to_int: Dict[str, int] = None, num_object_classes: int = 0, video_length: int = 0):
-        """
-        Initialize an empty graph with a root node.
+        """Initialize an empty graph with a root node.
         
         Args:
             labels_to_int: Mapping from object labels to class indices
@@ -87,16 +41,14 @@ class Graph:
         self.edges: List[Edge] = []
         self.adjacency = defaultdict(list)
         self.tracer = None
-        self.checkpoints: List[GraphCheckpoint] = []
+        self.checkpoints: List["GraphCheckpoint"] = []
         
-        # Static parameters for feature extraction
         self.labels_to_int = labels_to_int or {}
         self.num_object_classes = num_object_classes
         self.video_length = video_length
         
     def get_all_nodes(self) -> List[Node]:
-        """
-        Get all nodes in the graph including the root.
+        """Get all nodes in the graph including the root.
         
         Returns:
             List of all nodes in the graph
@@ -104,8 +56,7 @@ class Graph:
         return list(self.nodes.values())
         
     def get_node_by_id(self, node_id: int) -> Optional[Node]:
-        """
-        Find a node by its ID.
+        """Find a node by its ID.
         
         Args:
             node_id: The ID of the node to find
@@ -115,13 +66,8 @@ class Graph:
         """
         return self.nodes.get(node_id)
     
-    def add_node(
-        self, 
-        label: str, 
-        visit: VisitRecord
-    ) -> Node:
-        """
-        Add a new node to the graph.
+    def add_node(self, label: str, visit: VisitRecord) -> Node:
+        """Add a new node to the graph.
         
         Args:
             label: The object label
@@ -140,8 +86,7 @@ class Graph:
         return node
     
     def has_neighbor(self, source_id: NodeId, target_id: NodeId) -> bool:
-        """
-        Check if two nodes are connected.
+        """Check if two nodes are connected.
         
         Args:
             source_id: ID of the source node
@@ -153,8 +98,7 @@ class Graph:
         return target_id in self.adjacency[source_id]
     
     def get_node_neighbors(self, node_id: NodeId) -> List[NodeId]:
-        """
-        Get all neighbors of a node.
+        """Get all neighbors of a node.
         
         Args:
             node_id: ID of the node
@@ -172,8 +116,7 @@ class Graph:
         curr_gaze_pos: GazePosition, 
         num_bins: int = 8
     ) -> Tuple[Optional[Edge], Optional[Edge]]:
-        """
-        Add an edge between two nodes.
+        """Add an edge between two nodes.
         
         Args:
             source_node: The source node
@@ -216,8 +159,7 @@ class Graph:
         curr_gaze_pos: GazePosition, 
         num_bins: int = 8
     ) -> Node:
-        """
-        Update the graph with a new observation.
+        """Update the graph with a new observation.
         
         Args:
             label_counts: Dictionary of object labels and their counts
@@ -260,12 +202,8 @@ class Graph:
         self.current_node = next_node
         return next_node
     
-    def _find_matching_node(
-        self,
-        label: str
-    ) -> Optional[Node]:
-        """
-        Find a matching node by searching from current node.
+    def _find_matching_node(self, label: str) -> Optional[Node]:
+        """Find a matching node by searching from current node.
         
         Args:
             label: Object label to match
@@ -280,8 +218,7 @@ class Graph:
         )
     
     def print_graph(self, use_degrees: bool = True) -> None:
-        """
-        Print the graph structure.
+        """Print the graph structure.
         
         Args:
             use_degrees: Whether to display angles in degrees (True) or radians (False)
@@ -293,44 +230,49 @@ class Graph:
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees, self.edges, self)
     
-    def get_feature_tensor(
+    def _get_node_features(
         self,
-        video_length: int,
         current_frame: int,
         relative_frame: int,
-        timestamp_fraction: float,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Get graph features as tensors for model input.
+        timestamps: List[int],
+        timestamp_ratios: List[float],
+        gaze_data_length: int
+    ) -> torch.Tensor:
+        """Extract node features as a tensor.
         
         Args:
-            video_length: Total length of the video
             current_frame: Current frame number
             relative_frame: Relative frame number
-            timestamp_fraction: Fraction of video at current timestamp
-            labels_to_int: Mapping from object labels to class indices
-            num_object_classes: Number of object classes
+            timestamps: List of predefined checkpoint frame numbers
+            timestamp_ratios: Corresponding ratios for each timestamp
+            gaze_data_length: Length of gaze data
             
         Returns:
-            Tuple of (node_features, edge_indices, edge_features)
+            Tensor of node features
         """
+        timestamp_fraction = self._calculate_timestamp_fraction(
+            current_frame, 
+            gaze_data_length, 
+            timestamps, 
+            timestamp_ratios, 
+            self.video_length
+        )
+        
         nodes = []
         for node in self.nodes.values():
             if node.id >= 0:
                 features_tensor = node.get_feature_tensor(
-                    video_length,
+                    self.video_length,
                     current_frame,
                     relative_frame,
                     timestamp_fraction,
-                    labels_to_int,
-                    num_object_classes
+                    self.labels_to_int,
+                    self.num_object_classes
                 )
                 nodes.append(features_tensor)
         
         if not nodes:
-            return torch.tensor([]), torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
+            return torch.tensor([])
         
         node_features = torch.stack(nodes)
         
@@ -338,7 +280,15 @@ class Graph:
         
         if node_features[:, 1].max() > 0:
             node_features[:, 1] /= node_features[:, 1].max()
+            
+        return node_features
+    
+    def _get_edge_features(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Extract edge indices and attributes as tensors.
         
+        Returns:
+            Tuple of (edge_indices, edge_attributes)
+        """
         edge_index = [[], []]
         edge_attrs = []
         
@@ -354,11 +304,72 @@ class Graph:
         edge_index_tensor = torch.tensor(edge_index, dtype=torch.long) if edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
         edge_attr_tensor = torch.stack(edge_attrs) if edge_attrs else torch.tensor([])
             
-        return node_features, edge_index_tensor, edge_attr_tensor
+        return edge_index_tensor, edge_attr_tensor
+    
+    def get_feature_tensor(
+        self,
+        video_length: int,
+        current_frame: int,
+        relative_frame: int,
+        timestamps: List[int],
+        timestamp_ratios: List[float],
+        gaze_data_length: int,
+        labels_to_int: Dict[str, int],
+        num_object_classes: int
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Get graph features as tensors for model input.
+        
+        Args:
+            video_length: Total length of the video
+            current_frame: Current frame number
+            relative_frame: Relative frame number
+            timestamps: List of predefined checkpoint frame numbers
+            timestamp_ratios: Corresponding ratios for each timestamp
+            gaze_data_length: Length of gaze data
+            labels_to_int: Mapping from object labels to class indices
+            num_object_classes: Number of object classes
+            
+        Returns:
+            Tuple of (node_features, edge_indices, edge_features)
+        """
+        node_features = self._get_node_features(
+            current_frame, 
+            relative_frame,
+            timestamps,
+            timestamp_ratios,
+            gaze_data_length
+        )
+        edge_index, edge_attr = self._get_edge_features()
+            
+        return node_features, edge_index, edge_attr
+    
+    def _calculate_timestamp_fraction(
+        self, 
+        frame_num: int, 
+        gaze_data_length: int, 
+        timestamps: List[int], 
+        timestamp_ratios: List[float], 
+        video_length: int
+    ) -> float:
+        """Calculate the timestamp fraction for the current frame.
+        
+        Args:
+            frame_num: Current frame number
+            gaze_data_length: Length of gaze data
+            timestamps: List of predefined checkpoint frame numbers
+            timestamp_ratios: Corresponding ratios for each timestamp
+            video_length: Total video length
+            
+        Returns:
+            Fraction of video completed at current timestamp
+        """
+        if frame_num < gaze_data_length:
+            timestamp_idx = timestamps.index(frame_num) if frame_num in timestamps else -1
+            return timestamp_ratios[timestamp_idx] if timestamp_idx >= 0 else frame_num / video_length
+        return frame_num / video_length
     
     def get_edge(self, source_id: NodeId, target_id: NodeId) -> Optional[Edge]:
-        """
-        Get an edge between two nodes if it exists.
+        """Get an edge between two nodes if it exists.
         
         Args:
             source_id: ID of the source node
@@ -372,34 +383,10 @@ class Graph:
                 return edge
         return None
         
-    def get_checkpoints(self) -> List[GraphCheckpoint]:
-        """
-        Get all saved checkpoints.
+    def get_checkpoints(self) -> List["GraphCheckpoint"]:
+        """Get all saved checkpoints.
         
         Returns:
             List of GraphCheckpoint objects
         """
         return self.checkpoints
-        
-    def dataset_format(self) -> Dict[str, List]:
-        """
-        Convert all checkpoints to a dataset dictionary.
-        
-        Returns:
-            Dictionary with x, edge_index, edge_attr, and y keys
-        """
-        dataset = {
-            'x': [],
-            'edge_index': [],
-            'edge_attr': [],
-            'y': []
-        }
-        
-        for checkpoint in self.checkpoints:
-            x, edge_index, edge_attr, y = checkpoint.dataset_format
-            dataset['x'].append(x)
-            dataset['edge_index'].append(edge_index)
-            dataset['edge_attr'].append(edge_attr)
-            dataset['y'].append(y)
-        
-        return dataset
