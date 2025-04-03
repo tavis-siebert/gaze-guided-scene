@@ -208,13 +208,14 @@ class GraphBuilder:
         found_fixated_objects = False
         
         try:
+            # Get raw detections from YOLO World
             detections = self.yolo_model.run_inference(frame, self.clip_labels, self.obj_labels)
             
             if detections:
                 # Sort by confidence score (highest first)
                 sorted_detections = sorted(detections, key=lambda x: x['score'], reverse=True)
                 
-                # Check which detections are being fixated by gaze
+                # Process detections and check which ones are fixated by gaze
                 for detection in sorted_detections:
                     bbox = detection['bbox']
                     
@@ -224,7 +225,7 @@ class GraphBuilder:
                         bbox[1] <= gaze_y <= bbox[1] + bbox[3]
                     )
                     
-                    # Update the detection with adjusted bbox and fixation info
+                    # Create a new detection object with fixation info
                     yolo_detections.append({
                         'bbox': bbox,
                         'class_name': detection['class_name'],
@@ -240,13 +241,15 @@ class GraphBuilder:
                         # Accumulate the confidence score (weighted by the score itself)
                         self.potential_labels[detection['class_name']] += detection['score']
                 
-                # Log top 3 detections
+                # Log top 3 detections with fixation info
                 logger.info(f"[Frame {self.frame_num}] Top 3 of {len(yolo_detections)} YOLO-World detections:")
-                for i, detection in enumerate(sorted_detections[:3]):
+                for i, detection in enumerate(sorted_detections[:min(3, len(sorted_detections))]):
                     bbox = detection['bbox']
+                    # Get the corresponding detection with fixation info
+                    fixation_info = yolo_detections[i]['is_fixated'] if i < len(yolo_detections) else False
                     logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
                               f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}], "
-                              f"fixated: {detection['is_fixated']})")
+                              f"fixated: {fixation_info})")
 
                 # Log all fixated detections
                 fixated_detections = [d for d in yolo_detections if d['is_fixated']]
@@ -268,7 +271,9 @@ class GraphBuilder:
                         logger.info(f"  - {label}: {confidence:.2f}")
                 
         except Exception as e:
-            logger.warning(f"[Frame {self.frame_num}] YOLO-World inference failed: {e}")
+            logger.warning(f"[Frame {self.frame_num}] YOLO-World inference failed: {str(e)}")
+            import traceback
+            logger.debug(f"Error details: {traceback.format_exc()}")
     
     def _handle_saccade(self, curr_gaze_pos: Tuple[float, float]) -> None:
         """Handle a saccade between fixations."""
