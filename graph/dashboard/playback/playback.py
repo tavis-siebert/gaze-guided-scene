@@ -41,6 +41,7 @@ class Playback:
         self.last_added_node = None
         self.last_added_edge = None
         self.object_detections = {}  # Frame number -> detection event
+        self.yolo_detections = {}  # Frame number -> YOLO detection event
         self._load_events()
     
     def _load_events(self) -> None:
@@ -59,6 +60,8 @@ class Playback:
                 # Track object detection events separately for quick access
                 if event.event_type == "gaze_object_detected":
                     self.object_detections[event.frame_number] = event
+                elif event.event_type == "yolo_objects_detected":
+                    self.yolo_detections[event.frame_number] = event
         
         frames = list(self.frame_to_events.keys())
         self.min_frame = min(frames) if frames else 0
@@ -105,6 +108,17 @@ class Playback:
         """
         return self.object_detections.get(frame_number)
     
+    def get_yolo_detections(self, frame_number: int) -> Optional[GraphEvent]:
+        """Get the YOLO-World detections for a specific frame, if any.
+        
+        Args:
+            frame_number: The frame number to get YOLO detections for
+            
+        Returns:
+            GraphEvent containing YOLO detection data, or None if not available
+        """
+        return self.yolo_detections.get(frame_number)
+    
     def _process_event(self, event: GraphEvent) -> None:
         """Process a single event and update the graph state accordingly.
         
@@ -141,6 +155,10 @@ class Playback:
         elif event.event_type == "gaze_object_detected":
             # Store the latest object detection for this frame
             self.object_detections[event.frame_number] = event
+            
+        elif event.event_type == "yolo_objects_detected":
+            # Store the latest YOLO detections for this frame
+            self.yolo_detections[event.frame_number] = event
     
     def build_graph_until_frame(self, frame_number: int) -> nx.DiGraph:
         """Build the graph incrementally up to the specified frame.
