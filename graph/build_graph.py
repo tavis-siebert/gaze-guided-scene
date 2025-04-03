@@ -217,17 +217,17 @@ class GraphBuilder:
                 
                 # Process detections and check which ones are fixated by gaze
                 for detection in sorted_detections:
-                    bbox = detection['bbox']
+                    left, top, width, height = detection['bbox']
                     
                     # Check if gaze intersects with this object
                     is_fixated = (
-                        bbox[0] <= gaze_x <= bbox[0] + bbox[2] and
-                        bbox[1] <= gaze_y <= bbox[1] + bbox[3]
+                        left <= gaze_x <= left + width and
+                        top <= gaze_y <= top + height
                     )
                     
                     # Create a new detection object with fixation info
                     yolo_detections.append({
-                        'bbox': bbox,
+                        'bbox': (left, top, width, height),
                         'class_name': detection['class_name'],
                         'score': detection['score'],
                         'class_id': detection['class_id'],

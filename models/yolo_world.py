@@ -131,8 +131,17 @@ class YOLOWorldModel:
         for box, score, class_id in zip(boxes, scores, class_ids):
             class_name = self.model.names[class_id]
             
+            # Convert from center coordinates (x, y, w, h) to top-left coordinates (left, top, width, height)
+            # x, y is the center of the box, w, h are width and height
+            center_x, center_y, width, height = box
+            left = center_x - width / 2
+            top = center_y - height / 2
+            
+            # Create bbox in (left, top, width, height) format
+            bbox = [left, top, width, height]
+            
             detections.append({
-                "bbox": box,
+                "bbox": bbox,
                 "score": float(score),
                 "class_id": int(class_id),
                 "class_name": class_name
