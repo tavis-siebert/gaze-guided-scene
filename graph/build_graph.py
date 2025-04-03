@@ -243,13 +243,20 @@ class GraphBuilder:
                         'is_fixated': is_fixated
                     })
                 
-                # Log detections
-                logger.info(f"[Frame {self.frame_num}] YOLO-World detections:")
-                for i, detection in enumerate(yolo_detections[:3]):  # Log top 3 detections
+                # Log top 3 detections
+                logger.info(f"[Frame {self.frame_num}] Top 3 of {len(yolo_detections)} YOLO-World detections:")
+                for i, detection in enumerate(yolo_detections):
                     bbox = detection['bbox']
                     logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
                               f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}], "
                               f"fixated: {detection['is_fixated']})")
+
+                # Log all fixated detections
+                fixated_detections = [d for d in yolo_detections if d['is_fixated']]
+                logger.info(f"[Frame {self.frame_num}] {len(fixated_detections)} fixated YOLO-World detections:")
+                for detection in fixated_detections:
+                        logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
+                                  f"bbox: [{detection['bbox'][0]}, {detection['bbox'][1]}, {detection['bbox'][2]}, {detection['bbox'][3]}])")
                 
                 # Log all YOLO detections to the tracer
                 self.tracer.log_yolo_objects_detected(
