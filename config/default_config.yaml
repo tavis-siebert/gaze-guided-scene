@@ -52,8 +52,8 @@ models:
   yolo_world:
     model_dir: ${directories.scratch.egtea}/yolo_world_model
     model_file: "yolov8x-worldv2.onnx"
-    conf_threshold: 0.35
-    iou_threshold: 0.7
+    conf_threshold: 0.05
+    iou_threshold: 0.5
 
 # External resources
 external:
