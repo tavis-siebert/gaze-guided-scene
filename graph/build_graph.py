@@ -218,7 +218,7 @@ class GraphBuilder:
         # Run YOLO-World inference
         yolo_detections = []
         try:
-            detections = self.yolo_model.run_inference(roi, self.clip_labels, self.obj_labels)
+            detections = self.yolo_model.run_inference(frame, self.clip_labels, self.obj_labels)
             
             if detections:
                 # Sort by confidence score (highest first)
