@@ -98,7 +98,7 @@ class YOLOWorldModel:
         """
         if self.model is None:
             raise RuntimeError("YOLO-World model not loaded. Call load_model() first.")
-        
+
         # Extract class names from text labels if we haven't set them yet
         if not hasattr(self.model, 'names') or not self.model.names:
             class_names = [label.replace("a picture of a ", "") for label in text_labels]
@@ -129,17 +129,10 @@ class YOLOWorldModel:
         detections = []
         
         for box, score, class_id in zip(boxes, scores, class_ids):
-            # Get box coordinates (x_center, y_center, width, height)
-            x, y, w, h = box
-            x1, y1 = int(x - w / 2), int(y - h / 2)
-            x2, y2 = int(x + w / 2), int(y + h / 2)
-            
-            # Get class name
             class_name = self.model.names[class_id]
             
-            # Add detection to results
             detections.append({
-                "bbox": [x1, y1, x2 - x1, y2 - y1],  # [x, y, width, height]
+                "bbox": box,
                 "score": float(score),
                 "class_id": int(class_id),
                 "class_name": class_name
