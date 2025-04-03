@@ -16,6 +16,7 @@ from graph.graph_tracer import GraphTracer
 from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 from graph.action_utils import ActionUtils
 from models.clip import ClipModel
+from models.yolo_world import YOLOWorldModel
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from config.config_utils import DotDict
@@ -42,9 +43,18 @@ class GraphBuilder:
         self.clip_model = ClipModel(self.config.models.clip.model_id)
         self.clip_model.load_model(Path(self.config.models.clip.model_dir))
         
+        self.yolo_model = YOLOWorldModel(
+            conf_threshold=self.config.models.yolo_world.conf_threshold,
+            iou_threshold=self.config.models.yolo_world.iou_threshold
+        )
+        yolo_model_path = Path(self.config.models.yolo_world.model_dir) / self.config.models.yolo_world.model_file
+        self.yolo_model.load_model(yolo_model_path)
+        
         noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
         self.obj_labels, self.labels_to_int = DataLoader.load_object_labels(noun_idx_path)
         self.clip_labels = [f"a picture of a {obj}" for obj in self.obj_labels.values()]
+        
+        self.yolo_model.set_classes(list(self.obj_labels.values()))
         
         ann_file = (self.config.dataset.ego_topo.splits.train if self.split == 'train' 
                    else self.config.dataset.ego_topo.splits.val)
@@ -192,17 +202,35 @@ class GraphBuilder:
         roi, roi_bbox = get_roi(frame, (gaze_x, gaze_y), 256)
         logger.debug(f"[Frame {self.frame_num}] ROI bounding box: {roi_bbox}")
 
-        current_label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
-        self.potential_labels[current_label] += 1
+        # Run CLIP inference for object detection (used for graph construction)
+        clip_label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
+        self.potential_labels[clip_label] += 1
         
-        logger.info(f"[Frame {self.frame_num}] CLIP detected: {current_label} (count: {self.potential_labels[current_label]})")
+        logger.info(f"[Frame {self.frame_num}] CLIP detected: {clip_label} (count: {self.potential_labels[clip_label]})")
+        
+        # Run YOLO-World inference but only log results (don't use for graph construction yet)
+        try:
+            yolo_detections = self.yolo_model.run_inference(roi, self.clip_labels, self.obj_labels)
+            
+            if yolo_detections:
+                # Sort by confidence score (highest first)
+                sorted_detections = sorted(yolo_detections, key=lambda x: x['score'], reverse=True)
+                
+                # Log detections
+                logger.info(f"[Frame {self.frame_num}] YOLO-World detections:")
+                for i, detection in enumerate(sorted_detections[:3]):  # Log top 3 detections
+                    bbox = detection['bbox']
+                    logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
+                              f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}])")
+        except Exception as e:
+            logger.warning(f"[Frame {self.frame_num}] YOLO-World inference failed: {e}")
         
         most_likely_label = max(self.potential_labels.items(), key=lambda x: x[1])[0]
         
         self.tracer.log_gaze_object_detected(
             self.frame_num,
             most_likely_label,
-            current_label,
+            clip_label,
             roi_bbox,
             dict(self.potential_labels)
         )
