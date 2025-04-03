@@ -1,6 +1,7 @@
 # Base directories
 base:
   repo_root: ${REPO_ROOT}
+  scratch_dir: /tmp # Will be overwritten by other configs
 
 # Directories structure
 directories:
@@ -12,6 +13,7 @@ directories:
   
   # Scratch directories
   scratch:
+    root: ${base.scratch_dir}
     egtea: ${directories.scratch.root}/egtea_gaze
     ego_topo: ${directories.scratch.root}/ego-topo
     tmp: ${directories.scratch.root}/tmp
