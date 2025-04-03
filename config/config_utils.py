@@ -1,7 +1,7 @@
 import os
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Union, Optional
 import getpass
 from dataclasses import dataclass
 
@@ -117,17 +117,49 @@ def resolve_references(config: Dict[str, Any], full_config: Dict[str, Any] = Non
     
     return resolved_config
 
-def load_config(config_path: str = None) -> DotDict:
+def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Deep merge two dictionaries, with override values taking precedence."""
+    result = base.copy()
+    
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
+            
+    return result
+
+def load_config(config_path: Optional[str] = None) -> DotDict:
     """Load configuration from YAML file and resolve all references.
     
+    Supports extending from a base config using the 'extends' key.
+    If no config_path is provided, the default config will be loaded.
+    
+    Args:
+        config_path: Path to the config file to load. If None, loads default config.
+        
     Returns:
         DotDict: Configuration object that supports both dictionary and dot notation access
     """
     if config_path is None:
+        # Use student_cluster_config.yaml as fallback if no path is specified
         config_path = Path(__file__).parent / "student_cluster_config.yaml"
     
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
+    
+    # Handle extends key
+    if 'extends' in config:
+        base_config_path = config.pop('extends')
+        # Resolve relative paths
+        if not os.path.isabs(base_config_path):
+            base_config_path = os.path.join(os.path.dirname(config_path), base_config_path)
+        
+        with open(base_config_path, 'r') as f:
+            base_config = yaml.safe_load(f)
+        
+        # Merge configs with current config overriding base
+        config = deep_merge(base_config, config)
 
     resolved_config = resolve_references(config)
-    return DotDict(resolved_config) 
+    return DotDict(resolved_config)
