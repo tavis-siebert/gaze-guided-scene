@@ -215,20 +215,47 @@ class GraphBuilder:
         
         logger.info(f"[Frame {self.frame_num}] CLIP detected: {clip_label} (count: {self.potential_labels[clip_label]})")
         
-        # Run YOLO-World inference but only log results (don't use for graph construction yet)
+        # Run YOLO-World inference
+        yolo_detections = []
         try:
-            yolo_detections = self.yolo_model.run_inference(roi, self.clip_labels, self.obj_labels)
+            detections = self.yolo_model.run_inference(roi, self.clip_labels, self.obj_labels)
             
-            if yolo_detections:
+            if detections:
                 # Sort by confidence score (highest first)
-                sorted_detections = sorted(yolo_detections, key=lambda x: x['score'], reverse=True)
+                sorted_detections = sorted(detections, key=lambda x: x['score'], reverse=True)
+                
+                # Check which detections are being fixated by gaze
+                for detection in sorted_detections:
+                    bbox = detection['bbox']
+                    
+                    # Check if gaze intersects with this object
+                    is_fixated = (
+                        bbox[0] <= gaze_x <= bbox[0] + bbox[2] and
+                        bbox[1] <= gaze_y <= bbox[1] + bbox[3]
+                    )
+                    
+                    # Update the detection with adjusted bbox and fixation info
+                    yolo_detections.append({
+                        'bbox': bbox,
+                        'class_name': detection['class_name'],
+                        'score': detection['score'],
+                        'class_id': detection['class_id'],
+                        'is_fixated': is_fixated
+                    })
                 
                 # Log detections
                 logger.info(f"[Frame {self.frame_num}] YOLO-World detections:")
-                for i, detection in enumerate(sorted_detections[:3]):  # Log top 3 detections
+                for i, detection in enumerate(yolo_detections[:3]):  # Log top 3 detections
                     bbox = detection['bbox']
                     logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
-                              f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}])")
+                              f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}], "
+                              f"fixated: {detection['is_fixated']})")
+                
+                # Log all YOLO detections to the tracer
+                self.tracer.log_yolo_objects_detected(
+                    self.frame_num,
+                    yolo_detections
+                )
         except Exception as e:
             logger.warning(f"[Frame {self.frame_num}] YOLO-World inference failed: {e}")
         

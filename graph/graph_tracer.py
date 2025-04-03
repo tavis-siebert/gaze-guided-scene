@@ -210,6 +210,20 @@ class GraphTracer:
         
         self.log_event("gaze_object_detected", frame_number, data)
     
+    def log_yolo_objects_detected(self, frame_number: int, detections: List[Dict[str, Any]]) -> None:
+        """
+        Log YOLO-World object detection results.
+        
+        Args:
+            frame_number: Video frame number
+            detections: List of detection objects with is_fixated field
+        """
+        data = {
+            "detections": detections
+        }
+        
+        self.log_event("yolo_objects_detected", frame_number, data)
+    
     def _write_event(self, event: Dict[str, Any]) -> None:
         """
         Write an event to the trace file.
