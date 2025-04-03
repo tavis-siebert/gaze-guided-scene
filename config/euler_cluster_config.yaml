@@ -51,6 +51,11 @@ models:
   clip:
     model_dir: ${directories.scratch.egtea}/clip_model
     model_id: "openai/clip-vit-base-patch16"
+  yolo_world:
+    model_dir: ${directories.scratch.egtea}/yolo_world_model
+    model_file: "yolo_world.onnx"
+    conf_threshold: 0.35
+    iou_threshold: 0.7
 
 # External resources
 external:
@@ -58,6 +63,7 @@ external:
     dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
     dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
     ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
+    yolo_world_model: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
 
 # Processing settings
 processing:
