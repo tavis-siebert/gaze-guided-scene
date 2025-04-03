@@ -46,8 +46,20 @@ class YOLOWorldModel:
         """
         try:
             logger.info(f"Loading YOLO-World model from: {model_path}")
+            
+            if not model_path.exists():
+                logger.error(f"Model file does not exist at {model_path}")
+                available_models = list(model_path.parent.glob("*.onnx"))
+                if available_models:
+                    logger.error(f"Available ONNX models in directory: {[m.name for m in available_models]}")
+                raise FileNotFoundError(f"Model file not found: {model_path}")
+            
+            # Log model file size
+            model_size_mb = model_path.stat().st_size / (1024 * 1024)
+            logger.info(f"Model file size: {model_size_mb:.2f} MB")
+            
             self.model = YOLOWORLD(str(model_path), device=self.device)
-            logger.info(f"YOLO-World model loaded successfully on {self.device}")
+            logger.info(f"YOLO-World model '{model_path.name}' loaded successfully on device: {self.device}")
         except Exception as e:
             logger.error(f"Failed to load YOLO-World model: {e}")
             raise

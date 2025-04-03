@@ -242,15 +242,35 @@ def setup_yolo_world_model(directories: ScratchDirectories) -> None:
     model_dir = directories.yolo_world_model_dir
     model_dir.mkdir(exist_ok=True)
     
-    model_path = model_dir / directories.yolo_world_model_file
+    # Extract the original filename from the URL
+    url_path = Path(directories.yolo_world_model_url.split('?')[0])
+    original_filename = url_path.name
     
-    if model_path.exists():
-        logger.info(f"YOLO-World model already exists at {model_path}, skipping download...")
+    # If the specified model filename is different from the URL's filename,
+    # log information about the mapping
+    if original_filename != directories.yolo_world_model_file:
+        logger.info(f"Model from {original_filename} will be used as {directories.yolo_world_model_file}")
+    
+    # First check if the configured model file exists
+    target_model_path = model_dir / directories.yolo_world_model_file
+    if target_model_path.exists():
+        logger.info(f"YOLO-World model already exists at {target_model_path}, skipping download...")
         return
     
-    logger.info("Downloading YOLO-World ONNX model...")
-    download_from_url(directories.yolo_world_model_url, model_path)
-    logger.info(f"YOLO-World model saved to {model_path}")
+    # Download with the original filename
+    download_path = model_dir / original_filename
+    
+    logger.info(f"Downloading YOLO-World ONNX model from {directories.yolo_world_model_url}")
+    logger.info(f"Saving to {download_path}")
+    
+    download_from_url(directories.yolo_world_model_url, download_path)
+    
+    # If the original filename doesn't match the configured filename, create a copy/link
+    if original_filename != directories.yolo_world_model_file and not target_model_path.exists():
+        logger.info(f"Creating copy from {download_path} to {target_model_path}")
+        shutil.copy2(download_path, target_model_path)
+    
+    logger.info(f"YOLO-World model download complete")
 
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
