@@ -62,17 +62,29 @@ def get_reference_value(ref_path: str, full_config: Dict[str, Any]) -> Any:
         return None  # Skip if it looks like an unresolved env var
         
     ref_value = full_config
-    for part in ref_path.split("."):
+    parts = ref_path.split(".")
+    
+    # Return None instead of raising an error if any part of the path is missing
+    # This allows the reference to be resolved later if it's added during merging configs
+    for part in parts:
         if not isinstance(ref_value, dict):
-            raise ValueError(f"Invalid reference path '{ref_path}' - '{part}' is not a dictionary")
+            return None
         if part not in ref_value:
-            raise KeyError(f"Reference '{ref_path}' not found - '{part}' does not exist")
+            return None
         ref_value = ref_value[part]
+    
     return ref_value
 
 def resolve_string_value(value: str, full_config: Dict[str, Any]) -> str:
     """Resolve all references in a string value until no more ${...} patterns exist."""
-    while "${" in value:
+    original_value = value
+    attempts = 0
+    max_attempts = 10  # Prevent infinite loops
+    
+    while "${" in value and attempts < max_attempts:
+        attempts += 1
+        previous_value = value
+        
         # First check if it's an environment variable
         resolved = resolve_env_vars(value)
         if resolved != value:
@@ -83,14 +95,21 @@ def resolve_string_value(value: str, full_config: Dict[str, Any]) -> str:
             prefix, ref_path, suffix = extract_reference(value)
             ref_value = get_reference_value(ref_path, full_config)
             
-            if ref_value is None:  # Unresolved env var
+            if ref_value is None:  # Reference not found or unresolved env var
+                # We'll keep the reference as is and try to resolve it in later passes
                 break
                 
             value = f"{prefix}{ref_value}{suffix}"
             # Resolve any environment variables in the result
             value = resolve_env_vars(value)
         except Exception as e:
-            raise ValueError(f"Error resolving reference in '{value}': {str(e)}")
+            # Return the original reference if we can't resolve it
+            # This allows it to potentially be resolved in a future pass
+            break
+        
+        # Check if we're making progress
+        if value == previous_value:
+            break
     
     return value
 
@@ -161,5 +180,15 @@ def load_config(config_path: Optional[str] = None) -> DotDict:
         # Merge configs with current config overriding base
         config = deep_merge(base_config, config)
 
-    resolved_config = resolve_references(config)
-    return DotDict(resolved_config)
+    # Perform multiple passes of reference resolution to handle chained references
+    # For example, if A references B which references C, we need multiple passes
+    max_passes = 5
+    for _ in range(max_passes):
+        previous_config = config.copy()
+        config = resolve_references(config)
+        
+        # If no changes were made in this pass, we're done
+        if config == previous_config:
+            break
+    
+    return DotDict(config)
