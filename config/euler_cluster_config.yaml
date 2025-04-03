@@ -53,7 +53,7 @@ models:
     model_id: "openai/clip-vit-base-patch16"
   yolo_world:
     model_dir: ${directories.scratch.egtea}/yolo_world_model
-    model_file: "yolo_world.onnx"
+    model_file: "yolov8x-worldv2.onnx"
     conf_threshold: 0.35
     iou_threshold: 0.7
 

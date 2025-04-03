@@ -265,11 +265,8 @@ def setup_yolo_world_model(directories: ScratchDirectories) -> None:
     
     download_from_url(directories.yolo_world_model_url, download_path)
     
-    # If the original filename doesn't match the configured filename, create a copy/link
     if original_filename != directories.yolo_world_model_file and not target_model_path.exists():
-        logger.info(f"Creating copy from {download_path} to {target_model_path}")
-        shutil.copy2(download_path, target_model_path)
-    
+        logger.warning(f"Model filename mismatch: {original_filename} vs {directories.yolo_world_model_file}. Make sure to update the model file name in the config to use the correct model.")
     logger.info(f"YOLO-World model download complete")
 
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
