@@ -444,8 +444,8 @@ class VideoDisplay(BaseComponent):
             x0, y0, x1, y1 = x, y, x + width, y + height
             
             # Define colors based on fixation status
-            box_color = "rgba(255, 0, 0, 1)" if is_fixated else "rgba(128, 128, 128, 1)"  # Red if fixated, gray otherwise
-            box_fill = "rgba(255, 0, 0, 0.1)" if is_fixated else "rgba(128, 128, 128, 0.1)"
+            box_color = "rgba(0, 0, 255, 1)" if is_fixated else "rgba(128, 128, 128, 1)"  # Blue if fixated, gray otherwise
+            box_fill = "rgba(0, 0, 255, 0.1)" if is_fixated else "rgba(128, 128, 128, 0.1)"
             
             traces.append(go.Scatter(
                 x=[x0, x1, x1, x0, x0],
@@ -460,7 +460,8 @@ class VideoDisplay(BaseComponent):
             ))
             
             # Calculate label text width based on its length
-            text_width = len(label_text) * 7  # Approximate width based on character count
+            text_label = f"{label_text} ({score:.2f})"
+            text_width = len(text_label) * 7  # Approximate width based on character count
             
             # Calculate label box position
             padding = 5  # Padding around text
@@ -505,7 +506,7 @@ class VideoDisplay(BaseComponent):
                 x=[(label_x0 + label_x1) / 2],
                 y=[(label_y0 + label_y1) / 2],
                 mode="text",
-                text=[f"{label_text} ({score:.2f})"],
+                text=[text_label],
                 textposition="middle center",
                 textfont=dict(
                     size=12, 
