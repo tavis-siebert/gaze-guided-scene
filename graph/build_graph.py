@@ -43,11 +43,18 @@ class GraphBuilder:
         self.clip_model = ClipModel(self.config.models.clip.model_id)
         self.clip_model.load_model(Path(self.config.models.clip.model_dir))
         
+        # Initialize YOLO-World model
+        yolo_model_file = self.config.models.yolo_world.model_file
+        yolo_model_dir = Path(self.config.models.yolo_world.model_dir)
+        yolo_model_path = yolo_model_dir / yolo_model_file
+        
+        logger.info(f"Initializing YOLO-World model: {yolo_model_file} (conf_threshold={self.config.models.yolo_world.conf_threshold}, "
+                   f"iou_threshold={self.config.models.yolo_world.iou_threshold})")
+        
         self.yolo_model = YOLOWorldModel(
             conf_threshold=self.config.models.yolo_world.conf_threshold,
             iou_threshold=self.config.models.yolo_world.iou_threshold
         )
-        yolo_model_path = Path(self.config.models.yolo_world.model_dir) / self.config.models.yolo_world.model_file
         self.yolo_model.load_model(yolo_model_path)
         
         noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
