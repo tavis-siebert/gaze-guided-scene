@@ -75,10 +75,7 @@ graph:
   fixation_window_threshold: 5  # Minimum number of consecutive fixation frames to treat as a true fixation
   min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
 
-  # Advanced fixation detection settings
-  advanced_fixation:
-    enabled: true  # Whether to use the advanced fixation scoring algorithm
-    
+  fixated_object_detection:
     # Weights for different components of fixation score
     weights:
       # Weight for detection duration (higher gives more importance to objects fixated for longer periods)
