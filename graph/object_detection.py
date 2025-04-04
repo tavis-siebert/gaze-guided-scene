@@ -319,27 +319,24 @@ class ObjectDetector:
         return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
     
     def _compute_gaze_distance(self, bbox: Tuple[int, int, int, int], gaze: Tuple[int, int]) -> float:
-        """Compute distance from gaze point to closest point on/in bounding box.
+        """Compute distance from gaze point to the center of the bounding box.
         
         Args:
             bbox: Bounding box (left, top, width, height)
             gaze: Gaze point (x, y)
             
         Returns:
-            Minimum distance (0 if gaze is inside bbox)
+            Distance from gaze point to bbox center
         """
         left, top, width, height = bbox
         gaze_x, gaze_y = gaze
         
-        # If gaze is inside bbox, distance is 0
-        if left <= gaze_x <= left + width and top <= gaze_y <= top + height:
-            return 0.0
-            
-        # Find closest point on bbox to gaze
-        closest_x = max(left, min(gaze_x, left + width))
-        closest_y = max(top, min(gaze_y, top + height))
+        # Calculate bbox center
+        center_x = left + width / 2
+        center_y = top + height / 2
         
-        return self._compute_distance((gaze_x, gaze_y), (closest_x, closest_y))
+        # Compute distance to center
+        return self._compute_distance((gaze_x, gaze_y), (center_x, center_y))
     
     def _compute_mean_gaze_distance(
         self, 
@@ -450,7 +447,7 @@ class ObjectDetector:
             logger.info(f"Fixation score for {obj_name}: {final_score:.4f}")
             logger.info(f"  - Duration score: {duration_weighted_score:.4f} (ratio: {fixation_ratio:.2f})")
             logger.info(f"  - Stability score: {stability_score:.4f}")
-            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance: {gaze_distance:.2f})")
+            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f})")
             
         return fixation_scores
     
