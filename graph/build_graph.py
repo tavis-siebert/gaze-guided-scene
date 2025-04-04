@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional, NamedTuple
 from collections import defaultdict
 from tqdm import tqdm
+import itertools
 
 from graph.graph import Graph
 from graph.node import Node
@@ -23,6 +24,12 @@ from config.config_utils import DotDict
 from logger import get_logger
 
 logger = get_logger(__name__)
+
+class StopProcessingException(Exception):
+    """Exception to indicate that frame processing should stop."""
+    def __init__(self, reason: str = ""):
+        self.reason = reason
+        super().__init__(self.reason)
 
 class GraphBuilder:
     """Builds scene graphs from video data and gaze information."""
@@ -126,21 +133,19 @@ class GraphBuilder:
         )
         
         self._reset_tracking_state()
-
-        # Iterate through both video and gaze data simultaneously
-        gaze_iterator = iter(self.gaze_processor)
         
-        for frame, _, is_black_frame in video_processor:
-            try:
-                gaze_point = next(gaze_iterator)
-                should_continue = self._process_frame(frame, gaze_point, is_black_frame)
-                if not should_continue:
+        try:
+            for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
+                try:
+                    self._process_frame(frame, gaze_point, is_black_frame)
+                    self.relative_frame_num += 1
+                    self.frame_num += 1
+                except StopProcessingException as e:
+                    logger.info(f"[Frame {self.frame_num}] {e.reason}")
                     break
-                self.relative_frame_num += 1
-                self.frame_num += 1
-            except StopIteration:
-                logger.info(f"[Frame {self.frame_num}] End of gaze data reached")
-                break
+        except StopIteration:
+            # This handles when one iterator is exhausted before the other
+            logger.info(f"[Frame {self.frame_num}] End of data reached")
 
         if self.potential_labels and self.fixated_objects_found:
             self._finish_final_fixation()
@@ -161,50 +166,40 @@ class GraphBuilder:
         self.relative_frame_num = 0
         self.fixated_objects_found = False
 
-    def _process_frame(self, frame: torch.Tensor, gaze_point: GazePoint, is_black_frame: bool) -> bool:
-        """Process a single frame and update the scene graph.
+    def _process_frame(self, frame: torch.Tensor, gaze_point: GazePoint, is_black_frame: bool) -> None:
+        """
+        Process a single frame and update the scene graph.
         
         Args:
             frame: Video frame tensor
             gaze_point: Processed gaze point for this frame
             is_black_frame: Whether the frame is a black frame
-        
-        Returns:
-            bool: False if processing should stop, True to continue
+            
+        Raises:
+            StopProcessingException: If processing should stop
         """
-        gaze_pos = (gaze_point.x, gaze_point.y)
-        gaze_type = gaze_point.processed_type
-
         node_id = self.scene_graph.current_node.id if self.scene_graph.current_node.id >= 0 else None
-        self.tracer.log_frame(self.frame_num, gaze_pos, int(gaze_type), node_id)
+        self.tracer.log_frame(self.frame_num, gaze_point.position, int(gaze_point.type), node_id)
 
         if is_black_frame:
-            return True
+            return
 
-        checkpoint = self.checkpoint_manager.checkpoint_if_needed(
+        self.checkpoint_manager.checkpoint_if_needed(
             frame_num=self.frame_num,
             relative_frame=self.relative_frame_num
         )
         
-        should_stop = self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]
-        
-        if should_stop:
-            logger.info(f"[Frame {self.frame_num}] Reached final timestamp")
-            return False
+        if self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]:
+            raise StopProcessingException(reason="Reached final timestamp")
 
         self._process_frame_with_gaze(frame, gaze_point)
-            
-        return True
 
     def _process_frame_with_gaze(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
         """Process a frame using available gaze data."""
-        gaze_type = gaze_point.processed_type
-        gaze_pos = (gaze_point.x, gaze_point.y)
-        
-        if gaze_type == GazeType.FIXATION:
-            self._handle_fixation(frame, gaze_pos)
-        elif gaze_type == GazeType.SACCADE and self.potential_labels:
-            self._handle_saccade(gaze_pos)
+        if gaze_point.type == GazeType.FIXATION:
+            self._handle_fixation(frame, gaze_point.position)
+        elif gaze_point.type == GazeType.SACCADE and self.potential_labels:
+            self._handle_saccade(gaze_point.position)
 
     def _handle_fixation(self, frame: torch.Tensor, gaze_pos: Tuple[float, float]) -> None:
         """Handle a fixation frame."""
@@ -360,19 +355,17 @@ class GraphBuilder:
                 x=self.prev_gaze_pos[0], 
                 y=self.prev_gaze_pos[1], 
                 raw_type=GazeType.FIXATION,
-                processed_type=GazeType.FIXATION,
+                type=GazeType.FIXATION,
                 frame_idx=self.frame_num - 1
             )
             
-        last_gaze_pos = (last_gaze_point.x, last_gaze_point.y)
-        
-        logger.debug(f"- Final gaze position (normalized): ({last_gaze_pos[0]:.2f}, {last_gaze_pos[1]:.2f})")
+        logger.debug(f"- Final gaze position (normalized): ({last_gaze_point.position[0]:.2f}, {last_gaze_point.position[1]:.2f})")
         
         self.scene_graph.update_graph(
             self.potential_labels,
             visit_record, 
             self.prev_gaze_pos,
-            last_gaze_pos
+            last_gaze_point.position
         )
 
 def build_graph(
