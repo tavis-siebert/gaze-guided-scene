@@ -16,7 +16,7 @@ from graph.graph_tracer import GraphTracer
 from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 from graph.action_utils import ActionUtils
 from graph.gaze import GazeProcessor, GazePoint, GazeType
-from models.yolo_world import YOLOWorldModel
+from graph.object_detection import ObjectDetector
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE
@@ -47,41 +47,36 @@ class GraphBuilder:
         self.enable_tracing = enable_tracing
         self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
         
-        # Initialize YOLO-World model
+        # Initialize object labels
+        noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
+        self.obj_labels, self.labels_to_int = DataLoader.load_object_labels(noun_idx_path)
+        
+        # Initialize YOLO-World model path
         yolo_model_file = self.config.models.yolo_world.model_file
         yolo_model_dir = Path(self.config.models.yolo_world.model_dir)
         yolo_model_path = yolo_model_dir / yolo_model_file
         
-        logger.info(f"Initializing YOLO-World model: {yolo_model_file} (conf_threshold={self.config.models.yolo_world.conf_threshold}, "
-                   f"iou_threshold={self.config.models.yolo_world.iou_threshold})")
+        # Create object detector (will be re-initialized for each video with proper tracer)
+        self.object_detector = None
+        self.yolo_model_path = yolo_model_path
+        self.yolo_conf_threshold = self.config.models.yolo_world.conf_threshold
+        self.yolo_iou_threshold = self.config.models.yolo_world.iou_threshold
         
-        self.yolo_model = YOLOWorldModel(
-            conf_threshold=self.config.models.yolo_world.conf_threshold,
-            iou_threshold=self.config.models.yolo_world.iou_threshold
-        )
-        self.yolo_model.load_model(yolo_model_path)
-        
-        noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
-        self.obj_labels, self.labels_to_int = DataLoader.load_object_labels(noun_idx_path)
-        self.clip_labels = [f"a picture of a {obj}" for obj in self.obj_labels.values()]
-        
-        self.yolo_model.set_classes(list(self.obj_labels.values()))
-        
+        # Load video metadata
         ann_file = (self.config.dataset.ego_topo.splits.train if self.split == 'train' 
                    else self.config.dataset.ego_topo.splits.val)
         self.vid_lengths = DataLoader.load_video_lengths(ann_file)
         self.records, self.records_by_vid = DataLoader.load_records(ann_file)
         self.action_to_idx = DataLoader.create_action_index(self.records)
         
+        # Tracking state variables
         self.prev_gaze_point = None
-        self.potential_labels = defaultdict(float)  # Changed to float for accumulating confidence scores
         self.visit_start = -1
         self.visit_end = -1
         self.frame_num = 0
-        # Keeps track of frames excluding black frames, used for visit tracking and feature normalization
         self.non_black_frame_count = 0
-        self.fixated_objects_found = False  # Track if any objects were fixated during a fixation
         
+        # Processing context
         self.scene_graph = None
         self.checkpoint_manager = None
         self.video_name = ""
@@ -106,6 +101,16 @@ class GraphBuilder:
         self.tracer = GraphTracer(self.config.directories.repo.traces, video_name, enabled=self.enable_tracing)
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
+        
+        # Initialize object detector with video-specific tracer
+        self.object_detector = ObjectDetector(
+            model_path=self.yolo_model_path,
+            conf_threshold=self.yolo_conf_threshold,
+            iou_threshold=self.yolo_iou_threshold,
+            obj_labels=self.obj_labels,
+            labels_to_int=self.labels_to_int,
+            tracer=self.tracer
+        )
         
         # Load raw gaze data and initialize gaze processor
         self.raw_gaze_data = parse_gtea_gaze(str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"))
@@ -146,7 +151,7 @@ class GraphBuilder:
         except StopIteration:
             logger.info(f"[Frame {self.frame_num}] End of data reached")
 
-        if self.potential_labels and self.fixated_objects_found:
+        if self.object_detector.get_potential_labels() and self.object_detector.has_fixated_objects():
             self._finish_final_fixation()
         
         if print_graph and self.scene_graph.num_nodes > 0:
@@ -158,12 +163,12 @@ class GraphBuilder:
     def _reset_tracking_state(self):
         """Reset all tracking state variables."""
         self.prev_gaze_point = None
-        self.potential_labels = defaultdict(float)
         self.visit_start = -1
         self.visit_end = -1
         self.frame_num = 0
         self.non_black_frame_count = 0
-        self.fixated_objects_found = False
+        if self.object_detector:
+            self.object_detector.reset()
 
     def _process_frame(self, frame: torch.Tensor, gaze_point: GazePoint, is_black_frame: bool) -> None:
         """
@@ -197,7 +202,7 @@ class GraphBuilder:
         """Process a frame using available gaze data."""
         if gaze_point.type == GazeType.FIXATION:
             self._handle_fixation(frame, gaze_point)
-        elif gaze_point.type == GazeType.SACCADE and self.potential_labels:
+        elif gaze_point.type == GazeType.SACCADE and self.object_detector.get_potential_labels():
             self._handle_saccade(gaze_point)
 
     def _handle_fixation(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
@@ -206,80 +211,8 @@ class GraphBuilder:
             self.visit_start = self.non_black_frame_count
             logger.info(f"\n[Frame {self.frame_num}] New fixation started at ({gaze_point.x:.1f}, {gaze_point.y:.1f})")
         
-        _, H, W = frame.shape
-        gaze_x, gaze_y = int(gaze_point.x * W), int(gaze_point.y * H)
-
-        # Run YOLO-World inference
-        yolo_detections = []
-        found_fixated_objects = False
-        
-        try:
-            # Get raw detections from YOLO World
-            detections = self.yolo_model.run_inference(frame, self.clip_labels, self.obj_labels)
-            
-            if detections:
-                # Sort by confidence score (highest first)
-                sorted_detections = sorted(detections, key=lambda x: x['score'], reverse=True)
-                
-                # Process detections and check which ones are fixated by gaze
-                for detection in sorted_detections:
-                    left, top, width, height = detection['bbox']
-                    
-                    # Check if gaze intersects with this object
-                    is_fixated = (
-                        left <= gaze_x <= left + width and
-                        top <= gaze_y <= top + height
-                    )
-                    
-                    # Create a new detection object with fixation info
-                    yolo_detections.append({
-                        'bbox': (left, top, width, height),
-                        'class_name': detection['class_name'],
-                        'score': detection['score'],
-                        'class_id': detection['class_id'],
-                        'is_fixated': is_fixated
-                    })
-                    
-                    # Accumulate confidence scores for fixated objects
-                    if is_fixated:
-                        found_fixated_objects = True
-                        self.fixated_objects_found = True
-                        # Accumulate the confidence score (weighted by the score itself)
-                        self.potential_labels[detection['class_name']] += detection['score']
-                
-                # Log top 3 detections with fixation info
-                logger.info(f"[Frame {self.frame_num}] Top 3 of {len(yolo_detections)} YOLO-World detections:")
-                for i, detection in enumerate(sorted_detections[:min(3, len(sorted_detections))]):
-                    bbox = detection['bbox']
-                    # Get the corresponding detection with fixation info
-                    fixation_info = yolo_detections[i]['is_fixated'] if i < len(yolo_detections) else False
-                    logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
-                              f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}], "
-                              f"fixated: {fixation_info})")
-
-                # Log all fixated detections
-                fixated_detections = [d for d in yolo_detections if d['is_fixated']]
-                logger.info(f"[Frame {self.frame_num}] {len(fixated_detections)} fixated YOLO-World detections:")
-                for detection in fixated_detections:
-                    logger.info(f"  - {detection['class_name']} (conf: {detection['score']:.2f}, "
-                              f"bbox: [{detection['bbox'][0]}, {detection['bbox'][1]}, {detection['bbox'][2]}, {detection['bbox'][3]}])")
-                
-                # Log all YOLO detections to the tracer
-                self.tracer.log_yolo_objects_detected(
-                    self.frame_num,
-                    yolo_detections
-                )
-                
-                # Log current accumulated object confidences
-                if found_fixated_objects:
-                    logger.info(f"[Frame {self.frame_num}] Current accumulated object confidences:")
-                    for label, confidence in sorted(self.potential_labels.items(), key=lambda x: x[1], reverse=True):
-                        logger.info(f"  - {label}: {confidence:.2f}")
-                
-        except Exception as e:
-            logger.warning(f"[Frame {self.frame_num}] YOLO-World inference failed: {str(e)}")
-            import traceback
-            logger.debug(f"Error details: {traceback.format_exc()}")
+        # Run object detection
+        self.object_detector.detect_objects(frame, gaze_point, self.frame_num)
         
         # Store current gaze point for future reference
         self.prev_gaze_point = gaze_point
@@ -293,15 +226,14 @@ class GraphBuilder:
         logger.debug(f"- Current gaze position (normalized): ({gaze_point.position[0]:.2f}, {gaze_point.position[1]:.2f})")
         
         # Only proceed if we found fixated objects during this fixation period
-        if not self.fixated_objects_found or not self.potential_labels:
+        if not self.object_detector.has_fixated_objects():
             logger.info(f"- No fixated objects found during this fixation period, skipping node creation")
             self._reset_fixation_state(gaze_point)
             return
         
-        most_likely_label = max(self.potential_labels.items(), key=lambda x: x[1])[0]
-        accumulated_confidence = self.potential_labels[most_likely_label]
+        fixated_object, confidence = self.object_detector.get_fixated_object()
         
-        logger.info(f"- Most likely object: {most_likely_label} (accumulated confidence: {accumulated_confidence:.2f})")
+        logger.info(f"- Fixated object: {fixated_object} (confidence: {confidence:.2f})")
         logger.info(f"- Visit duration: {fixation_duration} frames")
         
         prev_node_id = self.scene_graph.current_node.id
@@ -311,7 +243,7 @@ class GraphBuilder:
         prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
         
         next_node = self.scene_graph.update_graph(
-            self.potential_labels,
+            fixated_object,
             visit_record,
             prev_position,
             gaze_point.position
@@ -338,8 +270,7 @@ class GraphBuilder:
         self.visit_start = -1
         self.visit_end = -1
         self.prev_gaze_point = gaze_point
-        self.potential_labels = defaultdict(float)
-        self.fixated_objects_found = False
+        self.object_detector.reset()
     
     def _finish_final_fixation(self) -> None:
         """Process the final fixation if video ends during one."""
@@ -370,8 +301,12 @@ class GraphBuilder:
         # Get the previous gaze position or default to (0,0) if not available
         prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
         
+        # Get the most likely fixated object from the detector
+        fixated_object, confidence = self.object_detector.get_most_likely_object()
+        logger.info(f"- Final fixated object: {fixated_object} (accumulated confidence: {confidence:.2f})")
+        
         self.scene_graph.update_graph(
-            self.potential_labels,
+            self.object_detector.get_potential_labels(),
             visit_record, 
             prev_position,
             last_gaze_point.position

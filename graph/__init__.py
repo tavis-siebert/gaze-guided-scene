@@ -38,6 +38,9 @@ from graph.action_utils import ActionUtils
 # Gaze processing
 from graph.gaze import GazeProcessor, GazePoint
 
+# Object detection
+from graph.object_detection import ObjectDetector, Detection
+
 __all__ = [
     'Node',
     'VisitRecord',
@@ -75,5 +78,9 @@ __all__ = [
     
     # Gaze processing
     'GazeProcessor',
-    'GazePoint'
+    'GazePoint',
+    
+    # Object detection
+    'ObjectDetector',
+    'Detection'
 ]

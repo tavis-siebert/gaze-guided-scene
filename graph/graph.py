@@ -153,7 +153,7 @@ class Graph:
     
     def update_graph(
         self, 
-        label_counts: Dict[str, int], 
+        fixated_object: str,
         visit: VisitRecord, 
         prev_gaze_pos: GazePosition, 
         curr_gaze_pos: GazePosition, 
@@ -162,7 +162,7 @@ class Graph:
         """Update the graph with a new observation.
         
         Args:
-            label_counts: Dictionary of object labels and their counts
+            fixated_object: The fixated object label
             visit: First and last frame of the object fixation
             prev_gaze_pos: Previous gaze position (x,y)
             curr_gaze_pos: Current gaze position (x,y)
@@ -171,9 +171,7 @@ class Graph:
         Returns:
             The next node (either existing or newly created)
         """
-        most_likely_label = max(label_counts, key=label_counts.get)
-        
-        matching_node = self._find_matching_node(most_likely_label)
+        matching_node = self._find_matching_node(fixated_object)
         next_node = Node.merge(visit, matching_node)
         
         if next_node:
@@ -187,7 +185,7 @@ class Graph:
             )
             logger.info(f"Node {next_node.id} updated with new visit at frames {visit}")
         else:
-            next_node = self.add_node(most_likely_label, visit)
+            next_node = self.add_node(fixated_object, visit)
         
         if (next_node != self.current_node and 
             not self.has_neighbor(self.current_node.id, next_node.id)):

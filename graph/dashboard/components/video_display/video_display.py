@@ -282,17 +282,17 @@ class VideoDisplay(BaseComponent):
             return
             
         bbox = detection_event.data["bounding_box"]
-        most_likely_label = detection_event.data["detected_object"]
-        current_label = detection_event.data.get("current_detected_label", most_likely_label)
+        fixated_object = detection_event.data["detected_object"]
+        current_label = detection_event.data.get("current_detected_label", fixated_object)
         potential_labels = detection_event.data.get("potential_labels", {})
         
         # Format the most likely label for display
-        label_text = format_label(most_likely_label)
+        label_text = format_label(fixated_object)
         
         # Create hover text with label information
         hover_text = self._create_detection_hover_text(
             current_label, 
-            most_likely_label, 
+            fixated_object, 
             potential_labels
         )
         
@@ -378,14 +378,14 @@ class VideoDisplay(BaseComponent):
     def _create_detection_hover_text(
         self, 
         current_label: str, 
-        most_likely_label: str,
+        fixated_object: str,
         potential_labels: dict
     ) -> str:
         """Create hover text for object detection.
         
         Args:
             current_label: The current object label
-            most_likely_label: The most likely object label
+            fixated_object: The most likely object label
             potential_labels: Dictionary of potential labels and their counts
             
         Returns:
@@ -398,7 +398,7 @@ class VideoDisplay(BaseComponent):
         
         return (
             f"Current: {format_label(current_label)}<br>"
-            f"Most likely: {format_label(most_likely_label)}<br><br>"
+            f"Fixated: {format_label(fixated_object)}<br><br>"
             f"Potential labels:<br>{potential_labels_text}"
         )
     
