@@ -196,7 +196,7 @@ class GraphTracer:
         
         Args:
             frame_number: Video frame number
-            detected_object: Most likely object label based on counts
+            detected_object: Fixated object label based on counts
             current_detected_label: Current frame's detected object label
             bounding_box: Region of interest coordinates [x, y, width, height]
             potential_labels: Dictionary of potential object labels and their counts
