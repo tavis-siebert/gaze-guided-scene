@@ -59,8 +59,6 @@ class GraphBuilder:
         # Create object detector (will be re-initialized for each video with proper tracer)
         self.object_detector = None
         self.yolo_model_path = yolo_model_path
-        self.yolo_conf_threshold = self.config.models.yolo_world.conf_threshold
-        self.yolo_iou_threshold = self.config.models.yolo_world.iou_threshold
         
         # Load video metadata
         ann_file = (self.config.dataset.ego_topo.splits.train if self.split == 'train' 
@@ -105,10 +103,9 @@ class GraphBuilder:
         # Initialize object detector with video-specific tracer
         self.object_detector = ObjectDetector(
             model_path=self.yolo_model_path,
-            conf_threshold=self.yolo_conf_threshold,
-            iou_threshold=self.yolo_iou_threshold,
             obj_labels=self.obj_labels,
             labels_to_int=self.labels_to_int,
+            config=self.config,
             tracer=self.tracer
         )
         
