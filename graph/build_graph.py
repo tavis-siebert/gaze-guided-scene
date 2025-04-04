@@ -73,7 +73,7 @@ class GraphBuilder:
         self.records, self.records_by_vid = DataLoader.load_records(ann_file)
         self.action_to_idx = DataLoader.create_action_index(self.records)
         
-        self.prev_gaze_pos = (-1, -1)
+        self.prev_gaze_point = None
         self.potential_labels = defaultdict(float)  # Changed to float for accumulating confidence scores
         self.visit_start = -1
         self.visit_end = -1
@@ -136,15 +136,12 @@ class GraphBuilder:
         
         try:
             for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
-                try:
-                    self._process_frame(frame, gaze_point, is_black_frame)
-                    self.relative_frame_num += 1
-                    self.frame_num += 1
-                except StopProcessingException as e:
-                    logger.info(f"[Frame {self.frame_num}] {e.reason}")
-                    break
+                self._process_frame(frame, gaze_point, is_black_frame)
+                self.relative_frame_num += 1
+                self.frame_num += 1
+        except StopProcessingException as e:
+            logger.info(f"[Frame {self.frame_num}] {e.reason}")
         except StopIteration:
-            # This handles when one iterator is exhausted before the other
             logger.info(f"[Frame {self.frame_num}] End of data reached")
 
         if self.potential_labels and self.fixated_objects_found:
@@ -158,7 +155,7 @@ class GraphBuilder:
 
     def _reset_tracking_state(self):
         """Reset all tracking state variables."""
-        self.prev_gaze_pos = (-1, -1)
+        self.prev_gaze_point = None
         self.potential_labels = defaultdict(float)
         self.visit_start = -1
         self.visit_end = -1
@@ -197,18 +194,18 @@ class GraphBuilder:
     def _process_frame_with_gaze(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
         """Process a frame using available gaze data."""
         if gaze_point.type == GazeType.FIXATION:
-            self._handle_fixation(frame, gaze_point.position)
+            self._handle_fixation(frame, gaze_point)
         elif gaze_point.type == GazeType.SACCADE and self.potential_labels:
-            self._handle_saccade(gaze_point.position)
+            self._handle_saccade(gaze_point)
 
-    def _handle_fixation(self, frame: torch.Tensor, gaze_pos: Tuple[float, float]) -> None:
+    def _handle_fixation(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
         """Handle a fixation frame."""
         if self.visit_start == -1:
             self.visit_start = self.relative_frame_num
-            logger.info(f"\n[Frame {self.frame_num}] New fixation started at ({gaze_pos[0]:.1f}, {gaze_pos[1]:.1f})")
+            logger.info(f"\n[Frame {self.frame_num}] New fixation started at ({gaze_point.x:.1f}, {gaze_point.y:.1f})")
         
         _, H, W = frame.shape
-        gaze_x, gaze_y = int(gaze_pos[0] * W), int(gaze_pos[1] * H)
+        gaze_x, gaze_y = int(gaze_point.x * W), int(gaze_point.y * H)
 
         # Run YOLO-World inference
         yolo_detections = []
@@ -281,19 +278,22 @@ class GraphBuilder:
             logger.warning(f"[Frame {self.frame_num}] YOLO-World inference failed: {str(e)}")
             import traceback
             logger.debug(f"Error details: {traceback.format_exc()}")
+        
+        # Store current gaze point for future reference
+        self.prev_gaze_point = gaze_point
     
-    def _handle_saccade(self, curr_gaze_pos: Tuple[float, float]) -> None:
+    def _handle_saccade(self, gaze_point: GazePoint) -> None:
         """Handle a saccade between fixations."""
         self.visit_end = self.relative_frame_num - 1
         fixation_duration = self.visit_end - self.visit_start + 1
         
         logger.info(f"\n[Frame {self.frame_num}] Saccade detected:")
-        logger.debug(f"- Current gaze position (normalized): ({curr_gaze_pos[0]:.2f}, {curr_gaze_pos[1]:.2f})")
+        logger.debug(f"- Current gaze position (normalized): ({gaze_point.position[0]:.2f}, {gaze_point.position[1]:.2f})")
         
         # Only proceed if we found fixated objects during this fixation period
         if not self.fixated_objects_found or not self.potential_labels:
             logger.info(f"- No fixated objects found during this fixation period, skipping node creation")
-            self._reset_fixation_state(curr_gaze_pos)
+            self._reset_fixation_state(gaze_point)
             return
         
         most_likely_label = max(self.potential_labels.items(), key=lambda x: x[1])[0]
@@ -304,11 +304,15 @@ class GraphBuilder:
         
         prev_node_id = self.scene_graph.current_node.id
         visit_record = [self.visit_start, self.visit_end]
+        
+        # Get the previous gaze position or default to (0,0) if not available
+        prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
+        
         next_node = self.scene_graph.update_graph(
             self.potential_labels,
             visit_record,
-            self.prev_gaze_pos,
-            curr_gaze_pos
+            prev_position,
+            gaze_point.position
         )
         
         if next_node.id != prev_node_id:
@@ -325,13 +329,13 @@ class GraphBuilder:
             logger.info(f"- Updated node features: visits={len(next_node.visits)}, "
                       f"total_frames={next_node.get_visit_duration()}")
         
-        self._reset_fixation_state(curr_gaze_pos)
+        self._reset_fixation_state(gaze_point)
     
-    def _reset_fixation_state(self, curr_gaze_pos: Tuple[float, float]):
+    def _reset_fixation_state(self, gaze_point: GazePoint):
         """Reset the state related to the current fixation."""
         self.visit_start = -1
         self.visit_end = -1
-        self.prev_gaze_pos = curr_gaze_pos
+        self.prev_gaze_point = gaze_point
         self.potential_labels = defaultdict(float)
         self.fixated_objects_found = False
     
@@ -352,8 +356,8 @@ class GraphBuilder:
         if last_gaze_point is None:
             # Fallback if we can't get the last gaze point
             last_gaze_point = GazePoint(
-                x=self.prev_gaze_pos[0], 
-                y=self.prev_gaze_pos[1], 
+                x=self.prev_gaze_point.x if self.prev_gaze_point else 0.5, 
+                y=self.prev_gaze_point.y if self.prev_gaze_point else 0.5, 
                 raw_type=GazeType.FIXATION,
                 type=GazeType.FIXATION,
                 frame_idx=self.frame_num - 1
@@ -361,10 +365,13 @@ class GraphBuilder:
             
         logger.debug(f"- Final gaze position (normalized): ({last_gaze_point.position[0]:.2f}, {last_gaze_point.position[1]:.2f})")
         
+        # Get the previous gaze position or default to (0,0) if not available
+        prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
+        
         self.scene_graph.update_graph(
             self.potential_labels,
             visit_record, 
-            self.prev_gaze_pos,
+            prev_position,
             last_gaze_point.position
         )
 
