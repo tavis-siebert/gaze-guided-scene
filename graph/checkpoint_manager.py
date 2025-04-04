@@ -61,13 +61,13 @@ class CheckpointManager:
     def create_checkpoint(
         self,
         frame_num: int,
-        relative_frame: int
+        non_black_frame_count: int
     ) -> Optional[GraphCheckpoint]:
         """Create a checkpoint of the current graph state.
         
         Args:
             frame_num: Current frame number
-            relative_frame: Relative frame number
+            non_black_frame_count: Number of non-black frames processed
             
         Returns:
             GraphCheckpoint object or None if checkpoint creation failed
@@ -95,7 +95,7 @@ class CheckpointManager:
         node_features, edge_index, edge_attr = self.graph.get_feature_tensor(
             video_length=self.graph.video_length,
             current_frame=frame_num,
-            relative_frame=relative_frame,
+            non_black_frame_count=non_black_frame_count,
             timestamps=self.timestamps,
             timestamp_ratios=self.timestamp_ratios,
             gaze_data_length=self.gaze_data_length,
@@ -126,13 +126,13 @@ class CheckpointManager:
     def checkpoint_if_needed(
         self,
         frame_num: int,
-        relative_frame: int
+        non_black_frame_count: int
     ) -> Optional[GraphCheckpoint]:
         """Check if a checkpoint is needed and create one if necessary.
         
         Args:
             frame_num: Current frame number
-            relative_frame: Relative frame number
+            non_black_frame_count: Number of non-black frames processed
             
         Returns:
             Created checkpoint or None
@@ -142,7 +142,7 @@ class CheckpointManager:
         
         return self.create_checkpoint(
             frame_num,
-            relative_frame
+            non_black_frame_count
         )
     
     @staticmethod
