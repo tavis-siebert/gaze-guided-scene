@@ -298,12 +298,16 @@ class GraphBuilder:
         # Get the previous gaze position or default to (0,0) if not available
         prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
         
+        if not self.object_detector.has_fixated_objects():
+            logger.info(f"- No fixated objects found during this fixation period, skipping node creation")
+            return
+
         # Get the most likely fixated object from the detector
-        fixated_object, confidence = self.object_detector.get_most_likely_object()
+        fixated_object, confidence = self.object_detector.get_fixated_object()
         logger.info(f"- Final fixated object: {fixated_object} (accumulated confidence: {confidence:.2f})")
         
         self.scene_graph.update_graph(
-            self.object_detector.get_potential_labels(),
+            fixated_object,
             visit_record, 
             prev_position,
             last_gaze_point.position

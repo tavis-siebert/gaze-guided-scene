@@ -74,28 +74,26 @@ class ObjectDetector:
         self.conf_threshold = config.models.yolo_world.conf_threshold
         self.iou_threshold = config.models.yolo_world.iou_threshold
         
-        # Advanced fixation parameters
+        # Fixation parameters
         self.min_fixation_frame_ratio = config.graph.min_fixation_frame_ratio
-        self.enable_advanced_fixation = config.graph.advanced_fixation.enabled
-        self.bbox_stability_weight = config.graph.advanced_fixation.weights.bbox_stability
-        self.gaze_proximity_weight = config.graph.advanced_fixation.weights.gaze_proximity
-        self.confidence_weight = config.graph.advanced_fixation.weights.confidence
-        self.duration_weight = config.graph.advanced_fixation.weights.duration
+        self.bbox_stability_weight = config.graph.fixated_object_detection.weights.bbox_stability
+        self.gaze_proximity_weight = config.graph.fixated_object_detection.weights.gaze_proximity
+        self.confidence_weight = config.graph.fixated_object_detection.weights.confidence
+        self.duration_weight = config.graph.fixated_object_detection.weights.duration
         
         # Thresholds for component scores
-        self.bbox_stability_threshold = config.graph.advanced_fixation.thresholds.bbox_stability
-        self.gaze_proximity_threshold = config.graph.advanced_fixation.thresholds.gaze_proximity
-        self.confidence_threshold = config.graph.advanced_fixation.thresholds.confidence
+        self.bbox_stability_threshold = config.graph.fixated_object_detection.thresholds.bbox_stability
+        self.gaze_proximity_threshold = config.graph.fixated_object_detection.thresholds.gaze_proximity
+        self.confidence_threshold = config.graph.fixated_object_detection.thresholds.confidence
         
         logger.info(f"Initializing YOLO-World model: {model_path.name} "
                     f"(conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")
         
-        if self.enable_advanced_fixation:
-            logger.info(f"Advanced fixation enabled with thresholds: "
-                      f"stability={self.bbox_stability_threshold}, "
-                      f"gaze_proximity={self.gaze_proximity_threshold}, "
-                      f"confidence={self.confidence_threshold}, "
-                      f"min_fixation_ratio={self.min_fixation_frame_ratio}")
+        logger.info(f"Fixation detection with thresholds: "
+                  f"stability={self.bbox_stability_threshold}, "
+                  f"gaze_proximity={self.gaze_proximity_threshold}, "
+                  f"confidence={self.confidence_threshold}, "
+                  f"min_fixation_ratio={self.min_fixation_frame_ratio}")
         
         self.model = YOLOWorldModel(
             conf_threshold=self.conf_threshold,
@@ -262,7 +260,15 @@ class ObjectDetector:
         Returns:
             True if any objects were fixated
         """
-        return self.fixated_objects_found
+        if not self.fixated_objects_found:
+            return False
+            
+        # Compute fixation scores if not already done
+        if not self.fixation_scores:
+            self.fixation_scores = self._compute_fixation_scores()
+
+        # Only return true if any object passes all thresholds
+        return len(self.fixation_scores) > 0
     
     def _compute_bbox_iou(self, box1: Tuple[int, int, int, int], box2: Tuple[int, int, int, int]) -> float:
         """Compute IoU between two bounding boxes.
@@ -520,20 +526,15 @@ class ObjectDetector:
         
         Returns:
             Tuple of (object_label, confidence_score)
-        """
-        # If no detections or advanced fixation is disabled, fall back to basic method
-        if not self.all_detections or not self.enable_advanced_fixation:
-            if not self.potential_labels:
-                raise ValueError("No potential labels found")
-                
-            fixated_object, confidence = max(self.potential_labels.items(), key=lambda x: x[1])
-            return fixated_object, confidence
             
+        Raises:
+            ValueError: If no fixated object is found
+        """
         # Compute fixation scores if not already done
         if not self.fixation_scores:
             self.fixation_scores = self._compute_fixation_scores()
             
-        # If no fixation scores found, fall back to basic method
+        # If no fixation scores found, no object passed our thresholds
         if not self.fixation_scores:
             logger.warning("No objects passed all thresholds. Filter statistics:")
             logger.warning(f"  - Total objects considered: {self.filtered_stats['total_considered']}")
@@ -542,17 +543,12 @@ class ObjectDetector:
             logger.warning(f"  - Filtered by stability: {self.filtered_stats['stability']}")
             logger.warning(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
             
-            if not self.potential_labels:
-                raise ValueError("No potential labels found")
-                
-            fixated_object, confidence = max(self.potential_labels.items(), key=lambda x: x[1])
-            logger.warning(f"Falling back to basic method: {fixated_object} (score: {confidence:.2f})")
-            return fixated_object, confidence
+            raise ValueError("No fixated objects found that pass all thresholds")
             
         # Get object with highest fixation score
         fixated_object, score = max(self.fixation_scores.items(), key=lambda x: x[1])
         
-        # Also log all scores for comparison
+        # Log all scores for comparison
         logger.info("Final fixation scores:")
         for obj, s in sorted(self.fixation_scores.items(), key=lambda x: x[1], reverse=True):
             logger.info(f"  - {obj}: {s:.4f}")
