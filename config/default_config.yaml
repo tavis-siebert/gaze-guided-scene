@@ -67,4 +67,7 @@ external:
 
 # Processing settings
 processing:
-  n_cores: 2 
+  n_cores: 2
+
+graph:
+  fixation_window_threshold: 5  # Minimum number of consecutive fixation frames to treat as a true fixation
