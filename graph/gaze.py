@@ -2,7 +2,7 @@
 Module for processing gaze data in real-time, filtering noise and classifying fixations.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Union, Any, Iterator
 from enum import IntEnum
 import numpy as np
@@ -27,15 +27,19 @@ class GazeType(IntEnum):
     # Extended type for processed gaze data
     NOISY_FIXATION = 10  # Choosing a value that doesn't conflict with existing constants
 
-
 @dataclass
 class GazePoint:
     """Represents a single gaze data point with position and classification."""
     x: float  # Normalized x coordinate (0-1)
     y: float  # Normalized y coordinate (0-1)
     raw_type: GazeType  # Original gaze type from dataset
-    processed_type: GazeType  # Classified gaze type after processing
+    type: GazeType  # Classified gaze type after processing
     frame_idx: int  # Frame index in the video
+    
+    @property
+    def position(self) -> Tuple[float, float]:
+        """Return the position as a tuple (x, y)."""
+        return (self.x, self.y)
 
 
 class GazeProcessor:
@@ -91,13 +95,13 @@ class GazeProcessor:
         x, y = self.gaze_data[frame_idx, 0], self.gaze_data[frame_idx, 1]
         raw_type = GazeType(int(self.gaze_data[frame_idx, 2]))
         
-        processed_type = self._classify_gaze_type(frame_idx)
+        type = self._classify_gaze_type(frame_idx)
         
         return GazePoint(
             x=x,
             y=y,
             raw_type=raw_type,
-            processed_type=processed_type,
+            type=type,
             frame_idx=frame_idx
         )
     
