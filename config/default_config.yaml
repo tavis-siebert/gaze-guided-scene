@@ -92,3 +92,21 @@ graph:
       
       # Weight for detection confidence (higher gives more importance to confident detections)
       confidence: 1.0
+    
+    # Thresholds for component scores (objects with scores below thresholds will be filtered out)
+    thresholds:
+      # Bounding box stability threshold (0.0-1.0)
+      # Higher values require more stable bounding boxes
+      # 0.0 = No stability required, 1.0 = Perfect stability required (identical boxes)
+      bbox_stability: 0
+      
+      # Gaze proximity threshold (0.0-1.0)
+      # Higher values require gaze points to be closer to bbox centers
+      # 0.0 = No proximity requirement, 1.0 = Very close proximity required
+      # Value is normalized with 1.0/(1.0 + distance), so closer distances = higher values
+      gaze_proximity: 0.01
+      
+      # Confidence threshold (0.0-1.0)
+      # Higher values require more confident detections
+      # This is the geometric mean of detection confidences across frames
+      confidence: 0.2

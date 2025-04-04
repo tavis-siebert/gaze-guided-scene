@@ -82,8 +82,20 @@ class ObjectDetector:
         self.confidence_weight = config.graph.advanced_fixation.weights.confidence
         self.duration_weight = config.graph.advanced_fixation.weights.duration
         
+        # Thresholds for component scores
+        self.bbox_stability_threshold = config.graph.advanced_fixation.thresholds.bbox_stability
+        self.gaze_proximity_threshold = config.graph.advanced_fixation.thresholds.gaze_proximity
+        self.confidence_threshold = config.graph.advanced_fixation.thresholds.confidence
+        
         logger.info(f"Initializing YOLO-World model: {model_path.name} "
                     f"(conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")
+        
+        if self.enable_advanced_fixation:
+            logger.info(f"Advanced fixation enabled with thresholds: "
+                      f"stability={self.bbox_stability_threshold}, "
+                      f"gaze_proximity={self.gaze_proximity_threshold}, "
+                      f"confidence={self.confidence_threshold}, "
+                      f"min_fixation_ratio={self.min_fixation_frame_ratio}")
         
         self.model = YOLOWorldModel(
             conf_threshold=self.conf_threshold,
@@ -225,6 +237,16 @@ class ObjectDetector:
         self.total_frames = 0
         self.object_frame_counts = {}
         self.fixation_scores = {}
+        
+        # Statistics for filtered objects
+        self.filtered_stats = {
+            'fixation_ratio': 0,
+            'confidence': 0,
+            'stability': 0,
+            'gaze_proximity': 0,
+            'total_considered': 0,
+            'passed_all': 0
+        }
     
     def get_potential_labels(self) -> DefaultDict[str, float]:
         """Get accumulated potential object labels with confidence scores.
@@ -396,6 +418,16 @@ class ObjectDetector:
         # Extract unique objects from detections
         unique_objects = set(d.class_name for d in self.all_detections if d.is_fixated)
         
+        # Reset filter statistics for this computation
+        self.filtered_stats = {
+            'fixation_ratio': 0,
+            'confidence': 0,
+            'stability': 0,
+            'gaze_proximity': 0,
+            'total_considered': 0,
+            'passed_all': 0
+        }
+        
         for obj_name in unique_objects:
             # Get all fixated detections for this object
             obj_detections = [d for d in self.all_detections if d.class_name == obj_name and d.is_fixated]
@@ -404,6 +436,9 @@ class ObjectDetector:
             if not obj_detections:
                 continue
                 
+            # Track total objects considered
+            self.filtered_stats['total_considered'] += 1
+                
             # Compute fixation ratio
             fixation_frames = len(set(d.frame_idx for d in obj_detections))
             fixation_ratio = fixation_frames / max(self.total_frames, 1)
@@ -411,6 +446,7 @@ class ObjectDetector:
             # Apply minimum fixation threshold
             if fixation_ratio < self.min_fixation_frame_ratio:
                 logger.info(f"Object {obj_name} filtered out: fixation ratio {fixation_ratio:.2f} < threshold {self.min_fixation_frame_ratio}")
+                self.filtered_stats['fixation_ratio'] += 1
                 continue
                 
             # Get confidence scores and bounding boxes
@@ -424,15 +460,33 @@ class ObjectDetector:
             # 1. Compute geometric mean of confidence scores
             mean_confidence = self._compute_geometric_mean(confidence_scores)
             
-            # 2. Weight by fixation duration
-            duration_weighted_score = mean_confidence * fixation_ratio
+            # Apply confidence threshold
+            if mean_confidence < self.confidence_threshold:
+                logger.info(f"Object {obj_name} filtered out: confidence score {mean_confidence:.2f} < threshold {self.confidence_threshold}")
+                self.filtered_stats['confidence'] += 1
+                continue
             
-            # 3. Compute bounding box stability
+            # 2. Compute bounding box stability
             stability_score = self._compute_mean_iou(bboxes)
             
-            # 4. Compute gaze proximity weighting
+            # Apply stability threshold
+            if stability_score < self.bbox_stability_threshold:
+                logger.info(f"Object {obj_name} filtered out: stability score {stability_score:.2f} < threshold {self.bbox_stability_threshold}")
+                self.filtered_stats['stability'] += 1
+                continue
+            
+            # 3. Compute gaze proximity weighting
             gaze_distance = self._compute_mean_gaze_distance(bboxes, relevant_gaze_points)
             gaze_weight = 1.0 / (1.0 + gaze_distance)
+            
+            # Apply gaze proximity threshold
+            if gaze_weight < self.gaze_proximity_threshold:
+                logger.info(f"Object {obj_name} filtered out: gaze proximity {gaze_weight:.2f} < threshold {self.gaze_proximity_threshold}")
+                self.filtered_stats['gaze_proximity'] += 1
+                continue
+            
+            # 4. Weight by fixation duration
+            duration_weighted_score = mean_confidence * fixation_ratio
             
             # 5. Compute final weighted fixation score
             final_score = (
@@ -443,11 +497,21 @@ class ObjectDetector:
             
             # Store score
             fixation_scores[obj_name] = final_score
+            self.filtered_stats['passed_all'] += 1
             
             logger.info(f"Fixation score for {obj_name}: {final_score:.4f}")
             logger.info(f"  - Duration score: {duration_weighted_score:.4f} (ratio: {fixation_ratio:.2f})")
-            logger.info(f"  - Stability score: {stability_score:.4f}")
-            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f})")
+            logger.info(f"  - Confidence score: {mean_confidence:.4f} (threshold: {self.confidence_threshold})")
+            logger.info(f"  - Stability score: {stability_score:.4f} (threshold: {self.bbox_stability_threshold})")
+            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f}, threshold: {self.gaze_proximity_threshold})")
+            
+        # Log filter statistics
+        if self.filtered_stats['total_considered'] > 0:
+            logger.info(f"Fixation filtering stats: {self.filtered_stats['passed_all']}/{self.filtered_stats['total_considered']} passed all filters")
+            logger.info(f"  - Filtered by fixation ratio: {self.filtered_stats['fixation_ratio']}")
+            logger.info(f"  - Filtered by confidence: {self.filtered_stats['confidence']}")
+            logger.info(f"  - Filtered by stability: {self.filtered_stats['stability']}")
+            logger.info(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
             
         return fixation_scores
     
@@ -471,10 +535,18 @@ class ObjectDetector:
             
         # If no fixation scores found, fall back to basic method
         if not self.fixation_scores:
+            logger.warning("No objects passed all thresholds. Filter statistics:")
+            logger.warning(f"  - Total objects considered: {self.filtered_stats['total_considered']}")
+            logger.warning(f"  - Filtered by fixation ratio: {self.filtered_stats['fixation_ratio']}")
+            logger.warning(f"  - Filtered by confidence: {self.filtered_stats['confidence']}")
+            logger.warning(f"  - Filtered by stability: {self.filtered_stats['stability']}")
+            logger.warning(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
+            
             if not self.potential_labels:
                 raise ValueError("No potential labels found")
                 
             fixated_object, confidence = max(self.potential_labels.items(), key=lambda x: x[1])
+            logger.warning(f"Falling back to basic method: {fixated_object} (score: {confidence:.2f})")
             return fixated_object, confidence
             
         # Get object with highest fixation score
@@ -487,5 +559,10 @@ class ObjectDetector:
             
         return fixated_object, score
     
-    # Alias for backward compatibility
-    get_most_likely_object = get_fixated_object
+    def get_filtered_stats(self) -> Dict[str, int]:
+        """Get statistics about objects filtered by various thresholds.
+        
+        Returns:
+            Dictionary with counts of objects filtered by each threshold
+        """
+        return self.filtered_stats
