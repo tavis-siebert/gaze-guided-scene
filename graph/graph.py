@@ -151,7 +151,7 @@ class Graph:
         
         return None, None
     
-    def update_graph(
+    def update(
         self, 
         fixated_object: str,
         visit: VisitRecord, 
