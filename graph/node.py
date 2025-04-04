@@ -177,7 +177,7 @@ class Node:
         self,
         video_length: int,
         current_frame: int,
-        relative_frame: int,
+        non_black_frame_count: int,
         timestamp_fraction: float,
         labels_to_int: Dict[str, int],
         num_object_classes: int
@@ -188,7 +188,7 @@ class Node:
         Args:
             video_length: Total length of the video
             current_frame: Current frame number
-            relative_frame: Relative frame number (accounting for black frames)
+            non_black_frame_count: Number of non-black frames processed
             timestamp_fraction: Fraction of video at current timestamp
             labels_to_int: Mapping from object labels to class indices
             num_object_classes: Number of object classes
@@ -197,12 +197,11 @@ class Node:
             Feature tensor for the node
         """
         features = self.get_features()
-        normalization_factor = video_length - current_frame + relative_frame
         
         first_frame = features["first_visit_frame"]
         last_frame = features["last_visit_frame"]
-        first_frame_normalized = first_frame / normalization_factor if first_frame else 0
-        last_frame_normalized = last_frame / normalization_factor if last_frame else 0
+        first_frame_normalized = first_frame / non_black_frame_count if first_frame else 0
+        last_frame_normalized = last_frame / non_black_frame_count if last_frame else 0
         
         temporal_features = torch.tensor([
             features["total_frames_visited"],

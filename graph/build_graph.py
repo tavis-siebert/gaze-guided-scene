@@ -78,7 +78,8 @@ class GraphBuilder:
         self.visit_start = -1
         self.visit_end = -1
         self.frame_num = 0
-        self.relative_frame_num = 0
+        # Keeps track of frames excluding black frames, used for visit tracking and feature normalization
+        self.non_black_frame_count = 0
         self.fixated_objects_found = False  # Track if any objects were fixated during a fixation
         
         self.scene_graph = None
@@ -137,7 +138,8 @@ class GraphBuilder:
         try:
             for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
                 self._process_frame(frame, gaze_point, is_black_frame)
-                self.relative_frame_num += 1
+                if not is_black_frame:
+                    self.non_black_frame_count += 1
                 self.frame_num += 1
         except StopProcessingException as e:
             logger.info(f"[Frame {self.frame_num}] {e.reason}")
@@ -160,7 +162,7 @@ class GraphBuilder:
         self.visit_start = -1
         self.visit_end = -1
         self.frame_num = 0
-        self.relative_frame_num = 0
+        self.non_black_frame_count = 0
         self.fixated_objects_found = False
 
     def _process_frame(self, frame: torch.Tensor, gaze_point: GazePoint, is_black_frame: bool) -> None:
@@ -183,7 +185,7 @@ class GraphBuilder:
 
         self.checkpoint_manager.checkpoint_if_needed(
             frame_num=self.frame_num,
-            relative_frame=self.relative_frame_num
+            non_black_frame_count=self.non_black_frame_count
         )
         
         if self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]:
@@ -201,7 +203,7 @@ class GraphBuilder:
     def _handle_fixation(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
         """Handle a fixation frame."""
         if self.visit_start == -1:
-            self.visit_start = self.relative_frame_num
+            self.visit_start = self.non_black_frame_count
             logger.info(f"\n[Frame {self.frame_num}] New fixation started at ({gaze_point.x:.1f}, {gaze_point.y:.1f})")
         
         _, H, W = frame.shape
@@ -284,7 +286,7 @@ class GraphBuilder:
     
     def _handle_saccade(self, gaze_point: GazePoint) -> None:
         """Handle a saccade between fixations."""
-        self.visit_end = self.relative_frame_num - 1
+        self.visit_end = self.non_black_frame_count - 1
         fixation_duration = self.visit_end - self.visit_start + 1
         
         logger.info(f"\n[Frame {self.frame_num}] Saccade detected:")
@@ -342,7 +344,7 @@ class GraphBuilder:
     def _finish_final_fixation(self) -> None:
         """Process the final fixation if video ends during one."""
         logger.info("- Final fixation detected, updating graph...")
-        self.visit_end = self.relative_frame_num - 1
+        self.visit_end = self.non_black_frame_count - 1
         visit_record = [self.visit_start, self.visit_end]
         
         # Get the last gaze position

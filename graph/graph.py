@@ -233,7 +233,7 @@ class Graph:
     def _get_node_features(
         self,
         current_frame: int,
-        relative_frame: int,
+        non_black_frame_count: int,
         timestamps: List[int],
         timestamp_ratios: List[float],
         gaze_data_length: int
@@ -242,7 +242,7 @@ class Graph:
         
         Args:
             current_frame: Current frame number
-            relative_frame: Relative frame number
+            non_black_frame_count: Number of non-black frames processed
             timestamps: List of predefined checkpoint frame numbers
             timestamp_ratios: Corresponding ratios for each timestamp
             gaze_data_length: Length of gaze data
@@ -264,7 +264,7 @@ class Graph:
                 features_tensor = node.get_feature_tensor(
                     self.video_length,
                     current_frame,
-                    relative_frame,
+                    non_black_frame_count,
                     timestamp_fraction,
                     self.labels_to_int,
                     self.num_object_classes
@@ -276,7 +276,7 @@ class Graph:
         
         node_features = torch.stack(nodes)
         
-        node_features[:, 0] /= relative_frame
+        node_features[:, 0] /= non_black_frame_count
         
         if node_features[:, 1].max() > 0:
             node_features[:, 1] /= node_features[:, 1].max()
@@ -310,7 +310,7 @@ class Graph:
         self,
         video_length: int,
         current_frame: int,
-        relative_frame: int,
+        non_black_frame_count: int,
         timestamps: List[int],
         timestamp_ratios: List[float],
         gaze_data_length: int,
@@ -322,7 +322,7 @@ class Graph:
         Args:
             video_length: Total length of the video
             current_frame: Current frame number
-            relative_frame: Relative frame number
+            non_black_frame_count: Number of non-black frames processed
             timestamps: List of predefined checkpoint frame numbers
             timestamp_ratios: Corresponding ratios for each timestamp
             gaze_data_length: Length of gaze data
@@ -334,7 +334,7 @@ class Graph:
         """
         node_features = self._get_node_features(
             current_frame, 
-            relative_frame,
+            non_black_frame_count,
             timestamps,
             timestamp_ratios,
             gaze_data_length
