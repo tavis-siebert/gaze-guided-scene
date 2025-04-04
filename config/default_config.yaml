@@ -72,7 +72,7 @@ processing:
 # Graph and fixation detection settings
 graph:
   # Basic fixation parameters
-  fixation_window_threshold: 5  # Minimum number of consecutive fixation frames to treat as a true fixation
+  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
   min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
 
   fixated_object_detection:
@@ -101,9 +101,9 @@ graph:
       # Higher values require gaze points to be closer to bbox centers
       # 0.0 = No proximity requirement, 1.0 = Very close proximity required
       # Value is normalized with 1.0/(1.0 + distance), so closer distances = higher values
-      gaze_proximity: 0.01
+      gaze_proximity: 0
       
       # Confidence threshold (0.0-1.0)
       # Higher values require more confident detections
       # This is the geometric mean of detection confidences across frames
-      confidence: 0.2
+      confidence: 0.3
