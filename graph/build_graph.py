@@ -193,13 +193,9 @@ class GraphBuilder:
         if self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]:
             raise StopProcessingException(reason="Reached final timestamp")
 
-        self._process_frame_with_gaze(frame, gaze_point)
-
-    def _process_frame_with_gaze(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
-        """Process a frame using available gaze data."""
         if gaze_point.type == GazeType.FIXATION:
             self._handle_fixation(frame, gaze_point)
-        elif gaze_point.type == GazeType.SACCADE and self.object_detector.get_potential_labels():
+        elif gaze_point.type == GazeType.SACCADE:
             self._handle_saccade(gaze_point)
 
     def _handle_fixation(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
@@ -297,10 +293,6 @@ class GraphBuilder:
         
         # Get the previous gaze position or default to (0,0) if not available
         prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
-        
-        if not self.object_detector.has_fixated_objects():
-            logger.info(f"- No fixated objects found during this fixation period, skipping node creation")
-            return
 
         # Get the most likely fixated object from the detector
         fixated_object, confidence = self.object_detector.get_fixated_object()

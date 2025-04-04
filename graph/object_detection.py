@@ -193,16 +193,6 @@ class ObjectDetector:
                 frame_idx=frame_idx
             )
             detections.append(detection_obj)
-            
-            # Accumulate confidence scores for fixated objects (for backwards compatibility)
-            if is_fixated:
-                self.potential_labels[detection['class_name']] += detection['score']
-                
-                # Update object presence tracking
-                if detection['class_name'] not in self.object_frame_counts:
-                    self.object_frame_counts[detection['class_name']] = 0
-                self.object_frame_counts[detection['class_name']] += 1
-                
         return detections
     
     def _log_fixated_objects(self, frame_idx: int, detections: List[Detection]) -> None:
@@ -220,20 +210,13 @@ class ObjectDetector:
                 bbox = detection.bbox
                 logger.info(f"  - {detection.class_name} (conf: {detection.score:.2f}, "
                           f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}])")
-            
-            # Log accumulated object confidences
-            logger.info(f"[Frame {frame_idx}] Current accumulated object confidences:")
-            for label, confidence in sorted(self.potential_labels.items(), key=lambda x: x[1], reverse=True):
-                logger.info(f"  - {label}: {confidence:.2f}")
     
     def reset(self) -> None:
         """Reset detection state."""
-        self.potential_labels = defaultdict(float)
         self.fixated_objects_found = False
         self.all_detections = []
         self.gaze_points = []
         self.total_frames = 0
-        self.object_frame_counts = {}
         self.fixation_scores = {}
         
         # Statistics for filtered objects
@@ -245,14 +228,6 @@ class ObjectDetector:
             'total_considered': 0,
             'passed_all': 0
         }
-    
-    def get_potential_labels(self) -> DefaultDict[str, float]:
-        """Get accumulated potential object labels with confidence scores.
-        
-        Returns:
-            Dictionary of object labels to confidence scores
-        """
-        return self.potential_labels
     
     def has_fixated_objects(self) -> bool:
         """Check if any objects were fixated during detection.
@@ -554,11 +529,3 @@ class ObjectDetector:
             logger.info(f"  - {obj}: {s:.4f}")
             
         return fixated_object, score
-    
-    def get_filtered_stats(self) -> Dict[str, int]:
-        """Get statistics about objects filtered by various thresholds.
-        
-        Returns:
-            Dictionary with counts of objects filtered by each threshold
-        """
-        return self.filtered_stats
