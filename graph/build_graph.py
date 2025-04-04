@@ -14,9 +14,11 @@ from graph.io import Record, DataLoader, VideoProcessor
 from graph.graph_tracer import GraphTracer
 from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 from graph.action_utils import ActionUtils
+from graph.gaze import GazeProcessor, GazePoint, GazeType
 from models.yolo_world import YOLOWorldModel
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
+from egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE
 from config.config_utils import DotDict
 from logger import get_logger
 
@@ -75,7 +77,8 @@ class GraphBuilder:
         self.scene_graph = None
         self.checkpoint_manager = None
         self.video_name = ""
-        self.gaze_data = None
+        self.raw_gaze_data = None
+        self.gaze_processor = None
         self.records_current = None
         self.vid_length = 0
         self.timestamps = []
@@ -96,7 +99,10 @@ class GraphBuilder:
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
         
-        self.gaze_data = parse_gtea_gaze(str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"))
+        # Load raw gaze data and initialize gaze processor
+        self.raw_gaze_data = parse_gtea_gaze(str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"))
+        self.gaze_processor = GazeProcessor(self.config, self.raw_gaze_data)
+        
         video_processor = VideoProcessor(Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4")
         self.records_current = self.records_by_vid[video_name]
         self.vid_length = self.vid_lengths[video_name]
@@ -116,17 +122,25 @@ class GraphBuilder:
             timestamp_ratios=self.config.dataset.timestamps[self.split],
             records=self.records_current,
             action_to_idx=self.action_to_idx,
-            gaze_data_length=len(self.gaze_data)
+            gaze_data_length=len(self.raw_gaze_data)
         )
         
         self._reset_tracking_state()
 
+        # Iterate through both video and gaze data simultaneously
+        gaze_iterator = iter(self.gaze_processor)
+        
         for frame, _, is_black_frame in video_processor:
-            should_continue = self._process_frame(frame, is_black_frame)
-            if not should_continue:
+            try:
+                gaze_point = next(gaze_iterator)
+                should_continue = self._process_frame(frame, gaze_point, is_black_frame)
+                if not should_continue:
+                    break
+                self.relative_frame_num += 1
+                self.frame_num += 1
+            except StopIteration:
+                logger.info(f"[Frame {self.frame_num}] End of gaze data reached")
                 break
-            self.relative_frame_num += 1
-            self.frame_num += 1
 
         if self.potential_labels and self.fixated_objects_found:
             self._finish_final_fixation()
@@ -147,20 +161,22 @@ class GraphBuilder:
         self.relative_frame_num = 0
         self.fixated_objects_found = False
 
-    def _process_frame(self, frame: torch.Tensor, is_black_frame: bool) -> bool:
+    def _process_frame(self, frame: torch.Tensor, gaze_point: GazePoint, is_black_frame: bool) -> bool:
         """Process a single frame and update the scene graph.
+        
+        Args:
+            frame: Video frame tensor
+            gaze_point: Processed gaze point for this frame
+            is_black_frame: Whether the frame is a black frame
         
         Returns:
             bool: False if processing should stop, True to continue
         """
-        gaze_pos = None
-        gaze_type = None
-        if self.frame_num < len(self.gaze_data):
-            gaze_pos = self.gaze_data[self.frame_num, :2].tolist()
-            gaze_type = int(self.gaze_data[self.frame_num, 2])
+        gaze_pos = (gaze_point.x, gaze_point.y)
+        gaze_type = gaze_point.processed_type
 
         node_id = self.scene_graph.current_node.id if self.scene_graph.current_node.id >= 0 else None
-        self.tracer.log_frame(self.frame_num, gaze_pos, gaze_type, node_id)
+        self.tracer.log_frame(self.frame_num, gaze_pos, int(gaze_type), node_id)
 
         if is_black_frame:
             return True
@@ -170,28 +186,24 @@ class GraphBuilder:
             relative_frame=self.relative_frame_num
         )
         
-        should_stop = (
-            self.frame_num >= len(self.gaze_data) or 
-            (self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1])
-        )
+        should_stop = self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]
         
         if should_stop:
-            logger.info(f"[Frame {self.frame_num}] Reached final timestamp or end of gaze data")
+            logger.info(f"[Frame {self.frame_num}] Reached final timestamp")
             return False
 
-        if self.frame_num < len(self.gaze_data):
-            self._process_frame_with_gaze(frame)
+        self._process_frame_with_gaze(frame, gaze_point)
             
         return True
 
-    def _process_frame_with_gaze(self, frame: torch.Tensor) -> None:
+    def _process_frame_with_gaze(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
         """Process a frame using available gaze data."""
-        gaze_type = int(self.gaze_data[self.frame_num, 2])
-        gaze_pos = self.gaze_data[self.frame_num, :2]
+        gaze_type = gaze_point.processed_type
+        gaze_pos = (gaze_point.x, gaze_point.y)
         
-        if gaze_type == 1:
+        if gaze_type == GazeType.FIXATION:
             self._handle_fixation(frame, gaze_pos)
-        elif gaze_type == 2 and self.potential_labels:
+        elif gaze_type == GazeType.SACCADE and self.potential_labels:
             self._handle_saccade(gaze_pos)
 
     def _handle_fixation(self, frame: torch.Tensor, gaze_pos: Tuple[float, float]) -> None:
@@ -334,8 +346,25 @@ class GraphBuilder:
         self.visit_end = self.relative_frame_num - 1
         visit_record = [self.visit_start, self.visit_end]
         
-        last_frame = min(self.frame_num, len(self.gaze_data)-1)
-        last_gaze_pos = self.gaze_data[last_frame, :2]
+        # Get the last gaze position
+        self.gaze_processor.reset()
+        last_gaze_point = None
+        for gp in self.gaze_processor:
+            if gp.frame_idx == self.frame_num - 1:
+                last_gaze_point = gp
+                break
+                
+        if last_gaze_point is None:
+            # Fallback if we can't get the last gaze point
+            last_gaze_point = GazePoint(
+                x=self.prev_gaze_pos[0], 
+                y=self.prev_gaze_pos[1], 
+                raw_type=GazeType.FIXATION,
+                processed_type=GazeType.FIXATION,
+                frame_idx=self.frame_num - 1
+            )
+            
+        last_gaze_pos = (last_gaze_point.x, last_gaze_point.y)
         
         logger.debug(f"- Final gaze position (normalized): ({last_gaze_pos[0]:.2f}, {last_gaze_pos[1]:.2f})")
         

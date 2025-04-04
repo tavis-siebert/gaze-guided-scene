@@ -35,6 +35,9 @@ from graph.graph_tracer import GraphTracer
 # Action utils
 from graph.action_utils import ActionUtils
 
+# Gaze processing
+from graph.gaze import GazeProcessor, GazePoint
+
 __all__ = [
     'Node',
     'VisitRecord',
@@ -68,5 +71,9 @@ __all__ = [
     
     # New modules
     'CheckpointManager',
-    'ActionUtils'
+    'ActionUtils',
+    
+    # Gaze processing
+    'GazeProcessor',
+    'GazePoint'
 ]
