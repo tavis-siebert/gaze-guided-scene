@@ -239,7 +239,7 @@ class GraphBuilder:
         # Get the previous gaze position or default to (0,0) if not available
         prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
         
-        next_node = self.scene_graph.update_graph(
+        next_node = self.scene_graph.update(
             fixated_object,
             visit_record,
             prev_position,
@@ -306,7 +306,7 @@ class GraphBuilder:
         fixated_object, confidence = self.object_detector.get_fixated_object()
         logger.info(f"- Final fixated object: {fixated_object} (accumulated confidence: {confidence:.2f})")
         
-        self.scene_graph.update_graph(
+        self.scene_graph.update(
             fixated_object,
             visit_record, 
             prev_position,
