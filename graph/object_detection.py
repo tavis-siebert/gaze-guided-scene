@@ -66,7 +66,7 @@ class ObjectDetector:
         """
         self.obj_labels = obj_labels
         self.labels_to_int = labels_to_int
-        self.clip_labels = [f"a picture of a {obj}" for obj in self.obj_labels.values()]
+        self.clip_labels = [f"{obj}" for obj in self.obj_labels.values()]
         self.tracer = tracer
         self.config = config
         
