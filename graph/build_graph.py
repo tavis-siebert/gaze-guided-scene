@@ -83,6 +83,29 @@ class GraphBuilder:
         self.records_current = None
         self.vid_length = 0
         self.timestamps = []
+        
+        # Frame range to process
+        self.first_frame = 0
+        self.last_frame = 0
+    
+    def _get_action_frame_range(self, video_name: str) -> Tuple[int, int]:
+        """
+        Get the first and last frame from action annotations for a video.
+        
+        Args:
+            video_name: Name of the video
+            
+        Returns:
+            Tuple of (first_frame, last_frame)
+        """
+        if video_name not in self.records_by_vid or not self.records_by_vid[video_name]:
+            return 0, self.vid_lengths.get(video_name, 0)
+            
+        records = self.records_by_vid[video_name]
+        first_frame = min(r.start_frame for r in records)
+        last_frame = max(r.end_frame for r in records)
+        
+        return first_frame, last_frame
     
     def process_video(self, video_name: str, print_graph: bool = False) -> Graph:
         """Process a video to build its scene graph.
@@ -117,6 +140,9 @@ class GraphBuilder:
         self.records_current = self.records_by_vid[video_name]
         self.vid_length = self.vid_lengths[video_name]
         self.timestamps = [int(ratio * self.vid_length) for ratio in sorted(self.config.dataset.timestamps[self.split])]
+        
+        self.first_frame, self.last_frame = self._get_action_frame_range(video_name)
+        logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
         
         self.scene_graph = Graph(
             labels_to_int=self.labels_to_int,
@@ -179,6 +205,13 @@ class GraphBuilder:
         Raises:
             StopProcessingException: If processing should stop
         """
+        # Skip frames outside the action annotation range
+        if self.frame_num < self.first_frame:
+            return
+            
+        if self.frame_num > self.last_frame:
+            raise StopProcessingException(reason=f"Reached end of annotated frames (frame {self.last_frame})")
+        
         node_id = self.scene_graph.current_node.id if self.scene_graph.current_node.id >= 0 else None
         self.tracer.log_frame(self.frame_num, gaze_point.position, int(gaze_point.type), node_id)
 
