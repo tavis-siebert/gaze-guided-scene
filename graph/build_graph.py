@@ -174,8 +174,7 @@ class GraphBuilder:
         except StopIteration:
             logger.info(f"[Frame {self.frame_num}] End of data reached")
 
-        if self.object_detector.has_fixated_objects():
-            self._finish_final_fixation()
+        self._finish_final_fixation()
         
         if print_graph and self.scene_graph.num_nodes > 0:
             logger.info("\nFinal graph structure:")
@@ -289,35 +288,24 @@ class GraphBuilder:
         
         Creates a dummy saccade to end the current fixation and adds the node to the graph.
         """
-        if self.visit_start == -1:
-            logger.info("- No ongoing fixation to process at the end")
+        # Skip if no ongoing fixation or no objects detected
+        if self.visit_start == -1 or not self.object_detector.has_fixated_objects():
             return
         
         logger.info("- Final fixation detected, creating dummy saccade")
         self.visit_end = self.non_black_frame_count - 1
         
-        # Get the fixated object from the detector
-        fixated_object, confidence = self.object_detector.get_fixated_object()
-        
-        if not fixated_object:
-            logger.info("- No object detected in final fixation, skipping")
-            return
-            
-        logger.info(f"- Final fixated object: {fixated_object} (confidence: {confidence:.2f})")
-        
         # Create a dummy saccade point at a slightly different position from the last fixation
-        # to simulate eye movement, but maintain similar position
         last_position = self.prev_gaze_point.position if self.prev_gaze_point else (0.5, 0.5)
-        dummy_x = min(max(last_position[0] + 0.05, 0.0), 1.0)
-        dummy_y = min(max(last_position[1] + 0.05, 0.0), 1.0)
         dummy_saccade = GazePoint(
-            x=dummy_x,
-            y=dummy_y,
+            x=min(max(last_position[0] + 0.05, 0.0), 1.0),
+            y=min(max(last_position[1] + 0.05, 0.0), 1.0),
             raw_type=GazeType.SACCADE,
             type=GazeType.SACCADE,
             frame_idx=self.frame_num
         )
         
+        # Use standard saccade handling logic to process the final fixation
         self._handle_saccade(dummy_saccade)
 
 def build_graph(
