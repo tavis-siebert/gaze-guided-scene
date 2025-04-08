@@ -22,6 +22,7 @@ class Playback:
         last_built_frame: Last frame number that was built
         last_added_node: Last node ID that was added
         last_updated_node: Last node ID that was updated
+        most_recent_node: Most recently added or updated node based on frame number
         last_added_edge: Last edge that was added (source_id, target_id)
         object_detections: Dictionary mapping frame numbers to detection events
         events: List of all events loaded from the trace file
@@ -41,6 +42,7 @@ class Playback:
         self.last_built_frame = -1
         self.last_added_node = None
         self.last_updated_node = None
+        self.most_recent_node = None
         self.last_added_edge = None
         self.object_detections = {}  # Frame number -> detection event
         self.yolo_detections = {}  # Frame number -> YOLO detection event
@@ -140,6 +142,7 @@ class Playback:
             )
             self.last_added_node = node_id
             self.last_updated_node = node_id
+            self.most_recent_node = node_id
             
         elif event.event_type == "node_updated":
             node_id = event.data["node_id"]
@@ -153,6 +156,7 @@ class Playback:
                     features=features
                 )
                 self.last_updated_node = node_id
+                self.most_recent_node = node_id
             
         elif event.event_type == "edge_added":
             source_id = event.data["source_id"]
@@ -193,6 +197,7 @@ class Playback:
             self.last_built_frame = -1
             self.last_added_node = None
             self.last_updated_node = None
+            self.most_recent_node = None
             self.last_added_edge = None
         
         if frame_number > self.last_built_frame:

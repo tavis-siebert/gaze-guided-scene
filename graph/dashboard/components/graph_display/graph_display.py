@@ -74,14 +74,13 @@ class GraphDisplay(BaseComponent):
             graph_str += f"_{edge[0]}_{edge[1]}_{edge[2].get('edge_type', '')}"
         return graph_str
     
-    def _create_figure(self, G: nx.DiGraph, pos: Dict, last_added_node=None, last_updated_node=None, last_added_edge=None) -> go.Figure:
+    def _create_figure(self, G: nx.DiGraph, pos: Dict, most_recent_node=None, last_added_edge=None) -> go.Figure:
         """Create a complete graph visualization figure.
         
         Args:
             G: NetworkX directed graph
             pos: Dictionary mapping node IDs to positions
-            last_added_node: ID of the last added node to highlight
-            last_updated_node: ID of the last updated node to highlight
+            most_recent_node: ID of the most recently updated or added node to highlight
             last_added_edge: Tuple of (source_id, target_id) for the last added edge to highlight
             
         Returns:
@@ -90,7 +89,7 @@ class GraphDisplay(BaseComponent):
         fig = go.Figure()
         
         add_edges_to_figure(fig, G, pos, MAX_EDGE_HOVER_POINTS, last_added_edge)
-        add_nodes_to_figure(fig, G, pos, last_added_node, last_updated_node)
+        add_nodes_to_figure(fig, G, pos, most_recent_node)
         
         fig.update_layout(
             showlegend=False,
@@ -128,10 +127,9 @@ class GraphDisplay(BaseComponent):
             return go.Figure(self._cached_figure)
         
         pos = compute_graph_layout(G)
-        last_added_node = self.playback.last_added_node
-        last_updated_node = self.playback.last_updated_node
+        most_recent_node = self.playback.most_recent_node
         last_added_edge = self.playback.last_added_edge
-        fig = self._create_figure(G, pos, last_added_node, last_updated_node, last_added_edge)
+        fig = self._create_figure(G, pos, most_recent_node, last_added_edge)
         
         self._cached_figure = fig
         self._last_graph_hash = current_graph_hash
