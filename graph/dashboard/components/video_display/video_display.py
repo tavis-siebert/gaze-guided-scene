@@ -424,21 +424,19 @@ class VideoDisplay(BaseComponent):
             return
             
         for detection in detections:
-            # Handle new structured format
-            detection_data = detection.get("detection", detection)  # Backward compatibility
-            fixation_data = detection.get("fixation", {})
+            # Get detection data from nested structure
+            detection_data = detection["detection"]
+            fixation_data = detection["fixation"]
             
-            bbox = detection_data.get("bbox", [0, 0, 0, 0])
-            class_name = detection_data.get("class_name", "unknown")
-            score = detection_data.get("score", 0.0)
+            bbox = detection_data["bbox"]
+            class_name = detection_data["class_name"]
+            score = detection_data["score"]
             
-            # Get fixation info from nested structure or fall back to flat structure
-            is_fixated = fixation_data.get("is_fixated", detection_data.get("is_fixated", False))
-            is_top_scoring = fixation_data.get("is_top_scoring", detection_data.get("is_top_scoring", False))
-            fixation_score = fixation_data.get("score", detection_data.get("fixation_score", 0.0))
-            
-            # Get component scores if available 
-            components = fixation_data.get("components", {})
+            # Get fixation info
+            is_fixated = fixation_data["is_fixated"]
+            is_top_scoring = fixation_data["is_top_scoring"]
+            fixation_score = fixation_data["score"]
+            components = fixation_data["components"]
             
             # Format the label for display
             label_text = format_label(class_name)
@@ -577,16 +575,8 @@ class VideoDisplay(BaseComponent):
             
             if components:
                 hover_text += "<br><b>Component Scores:</b><br>"
-                if "confidence" in components:
-                    hover_text += f"Confidence: {components['confidence']:.2f}<br>"
-                if "stability" in components:
-                    hover_text += f"Stability: {components['stability']:.2f}<br>"
-                if "gaze_proximity" in components:
-                    hover_text += f"Gaze Proximity: {components['gaze_proximity']:.2f}<br>"
-                if "fixation_ratio" in components:
-                    hover_text += f"Fixation Ratio: {components['fixation_ratio']:.2f}<br>"
-                if "gaze_distance" in components:
-                    hover_text += f"Gaze Distance: {components['gaze_distance']:.2f}<br>"
+                for name, value in components.items():
+                    hover_text += f"{name.capitalize()}: {value:.2f}<br>"
         
         return hover_text
     
