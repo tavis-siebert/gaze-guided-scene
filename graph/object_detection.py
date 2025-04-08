@@ -5,7 +5,7 @@ Object detection module for detecting and tracking objects in video frames.
 import torch
 import numpy as np
 import math
-from typing import Dict, List, Tuple, Any, Optional, DefaultDict
+from typing import Dict, List, Tuple, Any, Optional, DefaultDict, Union
 from collections import defaultdict, Counter
 import logging
 from dataclasses import dataclass
@@ -27,6 +27,13 @@ class Detection:
     class_id: int
     is_fixated: bool = False
     frame_idx: int = -1
+    fixation_score: float = 0.0
+    is_top_scoring: bool = False
+    # Component scores
+    confidence_score: float = 0.0
+    stability_score: float = 0.0
+    gaze_proximity_score: float = 0.0
+    fixation_ratio: float = 0.0
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert detection to a dictionary representation.
@@ -40,7 +47,13 @@ class Detection:
             'score': self.score,
             'class_id': self.class_id,
             'is_fixated': self.is_fixated,
-            'frame_idx': self.frame_idx
+            'frame_idx': self.frame_idx,
+            'fixation_score': self.fixation_score,
+            'is_top_scoring': self.is_top_scoring,
+            'confidence_score': self.confidence_score,
+            'stability_score': self.stability_score,
+            'gaze_proximity_score': self.gaze_proximity_score,
+            'fixation_ratio': self.fixation_ratio
         }
 
 
@@ -132,18 +145,46 @@ class ObjectDetector:
             
             if found_fixated_objects:
                 self.fixated_objects_found = True
-                self._log_fixated_objects(frame_idx, detections)
+                
+                # Store detections for fixation calculation
+                self.all_detections.extend(detections)
                 
                 # Store gaze points for advanced fixation analysis
                 self.gaze_points.append((gaze_x, gaze_y, frame_idx))
+                
+                # Calculate current fixation scores and component scores
+                if len(self.all_detections) > 0:
+                    # Compute scores
+                    scores = self._compute_fixation_scores()
+                    
+                    # Find top scoring object
+                    top_score_class = max(scores.keys(), key=lambda x: scores[x]['final_score']) if scores else None
+                    
+                    # Update each detection with its scores and status
+                    for detection in detections:
+                        if detection.is_fixated and detection.class_name in scores:
+                            obj_scores = scores[detection.class_name]
+                            # Set overall fixation score
+                            detection.fixation_score = obj_scores['final_score']
+                            detection.is_top_scoring = (detection.class_name == top_score_class)
+                            
+                            # Set component scores
+                            detection.confidence_score = obj_scores['confidence']
+                            detection.stability_score = obj_scores['stability']
+                            detection.gaze_proximity_score = obj_scores['gaze_proximity']
+                            detection.fixation_ratio = obj_scores['fixation_ratio']
+                
+                self._log_fixated_objects(frame_idx, detections)
                 
                 # Log to tracer if available
                 if self.tracer and detections:
                     detection_dicts = [d.to_dict() for d in detections]
                     self.tracer.log_yolo_objects_detected(frame_idx, detection_dicts)
             
-            # Store detections for advanced fixation calculation
-            self.all_detections.extend(detections)
+            # Store new detections after logging
+            if not found_fixated_objects:
+                self.all_detections.extend(detections)
+            
             self.total_frames += 1
             
         except Exception as e:
@@ -152,6 +193,128 @@ class ObjectDetector:
             logger.debug(f"Error details: {traceback.format_exc()}")
         
         return detections
+    
+    def _compute_fixation_scores(self) -> Dict[str, Dict[str, float]]:
+        """Compute fixation scores for all detected objects.
+        
+        Returns:
+            Dictionary mapping object names to score components and final score
+        """
+        scores = {}
+        
+        # Extract unique objects from detections
+        unique_objects = set(d.class_name for d in self.all_detections if d.is_fixated)
+        
+        # Reset filter statistics for this computation
+        self.filtered_stats = {
+            'fixation_ratio': 0,
+            'confidence': 0,
+            'stability': 0,
+            'gaze_proximity': 0,
+            'total_considered': 0,
+            'passed_all': 0
+        }
+        
+        for obj_name in unique_objects:
+            # Get all fixated detections for this object
+            obj_detections = [d for d in self.all_detections if d.class_name == obj_name and d.is_fixated]
+            
+            # Skip if not enough detections
+            if not obj_detections:
+                continue
+                
+            # Track total objects considered
+            self.filtered_stats['total_considered'] += 1
+            
+            # Initialize component scores dict
+            components = {}
+                
+            # Compute fixation ratio
+            fixation_frames = len(set(d.frame_idx for d in obj_detections))
+            fixation_ratio = fixation_frames / max(self.total_frames, 1)
+            components['fixation_ratio'] = fixation_ratio
+            
+            # Apply minimum fixation threshold
+            if fixation_ratio < self.min_fixation_frame_ratio:
+                logger.info(f"Object {obj_name} filtered out: fixation ratio {fixation_ratio:.2f} < threshold {self.min_fixation_frame_ratio}")
+                self.filtered_stats['fixation_ratio'] += 1
+                continue
+                
+            # Get confidence scores and bounding boxes
+            confidence_scores = [d.score for d in obj_detections]
+            bboxes = [d.bbox for d in obj_detections]
+            
+            # Get relevant gaze points (those in frames where object was detected)
+            obj_frame_indices = set(d.frame_idx for d in obj_detections)
+            relevant_gaze_points = [g for g in self.gaze_points if g[2] in obj_frame_indices]
+            
+            # 1. Compute geometric mean of confidence scores
+            mean_confidence = self._compute_geometric_mean(confidence_scores)
+            components['confidence'] = mean_confidence
+            
+            # Apply confidence threshold
+            if mean_confidence < self.confidence_threshold:
+                logger.info(f"Object {obj_name} filtered out: confidence score {mean_confidence:.2f} < threshold {self.confidence_threshold}")
+                self.filtered_stats['confidence'] += 1
+                continue
+            
+            # 2. Compute bounding box stability
+            stability_score = self._compute_mean_iou(bboxes)
+            components['stability'] = stability_score
+            
+            # Apply stability threshold
+            if stability_score < self.bbox_stability_threshold:
+                logger.info(f"Object {obj_name} filtered out: stability score {stability_score:.2f} < threshold {self.bbox_stability_threshold}")
+                self.filtered_stats['stability'] += 1
+                continue
+            
+            # 3. Compute gaze proximity weighting
+            gaze_distance = self._compute_mean_gaze_distance(bboxes, relevant_gaze_points)
+            gaze_weight = 1.0 / (1.0 + gaze_distance)
+            components['gaze_proximity'] = gaze_weight
+            components['gaze_distance'] = gaze_distance
+            
+            # Apply gaze proximity threshold
+            if gaze_weight < self.gaze_proximity_threshold:
+                logger.info(f"Object {obj_name} filtered out: gaze proximity {gaze_weight:.2f} < threshold {self.gaze_proximity_threshold}")
+                self.filtered_stats['gaze_proximity'] += 1
+                continue
+            
+            # 4. Weight by fixation duration
+            duration_weighted_score = mean_confidence * fixation_ratio
+            components['duration_weighted'] = duration_weighted_score
+            
+            # 5. Compute final weighted fixation score
+            final_score = (
+                pow(duration_weighted_score, self.duration_weight) * 
+                pow(stability_score, self.bbox_stability_weight) * 
+                pow(gaze_weight, self.gaze_proximity_weight)
+            )
+            
+            # Store final score with components
+            components['final_score'] = final_score
+            scores[obj_name] = components
+                
+            self.filtered_stats['passed_all'] += 1
+            
+            logger.info(f"Fixation score for {obj_name}: {final_score:.4f}")
+            logger.info(f"  - Duration score: {duration_weighted_score:.4f} (ratio: {fixation_ratio:.2f})")
+            logger.info(f"  - Confidence score: {mean_confidence:.4f} (threshold: {self.confidence_threshold})")
+            logger.info(f"  - Stability score: {stability_score:.4f} (threshold: {self.bbox_stability_threshold})")
+            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f}, threshold: {self.gaze_proximity_threshold})")
+            
+        # Log filter statistics
+        if self.filtered_stats['total_considered'] > 0:
+            logger.info(f"Fixation filtering stats: {self.filtered_stats['passed_all']}/{self.filtered_stats['total_considered']} passed all filters")
+            logger.info(f"  - Filtered by fixation ratio: {self.filtered_stats['fixation_ratio']}")
+            logger.info(f"  - Filtered by confidence: {self.filtered_stats['confidence']}")
+            logger.info(f"  - Filtered by stability: {self.filtered_stats['stability']}")
+            logger.info(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
+
+        # Store final scores in the instance variable
+        self.fixation_scores = {obj: scores[obj]['final_score'] for obj in scores}
+            
+        return scores
     
     def _perform_detection(
         self, 
@@ -240,7 +403,8 @@ class ObjectDetector:
             
         # Compute fixation scores if not already done
         if not self.fixation_scores:
-            self.fixation_scores = self._compute_fixation_scores()
+            scores = self._compute_fixation_scores()
+            # fixation_scores is now populated by _compute_fixation_scores
 
         # Only return true if any object passes all thresholds
         return len(self.fixation_scores) > 0
@@ -388,114 +552,6 @@ class ObjectDetector:
         log_sum = sum(math.log(max(v, 1e-10)) for v in values)
         return math.exp(log_sum / len(values))
     
-    def _compute_fixation_scores(self) -> Dict[str, float]:
-        """Compute fixation scores for all detected objects.
-        
-        Returns:
-            Dictionary mapping object names to fixation scores
-        """
-        fixation_scores = {}
-        
-        # Extract unique objects from detections
-        unique_objects = set(d.class_name for d in self.all_detections if d.is_fixated)
-        
-        # Reset filter statistics for this computation
-        self.filtered_stats = {
-            'fixation_ratio': 0,
-            'confidence': 0,
-            'stability': 0,
-            'gaze_proximity': 0,
-            'total_considered': 0,
-            'passed_all': 0
-        }
-        
-        for obj_name in unique_objects:
-            # Get all fixated detections for this object
-            obj_detections = [d for d in self.all_detections if d.class_name == obj_name and d.is_fixated]
-            
-            # Skip if not enough detections
-            if not obj_detections:
-                continue
-                
-            # Track total objects considered
-            self.filtered_stats['total_considered'] += 1
-                
-            # Compute fixation ratio
-            fixation_frames = len(set(d.frame_idx for d in obj_detections))
-            fixation_ratio = fixation_frames / max(self.total_frames, 1)
-            
-            # Apply minimum fixation threshold
-            if fixation_ratio < self.min_fixation_frame_ratio:
-                logger.info(f"Object {obj_name} filtered out: fixation ratio {fixation_ratio:.2f} < threshold {self.min_fixation_frame_ratio}")
-                self.filtered_stats['fixation_ratio'] += 1
-                continue
-                
-            # Get confidence scores and bounding boxes
-            confidence_scores = [d.score for d in obj_detections]
-            bboxes = [d.bbox for d in obj_detections]
-            
-            # Get relevant gaze points (those in frames where object was detected)
-            obj_frame_indices = set(d.frame_idx for d in obj_detections)
-            relevant_gaze_points = [g for g in self.gaze_points if g[2] in obj_frame_indices]
-            
-            # 1. Compute geometric mean of confidence scores
-            mean_confidence = self._compute_geometric_mean(confidence_scores)
-            
-            # Apply confidence threshold
-            if mean_confidence < self.confidence_threshold:
-                logger.info(f"Object {obj_name} filtered out: confidence score {mean_confidence:.2f} < threshold {self.confidence_threshold}")
-                self.filtered_stats['confidence'] += 1
-                continue
-            
-            # 2. Compute bounding box stability
-            stability_score = self._compute_mean_iou(bboxes)
-            
-            # Apply stability threshold
-            if stability_score < self.bbox_stability_threshold:
-                logger.info(f"Object {obj_name} filtered out: stability score {stability_score:.2f} < threshold {self.bbox_stability_threshold}")
-                self.filtered_stats['stability'] += 1
-                continue
-            
-            # 3. Compute gaze proximity weighting
-            gaze_distance = self._compute_mean_gaze_distance(bboxes, relevant_gaze_points)
-            gaze_weight = 1.0 / (1.0 + gaze_distance)
-            
-            # Apply gaze proximity threshold
-            if gaze_weight < self.gaze_proximity_threshold:
-                logger.info(f"Object {obj_name} filtered out: gaze proximity {gaze_weight:.2f} < threshold {self.gaze_proximity_threshold}")
-                self.filtered_stats['gaze_proximity'] += 1
-                continue
-            
-            # 4. Weight by fixation duration
-            duration_weighted_score = mean_confidence * fixation_ratio
-            
-            # 5. Compute final weighted fixation score
-            final_score = (
-                pow(duration_weighted_score, self.duration_weight) * 
-                pow(stability_score, self.bbox_stability_weight) * 
-                pow(gaze_weight, self.gaze_proximity_weight)
-            )
-            
-            # Store score
-            fixation_scores[obj_name] = final_score
-            self.filtered_stats['passed_all'] += 1
-            
-            logger.info(f"Fixation score for {obj_name}: {final_score:.4f}")
-            logger.info(f"  - Duration score: {duration_weighted_score:.4f} (ratio: {fixation_ratio:.2f})")
-            logger.info(f"  - Confidence score: {mean_confidence:.4f} (threshold: {self.confidence_threshold})")
-            logger.info(f"  - Stability score: {stability_score:.4f} (threshold: {self.bbox_stability_threshold})")
-            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f}, threshold: {self.gaze_proximity_threshold})")
-            
-        # Log filter statistics
-        if self.filtered_stats['total_considered'] > 0:
-            logger.info(f"Fixation filtering stats: {self.filtered_stats['passed_all']}/{self.filtered_stats['total_considered']} passed all filters")
-            logger.info(f"  - Filtered by fixation ratio: {self.filtered_stats['fixation_ratio']}")
-            logger.info(f"  - Filtered by confidence: {self.filtered_stats['confidence']}")
-            logger.info(f"  - Filtered by stability: {self.filtered_stats['stability']}")
-            logger.info(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
-            
-        return fixation_scores
-    
     def get_fixated_object(self) -> Tuple[str, float]:
         """Get the most likely fixated object based on fixation scores.
         
@@ -507,7 +563,8 @@ class ObjectDetector:
         """
         # Compute fixation scores if not already done
         if not self.fixation_scores:
-            self.fixation_scores = self._compute_fixation_scores()
+            self._compute_fixation_scores()
+            # fixation_scores is now populated by _compute_fixation_scores
             
         # If no fixation scores found, no object passed our thresholds
         if not self.fixation_scores:
