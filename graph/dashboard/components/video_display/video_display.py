@@ -460,10 +460,8 @@ class VideoDisplay(BaseComponent):
                 box_fill = "rgba(128, 128, 128, 0.15)"
                 line_width = 2
             else:
-                # Non-fixated - Light gray
-                box_color = "rgba(200, 200, 200, 0.8)"
-                box_fill = "rgba(200, 200, 200, 0.05)"
-                line_width = 1
+                # Non-fixated -> skip
+                continue
             
             traces.append(go.Scatter(
                 x=[x0, x1, x1, x0, x0],
@@ -479,8 +477,6 @@ class VideoDisplay(BaseComponent):
             
             # Calculate label text width based on its length
             conf_text = f"{score:.2f}"
-            if fixation_score > 0:
-                conf_text += f" | F:{fixation_score:.2f}"
             text_label = f"{label_text} ({conf_text})"
             text_width = len(text_label) * 7  # Approximate width based on character count
             
