@@ -158,7 +158,7 @@ def add_edges_to_figure(fig: go.Figure, G: nx.DiGraph,
         ))
 
 
-def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, last_added_node=None) -> None:
+def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, last_added_node=None, last_updated_node=None) -> None:
     """Add nodes to the graph figure.
     
     Args:
@@ -166,6 +166,7 @@ def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, last_added_nod
         G: NetworkX directed graph
         pos: Dictionary mapping node IDs to positions
         last_added_node: ID of the last added node to highlight
+        last_updated_node: ID of the last updated node to highlight
     """
     node_x, node_y, node_text, node_hover_text = [], [], [], []
     node_colors = []
@@ -189,8 +190,8 @@ def add_nodes_to_figure(fig: go.Figure, G: nx.DiGraph, pos: Dict, last_added_nod
             
         node_hover_text.append(hover_text)
         
-        # Use blue color from GAZE_TYPE_INFO for the last added node
-        if node == last_added_node:
+        # Highlight the last added or updated node with blue fill
+        if node == last_added_node or node == last_updated_node:
             node_colors.append(GAZE_TYPE_INFO[GAZE_TYPE_FIXATION]["color"])
         else:
             node_colors.append(NODE_BACKGROUND)
