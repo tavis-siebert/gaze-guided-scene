@@ -54,7 +54,6 @@ class Playback:
                 event_data = json.loads(line.strip())
                 event = GraphEvent(event_data)
                 self._rotate_event_angles(event)
-                self._normalize_detection_format(event)
                 self.events.append(event)
                 self.frame_to_events[event.frame_number].append(event)
                 
@@ -198,60 +197,3 @@ class Playback:
             self.last_built_frame = frame_number
         
         return self.graph
-
-    def _normalize_detection_format(self, event: GraphEvent) -> None:
-        """Ensure detection format consistency between old and new formats.
-        
-        This handles the transition from flat detection objects to the new nested structure
-        with proper component scores and fixation information.
-        
-        Args:
-            event: GraphEvent to normalize
-        """
-        if event.event_type != "yolo_objects_detected":
-            return
-            
-        # Process each detection to ensure consistent structure
-        if "detections" in event.data:
-            for i, detection in enumerate(event.data["detections"]):
-                # Skip if already in new format
-                if "detection" in detection and "fixation" in detection:
-                    continue
-                    
-                # Convert from flat to nested structure
-                new_detection = {
-                    "detection": {
-                        "bbox": detection.get("bbox", [0, 0, 0, 0]),
-                        "class_name": detection.get("class_name", "unknown"),
-                        "score": detection.get("score", 0.0),
-                        "class_id": detection.get("class_id", -1),
-                        "frame_idx": detection.get("frame_idx", -1)
-                    },
-                    "fixation": {
-                        "is_fixated": detection.get("is_fixated", False),
-                        "is_top_scoring": detection.get("is_top_scoring", False),
-                        "score": detection.get("fixation_score", 0.0),
-                        "components": {}
-                    }
-                }
-                
-                # Move component scores to nested structure
-                components = {}
-                # Check for old-style flat component scores
-                if "confidence_score" in detection:
-                    components["confidence"] = detection.get("confidence_score", 0.0)
-                if "stability_score" in detection:
-                    components["stability"] = detection.get("stability_score", 0.0)
-                if "gaze_proximity_score" in detection:
-                    components["gaze_proximity"] = detection.get("gaze_proximity_score", 0.0)
-                if "fixation_ratio" in detection:
-                    components["fixation_ratio"] = detection.get("fixation_ratio", 0.0)
-                
-                # If we have component scores in the new format structure
-                if not components and "components" in detection:
-                    components = detection.get("components", {})
-                    
-                new_detection["fixation"]["components"] = components
-                
-                # Replace with normalized structure
-                event.data["detections"][i] = new_detection
