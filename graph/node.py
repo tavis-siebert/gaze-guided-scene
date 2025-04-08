@@ -99,23 +99,6 @@ class Node:
 
         return None
 
-    @staticmethod
-    def merge(visit: VisitRecord, matching_node: Optional['Node']) -> Optional['Node']:
-        """
-        Add a new visit to an existing node if a match is found.
-        
-        Args:
-            visit: The visit period to add
-            matching_node: The node to merge the visit into
-            
-        Returns:
-            The matching node if found, None otherwise
-        """
-        if matching_node is not None:
-            matching_node.add_new_visit(visit)
-            return matching_node
-        return None
-
     def add_new_visit(self, visit: VisitRecord) -> None:
         """
         Add a new visit period to this node.

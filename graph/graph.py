@@ -169,13 +169,20 @@ class Graph:
             num_bins: Number of angle bins
             
         Returns:
-            The next node (either existing or newly created)
+            The node representing the fixated object (either existing or newly created)
         """
-        matching_node = self._find_matching_node(fixated_object)
-        next_node = Node.merge(visit, matching_node)
+        prev_node_id = self.current_node.id
+        frame_number = visit[1]
         
-        if next_node:
-            frame_number = visit[1]
+        # Find matching node or create a new one
+        matching_node = self._find_matching_node(fixated_object)
+        
+        if matching_node:
+            # Update existing node
+            matching_node.add_new_visit(visit)
+            next_node = matching_node
+            
+            # Log node update
             self.tracer.log_node_updated(
                 frame_number,
                 next_node.id,
@@ -185,18 +192,40 @@ class Graph:
             )
             logger.info(f"Node {next_node.id} updated with new visit at frames {visit}")
         else:
+            # Create new node
             next_node = self.add_node(fixated_object, visit)
+            
+            # Log node addition
+            self.tracer.log_node_added(
+                frame_number, 
+                next_node.id, 
+                next_node.object_label, 
+                next_node.get_features()
+            )
+            logger.info(f"New node {next_node.id} created for object '{fixated_object}'")
         
-        if (next_node != self.current_node and 
-            not self.has_neighbor(self.current_node.id, next_node.id)):
-            self.add_edge(
+        # Add edge if needed (node changed and no existing connection)
+        if next_node != self.current_node and not self.has_neighbor(self.current_node.id, next_node.id):
+            forward_edge, backward_edge = self.add_edge(
                 self.current_node,
                 next_node,
                 prev_gaze_pos,
                 curr_gaze_pos,
                 num_bins
             )
+            
+            # Log edge addition
+            if forward_edge and prev_node_id >= 0:
+                self.tracer.log_edge_added(
+                    frame_number, 
+                    prev_node_id, 
+                    next_node.id, 
+                    "saccade", 
+                    forward_edge.get_features()
+                )
+                logger.info(f"Edge added from node {prev_node_id} to node {next_node.id}")
         
+        # Update current node reference
         self.current_node = next_node
         return next_node
     
