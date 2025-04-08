@@ -153,6 +153,7 @@ class Graph:
     
     def update(
         self, 
+        frame_number: int,
         fixated_object: str,
         visit: VisitRecord, 
         prev_gaze_pos: GazePosition, 
@@ -172,7 +173,6 @@ class Graph:
             The node representing the fixated object (either existing or newly created)
         """
         prev_node_id = self.current_node.id
-        frame_number = visit[1]
         
         # Find matching node or create a new one
         matching_node = self._find_matching_node(fixated_object)

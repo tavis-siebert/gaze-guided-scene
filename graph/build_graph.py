@@ -268,6 +268,7 @@ class GraphBuilder:
         
         # Update the graph with the fixated object
         self.scene_graph.update(
+            self.frame_num,
             fixated_object,
             visit_record,
             prev_position,
