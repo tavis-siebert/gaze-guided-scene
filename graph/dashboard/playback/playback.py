@@ -138,6 +138,18 @@ class Playback:
             )
             self.last_added_node = node_id
             
+        elif event.event_type == "node_updated":
+            node_id = event.data["node_id"]
+            label = event.data["label"]
+            features = event.data.get("features", {})
+            
+            # Update existing node with new features
+            if node_id in self.graph:
+                self.graph.nodes[node_id].update(
+                    label=label,
+                    features=features
+                )
+            
         elif event.event_type == "edge_added":
             source_id = event.data["source_id"]
             target_id = event.data["target_id"]
