@@ -21,6 +21,7 @@ class Playback:
         graph: NetworkX directed graph instance
         last_built_frame: Last frame number that was built
         last_added_node: Last node ID that was added
+        last_updated_node: Last node ID that was updated
         last_added_edge: Last edge that was added (source_id, target_id)
         object_detections: Dictionary mapping frame numbers to detection events
         events: List of all events loaded from the trace file
@@ -39,6 +40,7 @@ class Playback:
         self.graph = nx.DiGraph()
         self.last_built_frame = -1
         self.last_added_node = None
+        self.last_updated_node = None
         self.last_added_edge = None
         self.object_detections = {}  # Frame number -> detection event
         self.yolo_detections = {}  # Frame number -> YOLO detection event
@@ -137,6 +139,7 @@ class Playback:
                 features=features
             )
             self.last_added_node = node_id
+            self.last_updated_node = node_id
             
         elif event.event_type == "node_updated":
             node_id = event.data["node_id"]
@@ -149,6 +152,7 @@ class Playback:
                     label=label,
                     features=features
                 )
+                self.last_updated_node = node_id
             
         elif event.event_type == "edge_added":
             source_id = event.data["source_id"]
@@ -187,6 +191,9 @@ class Playback:
         if frame_number < self.last_built_frame:
             self.graph = nx.DiGraph()
             self.last_built_frame = -1
+            self.last_added_node = None
+            self.last_updated_node = None
+            self.last_added_edge = None
         
         if frame_number > self.last_built_frame:
             # Process events for each frame between last_built_frame+1 and frame_number
