@@ -285,44 +285,40 @@ class GraphBuilder:
         self.object_detector.reset()
     
     def _finish_final_fixation(self) -> None:
-        """Process the final fixation if video ends during one."""
-        logger.info("- Final fixation detected, updating graph...")
+        """Process the final fixation if video ends during one.
+        
+        Creates a dummy saccade to end the current fixation and adds the node to the graph.
+        """
+        if self.visit_start == -1:
+            logger.info("- No ongoing fixation to process at the end")
+            return
+        
+        logger.info("- Final fixation detected, creating dummy saccade")
         self.visit_end = self.non_black_frame_count - 1
-        visit_record = [self.visit_start, self.visit_end]
         
-        # Get the last gaze position
-        self.gaze_processor.reset()
-        last_gaze_point = None
-        for gp in self.gaze_processor:
-            if gp.frame_idx == self.frame_num - 1:
-                last_gaze_point = gp
-                break
-                
-        if last_gaze_point is None:
-            # Fallback if we can't get the last gaze point
-            last_gaze_point = GazePoint(
-                x=self.prev_gaze_point.x if self.prev_gaze_point else 0.5, 
-                y=self.prev_gaze_point.y if self.prev_gaze_point else 0.5, 
-                raw_type=GazeType.FIXATION,
-                type=GazeType.FIXATION,
-                frame_idx=self.frame_num - 1
-            )
-            
-        logger.debug(f"- Final gaze position (normalized): ({last_gaze_point.position[0]:.2f}, {last_gaze_point.position[1]:.2f})")
-        
-        # Get the previous gaze position or default to (0,0) if not available
-        prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
-
-        # Get the most likely fixated object from the detector
+        # Get the fixated object from the detector
         fixated_object, confidence = self.object_detector.get_fixated_object()
-        logger.info(f"- Final fixated object: {fixated_object} (accumulated confidence: {confidence:.2f})")
         
-        self.scene_graph.update(
-            fixated_object,
-            visit_record, 
-            prev_position,
-            last_gaze_point.position
+        if not fixated_object:
+            logger.info("- No object detected in final fixation, skipping")
+            return
+            
+        logger.info(f"- Final fixated object: {fixated_object} (confidence: {confidence:.2f})")
+        
+        # Create a dummy saccade point at a slightly different position from the last fixation
+        # to simulate eye movement, but maintain similar position
+        last_position = self.prev_gaze_point.position if self.prev_gaze_point else (0.5, 0.5)
+        dummy_x = min(max(last_position[0] + 0.05, 0.0), 1.0)
+        dummy_y = min(max(last_position[1] + 0.05, 0.0), 1.0)
+        dummy_saccade = GazePoint(
+            x=dummy_x,
+            y=dummy_y,
+            raw_type=GazeType.SACCADE,
+            type=GazeType.SACCADE,
+            frame_idx=self.frame_num
         )
+        
+        self._handle_saccade(dummy_saccade)
 
 def build_graph(
     video_list: List[str], 
