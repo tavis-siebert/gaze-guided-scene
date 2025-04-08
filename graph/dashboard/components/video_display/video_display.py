@@ -424,28 +424,48 @@ class VideoDisplay(BaseComponent):
             return
             
         for detection in detections:
-            bbox = detection.get("bbox", [0, 0, 0, 0])
-            class_name = detection.get("class_name", "unknown")
-            score = detection.get("score", 0.0)
-            is_fixated = detection.get("is_fixated", False)
+            # Handle new structured format
+            detection_data = detection.get("detection", detection)  # Backward compatibility
+            fixation_data = detection.get("fixation", {})
+            
+            bbox = detection_data.get("bbox", [0, 0, 0, 0])
+            class_name = detection_data.get("class_name", "unknown")
+            score = detection_data.get("score", 0.0)
+            
+            # Get fixation info from nested structure or fall back to flat structure
+            is_fixated = fixation_data.get("is_fixated", detection_data.get("is_fixated", False))
+            is_top_scoring = fixation_data.get("is_top_scoring", detection_data.get("is_top_scoring", False))
+            fixation_score = fixation_data.get("score", detection_data.get("fixation_score", 0.0))
+            
+            # Get component scores if available 
+            components = fixation_data.get("components", {})
             
             # Format the label for display
             label_text = format_label(class_name)
             
-            # Create hover text
-            hover_text = (
-                f"Class: {label_text}<br>"
-                f"Confidence: {score:.2f}<br>"
-                f"Is Fixated: {'Yes' if is_fixated else 'No'}"
-            )
+            # Create detailed hover text
+            hover_text = self._create_yolo_hover_text(class_name, score, is_fixated, is_top_scoring, fixation_score, components)
             
             # Extract bounding box coordinates [x, y, width, height]
             x, y, width, height = bbox
             x0, y0, x1, y1 = x, y, x + width, y + height
             
-            # Define colors based on fixation status
-            box_color = "rgba(0, 0, 255, 1)" if is_fixated else "rgba(128, 128, 128, 1)"  # Blue if fixated, gray otherwise
-            box_fill = "rgba(0, 0, 255, 0.1)" if is_fixated else "rgba(128, 128, 128, 0.1)"
+            # Define colors based on fixation status and top scoring status
+            if is_top_scoring:
+                # Top scoring object - Blue
+                box_color = "rgba(0, 0, 255, 1)"
+                box_fill = "rgba(0, 0, 255, 0.2)"
+                line_width = 3
+            elif is_fixated:
+                # Fixated but not top scoring - Gray
+                box_color = "rgba(128, 128, 128, 1)"
+                box_fill = "rgba(128, 128, 128, 0.15)"
+                line_width = 2
+            else:
+                # Non-fixated - Light gray
+                box_color = "rgba(200, 200, 200, 0.8)"
+                box_fill = "rgba(200, 200, 200, 0.05)"
+                line_width = 1
             
             traces.append(go.Scatter(
                 x=[x0, x1, x1, x0, x0],
@@ -453,14 +473,17 @@ class VideoDisplay(BaseComponent):
                 fill="toself",
                 fillcolor=box_fill,
                 mode="lines",
-                line=dict(width=2, color=box_color),
+                line=dict(width=line_width, color=box_color),
                 hoverinfo='text',
                 hovertext=hover_text,
                 showlegend=False
             ))
             
             # Calculate label text width based on its length
-            text_label = f"{label_text} ({score:.2f})"
+            conf_text = f"{score:.2f}"
+            if fixation_score > 0:
+                conf_text += f" | F:{fixation_score:.2f}"
+            text_label = f"{label_text} ({conf_text})"
             text_width = len(text_label) * 7  # Approximate width based on character count
             
             # Calculate label box position
@@ -517,6 +540,55 @@ class VideoDisplay(BaseComponent):
                 hovertext=hover_text,
                 showlegend=False
             ))
+
+    def _create_yolo_hover_text(
+        self,
+        class_name: str,
+        score: float,
+        is_fixated: bool,
+        is_top_scoring: bool,
+        fixation_score: float,
+        components: Dict[str, float]
+    ) -> str:
+        """Create detailed hover text for YOLO detection.
+        
+        Args:
+            class_name: Object class name
+            score: Detection confidence score
+            is_fixated: Whether object is fixated
+            is_top_scoring: Whether object is the top scoring fixated object
+            fixation_score: Overall fixation score
+            components: Dictionary of component scores
+            
+        Returns:
+            Formatted hover text
+        """
+        label_text = format_label(class_name)
+        status = "Top Scoring" if is_top_scoring else "Fixated" if is_fixated else "Not Fixated"
+        
+        hover_text = (
+            f"<b>{label_text}</b><br>"
+            f"Status: <b>{status}</b><br>"
+            f"Confidence: {score:.2f}<br>"
+        )
+        
+        if is_fixated and fixation_score > 0:
+            hover_text += f"<br><b>Fixation Score: {fixation_score:.4f}</b><br>"
+            
+            if components:
+                hover_text += "<br><b>Component Scores:</b><br>"
+                if "confidence" in components:
+                    hover_text += f"Confidence: {components['confidence']:.2f}<br>"
+                if "stability" in components:
+                    hover_text += f"Stability: {components['stability']:.2f}<br>"
+                if "gaze_proximity" in components:
+                    hover_text += f"Gaze Proximity: {components['gaze_proximity']:.2f}<br>"
+                if "fixation_ratio" in components:
+                    hover_text += f"Fixation Ratio: {components['fixation_ratio']:.2f}<br>"
+                if "gaze_distance" in components:
+                    hover_text += f"Gaze Distance: {components['gaze_distance']:.2f}<br>"
+        
+        return hover_text
     
     def get_figure(self, frame_number: int) -> go.Figure:
         """Get a complete figure with the video frame and overlays.
