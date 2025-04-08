@@ -262,32 +262,18 @@ class GraphBuilder:
         logger.info(f"- Fixated object: {fixated_object} (confidence: {confidence:.2f})")
         logger.info(f"- Visit duration: {fixation_duration} frames")
         
-        prev_node_id = self.scene_graph.current_node.id
         visit_record = [self.visit_start, self.visit_end]
         
         # Get the previous gaze position or default to (0,0) if not available
         prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
         
-        next_node = self.scene_graph.update(
+        # Update the graph with the fixated object
+        self.scene_graph.update(
             fixated_object,
             visit_record,
             prev_position,
             gaze_point.position
         )
-        
-        if next_node.id != prev_node_id:
-            logger.info(f"- New node created: {next_node.id}")
-            self.tracer.log_node_added(self.frame_num, next_node.id, next_node.object_label, next_node.get_features())
-            
-            if prev_node_id >= 0:
-                edge = self.scene_graph.get_edge(prev_node_id, next_node.id)
-                if edge:
-                    edge_features = edge.get_features()
-                    self.tracer.log_edge_added(self.frame_num, prev_node_id, next_node.id, "saccade", edge_features)
-        else:
-            logger.info(f"- Merged with existing node: {next_node.id}")
-            logger.info(f"- Updated node features: visits={len(next_node.visits)}, "
-                      f"total_frames={next_node.get_visit_duration()}")
         
         self._reset_fixation_state(gaze_point)
     
