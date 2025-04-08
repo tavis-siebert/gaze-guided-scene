@@ -8,7 +8,7 @@ import math
 from typing import Dict, List, Tuple, Any, Optional, DefaultDict, Union
 from collections import defaultdict, Counter
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from models.yolo_world import YOLOWorldModel
@@ -19,21 +19,47 @@ from config.config_utils import DotDict
 logger = logging.getLogger(__name__)
 
 @dataclass
+class ScoreComponents:
+    """Contains component scores for object fixation evaluation."""
+    confidence: float = 0.0
+    stability: float = 0.0
+    gaze_proximity: float = 0.0
+    fixation_ratio: float = 0.0
+    duration_weighted: float = 0.0
+    gaze_distance: float = 0.0
+    
+    def to_dict(self) -> Dict[str, float]:
+        """Convert component scores to a dictionary.
+        
+        Returns:
+            Dictionary of score components
+        """
+        return {
+            'confidence': self.confidence,
+            'stability': self.stability,
+            'gaze_proximity': self.gaze_proximity,
+            'fixation_ratio': self.fixation_ratio,
+            'duration_weighted': self.duration_weighted,
+            'gaze_distance': self.gaze_distance
+        }
+
+@dataclass
 class Detection:
     """Represents a detected object."""
+    # Basic detection properties
     bbox: Tuple[int, int, int, int]  # left, top, width, height
     class_name: str
     score: float
     class_id: int
-    is_fixated: bool = False
     frame_idx: int = -1
-    fixation_score: float = 0.0
+    
+    # Fixation properties
+    is_fixated: bool = False
     is_top_scoring: bool = False
-    # Component scores
-    confidence_score: float = 0.0
-    stability_score: float = 0.0
-    gaze_proximity_score: float = 0.0
-    fixation_ratio: float = 0.0
+    fixation_score: float = 0.0
+    
+    # Component scores as a nested structure
+    components: ScoreComponents = field(default_factory=ScoreComponents)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert detection to a dictionary representation.
@@ -42,18 +68,19 @@ class Detection:
             Dictionary representation of the detection
         """
         return {
-            'bbox': self.bbox,
-            'class_name': self.class_name,
-            'score': self.score,
-            'class_id': self.class_id,
-            'is_fixated': self.is_fixated,
-            'frame_idx': self.frame_idx,
-            'fixation_score': self.fixation_score,
-            'is_top_scoring': self.is_top_scoring,
-            'confidence_score': self.confidence_score,
-            'stability_score': self.stability_score,
-            'gaze_proximity_score': self.gaze_proximity_score,
-            'fixation_ratio': self.fixation_ratio
+            'detection': {
+                'bbox': self.bbox,
+                'class_name': self.class_name,
+                'score': self.score,
+                'class_id': self.class_id,
+                'frame_idx': self.frame_idx
+            },
+            'fixation': {
+                'is_fixated': self.is_fixated,
+                'is_top_scoring': self.is_top_scoring,
+                'score': self.fixation_score,
+                'components': self.components.to_dict()
+            }
         }
 
 
@@ -169,10 +196,12 @@ class ObjectDetector:
                             detection.is_top_scoring = (detection.class_name == top_score_class)
                             
                             # Set component scores
-                            detection.confidence_score = obj_scores['confidence']
-                            detection.stability_score = obj_scores['stability']
-                            detection.gaze_proximity_score = obj_scores['gaze_proximity']
-                            detection.fixation_ratio = obj_scores['fixation_ratio']
+                            detection.components.confidence = obj_scores['confidence']
+                            detection.components.stability = obj_scores['stability']
+                            detection.components.gaze_proximity = obj_scores['gaze_proximity']
+                            detection.components.fixation_ratio = obj_scores['fixation_ratio']
+                            detection.components.duration_weighted = obj_scores['duration_weighted']
+                            detection.components.gaze_distance = obj_scores['gaze_distance']
                 
                 self._log_fixated_objects(frame_idx, detections)
                 
@@ -371,8 +400,22 @@ class ObjectDetector:
             logger.info(f"[Frame {frame_idx}] {len(fixated_detections)} fixated object detections:")
             for detection in fixated_detections:
                 bbox = detection.bbox
-                logger.info(f"  - {detection.class_name} (conf: {detection.score:.2f}, "
+                top_indicator = " (TOP)" if detection.is_top_scoring else ""
+                
+                score_info = f"detection score: {detection.score:.2f}"
+                if detection.fixation_score > 0:
+                    score_info += f", fixation score: {detection.fixation_score:.2f}{top_indicator}"
+                    
+                logger.info(f"  - {detection.class_name} ({score_info}, "
                           f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}])")
+                
+                # Log component scores if available and significant
+                if detection.fixation_score > 0:
+                    comp = detection.components
+                    logger.info(f"    Components: conf={comp.confidence:.2f}, "
+                               f"stab={comp.stability:.2f}, "
+                               f"gaze={comp.gaze_proximity:.2f}, "
+                               f"ratio={comp.fixation_ratio:.2f}")
     
     def reset(self) -> None:
         """Reset detection state."""
