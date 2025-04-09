@@ -4,32 +4,38 @@ Graph building module for creating scene graphs from video data.
 
 import torch
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, NamedTuple
 from collections import defaultdict
 from tqdm import tqdm
+import itertools
 
 from graph.graph import Graph
 from graph.node import Node
-from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
-from graph.utils import get_roi
+from graph.io import Record, DataLoader, VideoProcessor
 from graph.graph_tracer import GraphTracer
-from models.clip import ClipModel
+from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
+from graph.action_utils import ActionUtils
+from graph.gaze import GazeProcessor, GazePoint, GazeType
+from graph.object_detection import ObjectDetector
 from models.sift import SIFT
 from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
+from egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE
 from config.config_utils import DotDict
 from logger import get_logger
 
-# Initialize logger for this module
 logger = get_logger(__name__)
 
+class StopProcessingException(Exception):
+    """Exception to indicate that frame processing should stop."""
+    def __init__(self, reason: str = ""):
+        self.reason = reason
+        super().__init__(self.reason)
+
 class GraphBuilder:
-    """
-    Builds scene graphs from video data and gaze information.
-    """
+    """Builds scene graphs from video data and gaze information."""
     
     def __init__(self, config: DotDict, split: str, enable_tracing: bool = False):
-        """
-        Initialize the graph builder.
+        """Initialize the graph builder.
         
         Args:
             config: Configuration dictionary
@@ -41,339 +47,267 @@ class GraphBuilder:
         self.enable_tracing = enable_tracing
         self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
         
-        # Initialize models
-        self.clip_model = ClipModel(self.config.models.clip.model_id)
-        self.clip_model.load_model(Path(self.config.models.clip.model_dir))
-        self.sift = SIFT()
-        
-        # Load object labels
+        # Initialize object labels
         noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
         self.obj_labels, self.labels_to_int = DataLoader.load_object_labels(noun_idx_path)
-        self.clip_labels = [f"a picture of a {obj}" for obj in self.obj_labels.values()]
         
-        # Load dataset information
+        # Initialize YOLO-World model path
+        yolo_model_file = self.config.models.yolo_world.model_file
+        yolo_model_dir = Path(self.config.models.yolo_world.model_dir)
+        yolo_model_path = yolo_model_dir / yolo_model_file
+        
+        # Create object detector (will be re-initialized for each video with proper tracer)
+        self.object_detector = None
+        self.yolo_model_path = yolo_model_path
+        
+        # Load video metadata
         ann_file = (self.config.dataset.ego_topo.splits.train if self.split == 'train' 
                    else self.config.dataset.ego_topo.splits.val)
         self.vid_lengths = DataLoader.load_video_lengths(ann_file)
         self.records, self.records_by_vid = DataLoader.load_records(ann_file)
         self.action_to_idx = DataLoader.create_action_index(self.records)
-    
-    def process_video(self, video_name: str, print_graph: bool = False) -> Dict[str, List]:
-        """Process a video to build its scene graph."""
-        logger.info(f"\nProcessing video: {video_name}")
         
-        # Update tracer with new video name
+        # Tracking state variables
+        self.prev_gaze_point = None
+        self.visit_start = -1
+        self.visit_end = -1
+        self.frame_num = 0
+        self.non_black_frame_count = 0
+        
+        # Processing context
+        self.scene_graph = None
+        self.checkpoint_manager = None
+        self.video_name = ""
+        self.raw_gaze_data = None
+        self.gaze_processor = None
+        self.records_current = None
+        self.vid_length = 0
+        self.timestamps = []
+        
+        # Frame range to process
+        self.first_frame = 0
+        self.last_frame = 0
+    
+    def _get_action_frame_range(self, video_name: str) -> Tuple[int, int]:
+        """
+        Get the first and last frame from action annotations for a video.
+        
+        Args:
+            video_name: Name of the video
+            
+        Returns:
+            Tuple of (first_frame, last_frame)
+        """
+        if video_name not in self.records_by_vid or not self.records_by_vid[video_name]:
+            return 0, self.vid_lengths.get(video_name, 0)
+            
+        records = self.records_by_vid[video_name]
+        first_frame = min(r.start_frame for r in records)
+        last_frame = max(r.end_frame for r in records)
+        
+        return first_frame, last_frame
+    
+    def process_video(self, video_name: str, print_graph: bool = False) -> Graph:
+        """Process a video to build its scene graph.
+        
+        Args:
+            video_name: Name of the video to process
+            print_graph: Whether to print the final graph structure
+            
+        Returns:
+            Graph instance representing the scene graph
+        """
+        logger.info(f"\nProcessing video: {video_name}")
+        self.video_name = video_name
         self.tracer = GraphTracer(self.config.directories.repo.traces, video_name, enabled=self.enable_tracing)
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
         
-        # Load video data
-        gaze_data = parse_gtea_gaze(str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"))
+        # Initialize object detector with video-specific tracer
+        self.object_detector = ObjectDetector(
+            model_path=self.yolo_model_path,
+            obj_labels=self.obj_labels,
+            labels_to_int=self.labels_to_int,
+            config=self.config,
+            tracer=self.tracer
+        )
+        
+        # Load raw gaze data and initialize gaze processor
+        self.raw_gaze_data = parse_gtea_gaze(str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"))
+        self.gaze_processor = GazeProcessor(self.config, self.raw_gaze_data)
+        
         video_processor = VideoProcessor(Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4")
-        records = self.records_by_vid[video_name]
-        vid_length = self.vid_lengths[video_name]
-        timestamps = [int(ratio * vid_length) for ratio in sorted(self.config.dataset.timestamps[self.split])]
+        self.records_current = self.records_by_vid[video_name]
+        self.vid_length = self.vid_lengths[video_name]
+        self.timestamps = [int(ratio * self.vid_length) for ratio in sorted(self.config.dataset.timestamps[self.split])]
         
-        # Initialize structures
-        scene_graph = Graph()
-        # Set the tracer in the scene graph
-        scene_graph.tracer = self.tracer
+        self.first_frame, self.last_frame = self._get_action_frame_range(video_name)
+        logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
         
-        tracking = {
-            'video_name': video_name,
-            'prev_gaze_pos': (-1, -1),
-            'potential_labels': defaultdict(int),
-            'keypoints': [],
-            'descriptors': [],
-            'visit': [],
-            'frame_num': 0,
-            'relative_frame_num': 0,
-            'node_data': {}
-        }
-        results = {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
+        self.scene_graph = Graph(
+            labels_to_int=self.labels_to_int,
+            num_object_classes=len(self.obj_labels),
+            video_length=self.vid_length
+        )
+        self.scene_graph.tracer = self.tracer
+        
+        self.checkpoint_manager = CheckpointManager(
+            graph=self.scene_graph,
+            checkpoint_frames=self.timestamps,
+            timestamps=self.timestamps,
+            timestamp_ratios=self.config.dataset.timestamps[self.split],
+            records=self.records_current,
+            action_to_idx=self.action_to_idx,
+            gaze_data_length=len(self.raw_gaze_data)
+        )
+        
+        self._reset_tracking_state()
+        
+        try:
+            for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
+                self._process_frame(frame, gaze_point, is_black_frame)
+                if not is_black_frame:
+                    self.non_black_frame_count += 1
+                self.frame_num += 1
+        except StopProcessingException as e:
+            logger.info(f"[Frame {self.frame_num}] {e.reason}")
+        except StopIteration:
+            logger.info(f"[Frame {self.frame_num}] End of data reached")
 
-        # Process video frames
-        for frame, _, is_black_frame in video_processor:
-            frame_num = tracking['frame_num']
-            
-            # Process current frame
-            should_continue = self._process_frame(
-                frame, is_black_frame, frame_num, scene_graph, tracking,
-                timestamps, gaze_data, records, vid_length, results
-            )
-            
-            if not should_continue:
-                break
-            
-            # Update frame counters
-            tracking['relative_frame_num'] += 1
-            tracking['frame_num'] += 1
-
-        # Handle final fixation if video ends during fixation
-        if tracking['potential_labels']:
-            self._finish_final_fixation(scene_graph, tracking, gaze_data)
+        self._finish_final_fixation()
         
-        # Print final graph if requested
-        if print_graph and scene_graph.num_nodes > 0:
+        if print_graph and self.scene_graph.num_nodes > 0:
             logger.info("\nFinal graph structure:")
-            scene_graph.print_graph()
+            self.scene_graph.print_graph()
         
-        return results
+        return self.scene_graph
 
-    def _process_frame(
-        self, 
-        frame: torch.Tensor,
-        is_black_frame: bool,
-        frame_num: int,
-        scene_graph: Graph,
-        tracking: Dict[str, Any],
-        timestamps: List[int],
-        gaze_data: Any,
-        records: List[Record],
-        vid_length: int,
-        results: Dict[str, List]
-    ) -> bool:
-        """Process a single frame and update the scene graph accordingly.
-        
-        Returns:
-            bool: False if processing should stop, True to continue
+    def _reset_tracking_state(self):
+        """Reset all tracking state variables."""
+        self.prev_gaze_point = None
+        self.visit_start = -1
+        self.visit_end = -1
+        self.frame_num = 0
+        self.non_black_frame_count = 0
+        if self.object_detector:
+            self.object_detector.reset()
+
+    def _process_frame(self, frame: torch.Tensor, gaze_point: GazePoint, is_black_frame: bool) -> None:
         """
-        # Get current gaze data if available
-        gaze_pos = None
-        gaze_type = None
-        if frame_num < len(gaze_data):
-            gaze_pos = gaze_data[frame_num, :2].tolist()
-            gaze_type = int(gaze_data[frame_num, 2])
+        Process a single frame and update the scene graph.
+        
+        Args:
+            frame: Video frame tensor
+            gaze_point: Processed gaze point for this frame
+            is_black_frame: Whether the frame is a black frame
+            
+        Raises:
+            StopProcessingException: If processing should stop
+        """
+        # Skip frames outside the action annotation range
+        if self.frame_num < self.first_frame:
+            return
+            
+        if self.frame_num > self.last_frame:
+            raise StopProcessingException(reason=f"Reached end of annotated frames (frame {self.last_frame})")
+        
+        node_id = self.scene_graph.current_node.id if self.scene_graph.current_node.id >= 0 else None
+        self.tracer.log_frame(self.frame_num, gaze_point.position, int(gaze_point.type), node_id)
 
-        # Log frame processing
-        node_id = scene_graph.current_node.id if scene_graph.current_node.id >= 0 else None
-        self.tracer.log_frame(frame_num, gaze_pos, gaze_type, node_id)
-
-        # Skip black frames without tracing
         if is_black_frame:
-            return True
+            return
 
-        # Check if we need to save graph state at this timestamp
-        if scene_graph.edges and (frame_num in timestamps or frame_num >= len(gaze_data)):
-            self._save_graph_state(scene_graph, tracking, records, frame_num, 
-                                 timestamps, gaze_data, vid_length, results)
-            
-            # Exit if we've reached the final condition
-            if frame_num == timestamps[-1] or frame_num >= len(gaze_data):
-                logger.info(f"[Frame {frame_num}] Reached final timestamp or end of gaze data")
-                return False
-
-        # Only process and trace frames with valid gaze data
-        if frame_num < len(gaze_data):
-            self._process_frame_with_gaze(frame, frame_num, gaze_data, tracking, scene_graph)
-            
-        return True
-
-    def _process_frame_with_gaze(
-        self,
-        frame: torch.Tensor,
-        frame_num: int,
-        gaze_data: Any,
-        tracking: Dict[str, Any],
-        scene_graph: Graph
-    ) -> None:
-        """Process a frame using available gaze data."""
-        gaze_type = int(gaze_data[frame_num, 2])
-        gaze_pos = gaze_data[frame_num, :2]
+        self.checkpoint_manager.checkpoint_if_needed(
+            frame_num=self.frame_num,
+            non_black_frame_count=self.non_black_frame_count
+        )
         
-        if gaze_type == 1:  # Fixation
-            self._handle_fixation(frame, frame_num, gaze_pos, tracking)
-        elif gaze_type == 2 and tracking['potential_labels']:  # Saccade after fixation
-            self._handle_saccade(frame_num, tracking, curr_gaze_pos=gaze_pos, scene_graph=scene_graph)
+        if self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]:
+            raise StopProcessingException(reason="Reached final timestamp")
 
-    def _handle_fixation(
-        self,
-        frame: torch.Tensor,
-        frame_num: int,
-        gaze_pos: Tuple[float, float],
-        tracking: Dict[str, Any]
-    ) -> None:
+        if gaze_point.type == GazeType.FIXATION:
+            self._handle_fixation(frame, gaze_point)
+        elif gaze_point.type == GazeType.SACCADE:
+            self._handle_saccade(gaze_point)
+
+    def _handle_fixation(self, frame: torch.Tensor, gaze_point: GazePoint) -> None:
         """Handle a fixation frame."""
-        # Record start of visit if this is the first fixation
-        if not tracking['visit']:
-            tracking['visit'].append(tracking['relative_frame_num'])
-            logger.info(f"\n[Frame {frame_num}] New fixation started at ({gaze_pos[0]:.1f}, {gaze_pos[1]:.1f})")
+        if self.visit_start == -1:
+            self.visit_start = self.non_black_frame_count
+            logger.info(f"\n[Frame {self.frame_num}] New fixation started at ({gaze_point.x:.1f}, {gaze_point.y:.1f})")
         
-        # Convert normalized gaze coordinates (0-1) to pixel coordinates
-        _, H, W = frame.shape
-        gaze_x, gaze_y = int(gaze_pos[0] * W), int(gaze_pos[1] * H)
+        # Run object detection
+        self.object_detector.detect_objects(frame, gaze_point, self.frame_num)
         
-        # Extract region of interest
-        roi, roi_bbox = get_roi(frame, (gaze_x, gaze_y), 256)
-        logger.debug(f"[Frame {frame_num}] ROI bounding box: {roi_bbox}")
-
-        # Run object detection on the region of interest
-        current_label = self.clip_model.run_inference(roi, self.clip_labels, self.obj_labels)
-        tracking['potential_labels'][current_label] += 1
-        
-        # Extract SIFT features
-        kp, desc = self.sift.extract_features(frame)
-        tracking['keypoints'].append(kp)
-        tracking['descriptors'].append(desc)
-        
-        logger.info(f"[Frame {frame_num}] CLIP detected: {current_label} (count: {tracking['potential_labels'][current_label]})")
-        
-        # Get the current most likely label (the one with the highest count)
-        most_likely_label = max(tracking['potential_labels'].items(), key=lambda x: x[1])[0]
-        
-        self.tracer.log_gaze_object_detected(
-            frame_num,
-            most_likely_label,
-            current_label,
-            roi_bbox,
-            dict(tracking['potential_labels'])  # Convert defaultdict to regular dict
-        )
+        # Store current gaze point for future reference
+        self.prev_gaze_point = gaze_point
     
-    def _handle_saccade(
-        self,
-        frame_num: int,
-        tracking: Dict[str, Any],
-        curr_gaze_pos: Tuple[float, float],
-        scene_graph: Graph
-    ) -> None:
+    def _handle_saccade(self, gaze_point: GazePoint) -> None:
         """Handle a saccade between fixations."""
-        # Record end of fixation visit
-        tracking['visit'].append(tracking['relative_frame_num'] - 1)
-        fixation_duration = tracking['visit'][1] - tracking['visit'][0] + 1
+        self.visit_end = self.non_black_frame_count - 1
+        fixation_duration = self.visit_end - self.visit_start + 1
         
-        # Get most likely object label
-        most_likely_label = max(tracking['potential_labels'].items(), key=lambda x: x[1])[0]
+        logger.info(f"\n[Frame {self.frame_num}] Saccade detected:")
+        logger.debug(f"- Current gaze position (normalized): ({gaze_point.position[0]:.2f}, {gaze_point.position[1]:.2f})")
         
-        logger.info(f"\n[Frame {frame_num}] Saccade detected:")
-        logger.info(f"- Most likely object: {most_likely_label}")
-        logger.info(f"- Visit duration: {fixation_duration} frames")
-        logger.debug(f"- Current gaze position (normalized): ({curr_gaze_pos[0]:.2f}, {curr_gaze_pos[1]:.2f})")
-        
-        # Update graph with new observation using normalized gaze coordinates
-        prev_node_id = scene_graph.current_node.id
-        next_node = scene_graph.update_graph(
-            tracking['potential_labels'],
-            tracking['visit'],
-            tracking['keypoints'],
-            tracking['descriptors'],
-            tracking['prev_gaze_pos'],
-            curr_gaze_pos
-        )
-        
-        # Log node creation/update
-        if next_node.id != prev_node_id:
-            logger.info(f"- New node created: {next_node.id}")
-            
-            # Log node addition
-            self.tracer.log_node_added(frame_num, next_node.id, next_node.object_label, next_node.get_features())
-            
-            # Log edge addition if applicable
-            if prev_node_id >= 0:
-                # Find the edge connecting previous and current node
-                edge = scene_graph.get_edge(prev_node_id, next_node.id)
-                if edge:
-                    # Get edge features
-                    edge_features = edge.get_features()
-                    self.tracer.log_edge_added(frame_num, prev_node_id, next_node.id, "saccade", edge_features)
-        else:
-            logger.info(f"- Merged with existing node: {next_node.id}")
-        
-        # Update node features
-        tracking['node_data'][next_node.id] = next_node.get_features_tensor(
-            self.vid_lengths[tracking['video_name']],
-            frame_num,
-            tracking['relative_frame_num'],
-            -1,  # Placeholder for timestamp fraction
-            self.labels_to_int,
-            len(self.obj_labels)
-        )
-        
-        # Log feature update
-        if next_node.id in tracking['node_data']:
-            logger.info(f"- Updated node features: visits={len(next_node.visits)}, "
-                      f"total_frames={next_node.get_visit_duration()}")
-        else:
-            logger.info("- Created new node features")
-        
-        # Reset tracking data for next fixation
-        tracking['visit'] = []
-        tracking['keypoints'], tracking['descriptors'] = [], []
-        tracking['prev_gaze_pos'] = curr_gaze_pos
-        tracking['potential_labels'] = defaultdict(int)
-    
-    def _finish_final_fixation(
-        self,
-        scene_graph: Graph,
-        tracking: Dict[str, Any],
-        gaze_data: Any
-    ) -> None:
-        """Process the final fixation if video ends during one."""
-        logger.info("- Final fixation detected, updating graph...")
-        
-        # Record end of visit
-        tracking['visit'].append(tracking['relative_frame_num'] - 1)
-        
-        # Get last valid gaze position (already normalized to [0,1])
-        last_frame = min(tracking['frame_num'], len(gaze_data)-1)
-        last_gaze_pos = gaze_data[last_frame, :2]
-        
-        logger.debug(f"- Final gaze position (normalized): ({last_gaze_pos[0]:.2f}, {last_gaze_pos[1]:.2f})")
-        
-        # Update graph with final observation using normalized gaze coordinates
-        scene_graph.update_graph(
-            tracking['potential_labels'],
-            tracking['visit'], 
-            tracking['keypoints'],
-            tracking['descriptors'],
-            tracking['prev_gaze_pos'],
-            last_gaze_pos
-        )
-    
-    def _save_graph_state(
-        self,
-        scene_graph: Graph,
-        tracking: Dict[str, Any],
-        records: List[Record],
-        frame_num: int,
-        timestamps: List[int],
-        gaze_data: Any,
-        vid_length: int,
-        results: Dict[str, List]
-    ) -> None:
-        """Save the current state of the graph at a timestamp."""
-        # Get future action labels
-        action_labels = get_future_action_labels(records, frame_num, self.action_to_idx)
-        if action_labels.numel() == 0:
-            logger.info(f"[Frame {frame_num}] Skipping timestamp - insufficient action data")
+        # Only proceed if we found fixated objects during this fixation period
+        if not self.object_detector.has_fixated_objects():
+            logger.info(f"- No fixated objects found during this fixation period, skipping node creation")
+            self._reset_fixation_state(gaze_point)
             return
         
-        logger.info(f"\n[Frame {frame_num}] Saving graph state:")
-        logger.info(f"- Current nodes: {scene_graph.num_nodes}")
-        logger.info(f"- Edge count: {len(scene_graph.edges)}")
+        fixated_object, confidence = self.object_detector.get_fixated_object()
         
-        # Calculate timestamp fraction
-        timestamp_ratios = self.config.dataset.timestamps[self.split]
-        if frame_num < len(gaze_data):
-            timestamp_idx = timestamps.index(frame_num) 
-            timestamp_fraction = timestamp_ratios[timestamp_idx]
-        else:
-            timestamp_fraction = frame_num / vid_length
+        logger.info(f"- Fixated object: {fixated_object} (confidence: {confidence:.2f})")
+        logger.info(f"- Visit duration: {fixation_duration} frames")
         
-        # Get graph features directly using the new API
-        node_features, edge_indices, edge_features = scene_graph.get_features_tensor(
-            vid_length,
-            frame_num,
-            tracking['relative_frame_num'],
-            timestamp_fraction,
-            self.labels_to_int,
-            len(self.obj_labels)
+        visit_record = [self.visit_start, self.visit_end]
+        
+        # Get the previous gaze position or default to (0,0) if not available
+        prev_position = self.prev_gaze_point.position if self.prev_gaze_point else (0, 0)
+        
+        # Update the graph with the fixated object
+        self.scene_graph.update(
+            self.frame_num,
+            fixated_object,
+            visit_record,
+            prev_position,
+            gaze_point.position
         )
         
-        # Store results
-        results['x'].append(node_features)
-        results['edge_index'].append(edge_indices)
-        results['edge_attr'].append(edge_features)
-        results['y'].append(action_labels)
+        self._reset_fixation_state(gaze_point)
+    
+    def _reset_fixation_state(self, gaze_point: GazePoint):
+        """Reset the state related to the current fixation."""
+        self.visit_start = -1
+        self.visit_end = -1
+        self.prev_gaze_point = gaze_point
+        self.object_detector.reset()
+    
+    def _finish_final_fixation(self) -> None:
+        """Process the final fixation if video ends during one.
+        
+        Creates a dummy saccade to end the current fixation and adds the node to the graph.
+        """
+        # Skip if no ongoing fixation or no objects detected
+        if self.visit_start == -1 or not self.object_detector.has_fixated_objects():
+            return
+        
+        logger.info("- Final fixation detected, creating dummy saccade")
+        self.visit_end = self.non_black_frame_count - 1
+        
+        # Create a dummy saccade point at a slightly different position from the last fixation
+        last_position = self.prev_gaze_point.position if self.prev_gaze_point else (0.5, 0.5)
+        dummy_saccade = GazePoint(
+            x=min(max(last_position[0] + 0.05, 0.0), 1.0),
+            y=min(max(last_position[1] + 0.05, 0.0), 1.0),
+            raw_type=GazeType.SACCADE,
+            type=GazeType.SACCADE,
+            frame_idx=self.frame_num
+        )
+        
+        # Use standard saccade handling logic to process the final fixation
+        self._handle_saccade(dummy_saccade)
 
 def build_graph(
     video_list: List[str], 
@@ -383,25 +317,28 @@ def build_graph(
     desc: Optional[str] = None, 
     enable_tracing: bool = False
 ) -> Dict:
-    """Build graph representations for a list of videos."""
+    """Build graph representations for a list of videos.
+    
+    Args:
+        video_list: List of video names to process
+        config: Configuration dictionary
+        split: Dataset split ('train' or 'val')
+        print_graph: Whether to print final graph structure
+        desc: Description for progress bar
+        enable_tracing: Whether to enable detailed tracing
+        
+    Returns:
+        Dictionary with x, edge_index, edge_attr, and y keys for all videos
+    """
     logger.info(f"Building graph for {len(video_list)} videos in {split} split")
-    
-    # Initialize graph builder
     builder = GraphBuilder(config, split, enable_tracing=enable_tracing)
-    
-    # Process each video and collect results
-    all_results = {'x': [], 'edge_index': [], 'edge_attr': [], 'y': []}
+    all_graphs = []
     progress_desc = desc or f"Processing {split} videos"
     
     for video_name in tqdm(video_list, desc=progress_desc):
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
-        
-        # Process video and collect results
-        result = builder.process_video(video_name, print_graph)
-        
-        # Extend results
-        for key in all_results:
-            all_results[key].extend(result[key])
+        graph = builder.process_video(video_name, print_graph)
+        all_graphs.append(graph)
     
-    return all_results
+    return CheckpointManager.build_dataset_from_graphs(all_graphs)

@@ -12,6 +12,9 @@ from graph.graph import Graph
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
 
+# Checkpoint handling
+from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
+
 # Dashboard imports
 from graph.dashboard.playback.event import GraphEvent
 from graph.dashboard.playback import Playback
@@ -21,7 +24,7 @@ from graph.utils import get_roi, FeatureMatcher
 from graph.visualizer import visualize_graph_construction
 
 # Data handling
-from graph.io import Record, DataLoader, get_future_action_labels, VideoProcessor
+from graph.io import Record, DataLoader, VideoProcessor
 
 # Graph building
 from graph.build_graph import GraphBuilder, build_graph
@@ -29,11 +32,21 @@ from graph.build_graph import GraphBuilder, build_graph
 # Tracing
 from graph.graph_tracer import GraphTracer
 
+# Action utils
+from graph.action_utils import ActionUtils
+
+# Gaze processing
+from graph.gaze import GazeProcessor, GazePoint
+
+# Object detection
+from graph.object_detection import ObjectDetector, Detection
+
 __all__ = [
     'Node',
     'VisitRecord',
     'Edge',
     'Graph',
+    'GraphCheckpoint',
     'AngleUtils',
     'GraphTraversal',
     'GraphVisualizer',
@@ -56,7 +69,18 @@ __all__ = [
     'visualize_graph_construction',
     
     # Functions
-    'get_future_action_labels',
     'get_roi',
-    'build_graph'
+    'build_graph',
+    
+    # New modules
+    'CheckpointManager',
+    'ActionUtils',
+    
+    # Gaze processing
+    'GazeProcessor',
+    'GazePoint',
+    
+    # Object detection
+    'ObjectDetector',
+    'Detection'
 ]

@@ -5,6 +5,7 @@ from tqdm import tqdm
 import dropbox
 from typing import Optional, List
 import subprocess
+import requests
 from transformers import CLIPProcessor, CLIPModel
 from logger import get_logger
 from config.config_utils import DotDict
@@ -56,6 +57,43 @@ def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: P
             target_path.unlink()  # Clean up partial download
         raise Exception(f"Failed to download from Dropbox: {str(e)}")
 
+def download_from_url(url: str, target_path: Path) -> None:
+    """
+    Download a file from a direct URL.
+    
+    Args:
+        url: URL to download from
+        target_path: Path to save the downloaded file
+    """
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('Content-Length', 0))
+        
+        with open(target_path, 'wb') as f:
+            if total_size:
+                # Use progress bar if we know the size
+                with tqdm(
+                    desc=target_path.name,
+                    total=total_size,
+                    unit='iB',
+                    unit_scale=True,
+                    unit_divisor=1024,
+                ) as pbar:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        size = f.write(chunk)
+                        pbar.update(size)
+            else:
+                # Fallback for when content length is unknown
+                logger.info(f"Downloading {target_path.name}...")
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    f.write(chunk)
+    except Exception as e:
+        if target_path.exists():
+            target_path.unlink()  # Clean up partial download
+        raise Exception(f"Failed to download from URL: {str(e)}")
+
 def download_raw_videos(dbx: dropbox.Dropbox, links_file_path: Path, raw_videos_dir: Path) -> None:
     """Download raw videos from links in the provided text file."""
     with open(links_file_path, 'r') as f:
@@ -91,16 +129,26 @@ class ScratchDirectories:
         self.tmp_dir = Path(config.directories.scratch.tmp)
         self.ego_topo_dir = Path(config.directories.scratch.ego_topo)
         self.clip_model_dir = Path(config.models.clip.model_dir)
+        self.yolo_world_model_dir = Path(config.models.yolo_world.model_dir)
+        self.yolo_world_model_file = config.models.yolo_world.model_file
         
         # URLs
         self.cropped_clips_url = config.external.urls.dropbox_cropped_clips
         self.video_links_url = config.external.urls.dropbox_video_links
         self.ego_topo_repo_url = config.external.urls.ego_topo_repo
         self.clip_model_id = config.models.clip.model_id
+        self.yolo_world_model_url = config.external.urls.yolo_world_model
 
     def create_all(self) -> None:
         """Create all required directories."""
-        for directory in [self.scratch_egtea_dir, self.raw_videos_dir, self.cropped_videos_dir, self.tmp_dir, self.clip_model_dir]:
+        for directory in [
+            self.scratch_egtea_dir, 
+            self.raw_videos_dir, 
+            self.cropped_videos_dir, 
+            self.tmp_dir, 
+            self.clip_model_dir,
+            self.yolo_world_model_dir
+        ]:
             directory.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created directory: {directory}")
 
@@ -189,6 +237,38 @@ def setup_clip_model(directories: ScratchDirectories) -> None:
     processor.save_pretrained(model_dir)
     logger.info(f"CLIP model and processor saved to {model_dir}")
 
+def setup_yolo_world_model(directories: ScratchDirectories) -> None:
+    """Download YOLO-World ONNX model for offline use."""
+    model_dir = directories.yolo_world_model_dir
+    model_dir.mkdir(exist_ok=True)
+    
+    # Extract the original filename from the URL
+    url_path = Path(directories.yolo_world_model_url.split('?')[0])
+    original_filename = url_path.name
+    
+    # If the specified model filename is different from the URL's filename,
+    # log information about the mapping
+    if original_filename != directories.yolo_world_model_file:
+        logger.info(f"Model from {original_filename} will be used as {directories.yolo_world_model_file}")
+    
+    # First check if the configured model file exists
+    target_model_path = model_dir / directories.yolo_world_model_file
+    if target_model_path.exists():
+        logger.info(f"YOLO-World model already exists at {target_model_path}, skipping download...")
+        return
+    
+    # Download with the original filename
+    download_path = model_dir / original_filename
+    
+    logger.info(f"Downloading YOLO-World ONNX model from {directories.yolo_world_model_url}")
+    logger.info(f"Saving to {download_path}")
+    
+    download_from_url(directories.yolo_world_model_url, download_path)
+    
+    if original_filename != directories.yolo_world_model_file and not target_model_path.exists():
+        logger.warning(f"Model filename mismatch: {original_filename} vs {directories.yolo_world_model_file}. Make sure to update the model file name in the config to use the correct model.")
+    logger.info(f"YOLO-World model download complete")
+
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
     if not access_token:
@@ -216,6 +296,9 @@ def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
         
         # Step 4: Download CLIP model for offline use
         setup_clip_model(directories)
+        
+        # Step 5: Download YOLO-World model for offline use
+        setup_yolo_world_model(directories)
         
         logger.info("Setup complete!")
     except Exception as e:

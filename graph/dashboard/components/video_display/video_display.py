@@ -1,5 +1,5 @@
 """Video display component for the graph visualization dashboard."""
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Any
 import threading
 from logger import get_logger
 import cv2
@@ -282,17 +282,17 @@ class VideoDisplay(BaseComponent):
             return
             
         bbox = detection_event.data["bounding_box"]
-        most_likely_label = detection_event.data["detected_object"]
-        current_label = detection_event.data.get("current_detected_label", most_likely_label)
+        fixated_object = detection_event.data["detected_object"]
+        current_label = detection_event.data.get("current_detected_label", fixated_object)
         potential_labels = detection_event.data.get("potential_labels", {})
         
         # Format the most likely label for display
-        label_text = format_label(most_likely_label)
+        label_text = format_label(fixated_object)
         
         # Create hover text with label information
         hover_text = self._create_detection_hover_text(
             current_label, 
-            most_likely_label, 
+            fixated_object, 
             potential_labels
         )
         
@@ -378,14 +378,14 @@ class VideoDisplay(BaseComponent):
     def _create_detection_hover_text(
         self, 
         current_label: str, 
-        most_likely_label: str,
+        fixated_object: str,
         potential_labels: dict
     ) -> str:
         """Create hover text for object detection.
         
         Args:
             current_label: The current object label
-            most_likely_label: The most likely object label
+            fixated_object: The most likely object label
             potential_labels: Dictionary of potential labels and their counts
             
         Returns:
@@ -398,9 +398,186 @@ class VideoDisplay(BaseComponent):
         
         return (
             f"Current: {format_label(current_label)}<br>"
-            f"Most likely: {format_label(most_likely_label)}<br><br>"
+            f"Fixated: {format_label(fixated_object)}<br><br>"
             f"Potential labels:<br>{potential_labels_text}"
         )
+    
+    def _get_yolo_detection_traces(
+        self, 
+        playback: Playback, 
+        frame_number: int,
+        traces: List[go.Trace]
+    ) -> None:
+        """Add YOLO-World detection traces to the provided traces list.
+        
+        Args:
+            playback: The Playback instance for event access
+            frame_number: The current frame number
+            traces: List to append detection traces to
+        """
+        yolo_event = playback.get_yolo_detections(frame_number)
+        if not yolo_event:
+            return
+            
+        detections = yolo_event.data.get("detections", [])
+        if not detections:
+            return
+            
+        for detection in detections:
+            # Get detection data from nested structure
+            detection_data = detection["detection"]
+            fixation_data = detection["fixation"]
+            
+            bbox = detection_data["bbox"]
+            class_name = detection_data["class_name"]
+            score = detection_data["score"]
+            
+            # Get fixation info
+            is_fixated = fixation_data["is_fixated"]
+            is_top_scoring = fixation_data["is_top_scoring"]
+            fixation_score = fixation_data["score"]
+            components = fixation_data["components"]
+
+            if not is_fixated:
+                continue
+
+            if not is_top_scoring and score < 0.3:
+                continue
+
+            # Format the label for display
+            label_text = format_label(class_name)
+            
+            # Create detailed hover text
+            hover_text = self._create_yolo_hover_text(class_name, score, is_fixated, is_top_scoring, fixation_score, components)
+            
+            # Extract bounding box coordinates [x, y, width, height]
+            x, y, width, height = bbox
+            x0, y0, x1, y1 = x, y, x + width, y + height
+            
+            # Define colors based on fixation status and top scoring status
+            if is_top_scoring:
+                # Top scoring object - Blue
+                box_color = "rgba(0, 0, 255, 1)"
+                box_fill = "rgba(0, 0, 255, 0.2)"
+                line_width = 3
+            elif is_fixated:
+                # Fixated but not top scoring - Gray
+                box_color = "rgba(128, 128, 128, 1)"
+                box_fill = "rgba(128, 128, 128, 0.15)"
+                line_width = 2
+            
+            traces.append(go.Scatter(
+                x=[x0, x1, x1, x0, x0],
+                y=[y0, y0, y1, y1, y0],
+                fill="toself",
+                fillcolor=box_fill,
+                mode="lines",
+                line=dict(width=line_width, color=box_color),
+                hoverinfo='text',
+                hovertext=hover_text,
+                showlegend=False
+            ))
+            
+            # Calculate label text width based on its length
+            conf_text = f"{score:.2f}"
+            text_label = f"{label_text} ({conf_text})"
+            text_width = len(text_label) * 7  # Approximate width based on character count
+            
+            # Calculate label box position
+            padding = 5  # Padding around text
+            label_width = text_width + (padding * 2)
+            
+            # Ensure label box stays within frame boundaries
+            label_x0 = x0
+            label_x1 = label_x0 + label_width
+            
+            # If label extends beyond right edge, adjust position
+            if label_x1 > self.frame_width:
+                label_x1 = min(self.frame_width, x1)
+                label_x0 = max(0, label_x1 - label_width)
+            
+            # Ensure label box stays within left edge
+            label_x0 = max(0, label_x0)
+            
+            # Position the label box above the bounding box
+            # If the box is too close to the top, put the label inside the top of the bounding box
+            if y0 < 25:
+                label_y0 = y0
+                label_y1 = y0 + 20
+            else:
+                label_y0 = y0 - 20
+                label_y1 = y0
+            
+            # Add colored label background using regular Scatter for proper fill rendering
+            traces.append(go.Scatter(
+                x=[label_x0, label_x1, label_x1, label_x0, label_x0],
+                y=[label_y0, label_y0, label_y1, label_y1, label_y0],
+                fill="toself",
+                fillcolor=box_color,
+                mode="lines",
+                line=dict(width=0, color=box_color),
+                hoverinfo='text',
+                hovertext=hover_text,
+                showlegend=False
+            ))
+            
+            # Add label text using regular Scatter for proper text rendering
+            traces.append(go.Scatter(
+                x=[(label_x0 + label_x1) / 2],
+                y=[(label_y0 + label_y1) / 2],
+                mode="text",
+                text=[text_label],
+                textposition="middle center",
+                textfont=dict(
+                    size=12, 
+                    color="white",
+                    family="Arial Bold"
+                ),
+                hoverinfo='text',
+                hovertext=hover_text,
+                showlegend=False
+            ))
+
+    def _create_yolo_hover_text(
+        self,
+        class_name: str,
+        score: float,
+        is_fixated: bool,
+        is_top_scoring: bool,
+        fixation_score: float,
+        components: Dict[str, float]
+    ) -> str:
+        """Create detailed hover text for YOLO detection.
+        
+        Args:
+            class_name: Object class name
+            score: Detection confidence score
+            is_fixated: Whether object is fixated
+            is_top_scoring: Whether object is the top scoring fixated object
+            fixation_score: Overall fixation score
+            components: Dictionary of component scores
+            
+        Returns:
+            Formatted hover text
+        """
+        label_text = format_label(class_name)
+        status = "Top Scoring" if is_top_scoring else "Fixated" if is_fixated else "Not Fixated"
+        
+        hover_text = (
+            f"<b>{label_text}</b><br>"
+            f"Status: <b>{status}</b><br>"
+            f"Confidence: {score:.2f}<br>"
+        )
+        
+        if is_fixated and fixation_score > 0:
+            hover_text += f"<br><b>Fixation Score: {fixation_score:.4f}</b><br>"
+            
+            if components:
+                hover_text += "<br><b>Component Scores:</b><br>"
+                for name, value in components.items():
+                    hover_text += f"{name.capitalize()}: {value:.2f}<br>"
+        
+        return hover_text
     
     def get_figure(self, frame_number: int) -> go.Figure:
         """Get a complete figure with the video frame and overlays.
@@ -436,6 +613,7 @@ class VideoDisplay(BaseComponent):
         events = self.playback.get_events_for_frame(frame_number) if self.playback else []
         self._get_gaze_traces(events, traces, fig)
         self._get_detection_traces(self.playback, frame_number, traces) if self.playback else None
+        self._get_yolo_detection_traces(self.playback, frame_number, traces) if self.playback else None
         
         fig.add_traces(traces)
         return fig
