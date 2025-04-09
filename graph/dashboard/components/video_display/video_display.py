@@ -437,7 +437,13 @@ class VideoDisplay(BaseComponent):
             is_top_scoring = fixation_data["is_top_scoring"]
             fixation_score = fixation_data["score"]
             components = fixation_data["components"]
-            
+
+            if not is_fixated:
+                continue
+
+            if not is_top_scoring and score < 0.3:
+                continue
+
             # Format the label for display
             label_text = format_label(class_name)
             
@@ -459,9 +465,6 @@ class VideoDisplay(BaseComponent):
                 box_color = "rgba(128, 128, 128, 1)"
                 box_fill = "rgba(128, 128, 128, 0.15)"
                 line_width = 2
-            else:
-                # Non-fixated -> skip
-                continue
             
             traces.append(go.Scatter(
                 x=[x0, x1, x1, x0, x0],
