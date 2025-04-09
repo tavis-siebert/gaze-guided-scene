@@ -1,0 +1,109 @@
+# Base directories
+base:
+  repo_root: ${REPO_ROOT}
+  scratch_dir: /tmp # Will be overwritten by other configs
+
+# Directories structure
+directories:
+  # Repository directories
+  repo:
+    egtea: ${base.repo_root}/egtea_gaze
+    datasets: ${base.repo_root}/datasets
+    traces: ${base.repo_root}/traces
+  
+  # Scratch directories
+  scratch:
+    root: ${base.scratch_dir}
+    egtea: ${directories.scratch.root}/egtea_gaze
+    ego_topo: ${directories.scratch.root}/ego-topo
+    tmp: ${directories.scratch.root}/tmp
+
+# Dataset paths and settings
+dataset:
+  # Timestamps for feature extraction
+  timestamps:
+    train: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    val: [0.25, 0.5, 0.75]
+  
+  # EGTEA Gaze+ dataset paths
+  egtea:
+    raw_videos: ${directories.scratch.egtea}/raw_videos
+    cropped_videos: ${directories.scratch.egtea}/cropped_videos
+    gaze_data: ${directories.repo.egtea}/gaze_data/gaze_data
+    action_annotations: ${directories.repo.egtea}/action_annotation
+    noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
+  
+  # Ego-topo data paths
+  ego_topo:
+    data_dir: ${directories.scratch.ego_topo}/data/gtea
+    splits:
+      train: ${dataset.ego_topo.data_dir}/split/train_S1.csv
+      val: ${dataset.ego_topo.data_dir}/split/val_S1.csv
+      train_test: ${dataset.ego_topo.data_dir}/train_test_splits.json
+
+  # Output paths
+  output:
+    dataset_file: ${directories.repo.datasets}/dataset.pth
+    subset_prefix: ${directories.repo.datasets}/data_subset_
+
+# Model settings and paths
+models:
+  clip:
+    model_dir: ${directories.scratch.egtea}/clip_model
+    model_id: "openai/clip-vit-base-patch16"
+  yolo_world:
+    model_dir: ${directories.scratch.egtea}/yolo_world_model
+    model_file: "yolov8x-worldv2.onnx"
+    conf_threshold: 0.15
+    iou_threshold: 0.5
+
+# External resources
+external:
+  urls:
+    dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
+    dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
+    ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
+    yolo_world_model: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
+
+# Processing settings
+processing:
+  n_cores: 2
+
+# Graph and fixation detection settings
+graph:
+  # Basic fixation parameters
+  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
+  min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
+
+  fixated_object_detection:
+    # Weights for different components of fixation score
+    weights:
+      # Weight for detection duration (higher gives more importance to objects fixated for longer periods)
+      duration: 1.0
+      
+      # Weight for bounding box stability (higher gives more importance to objects with stable positions)
+      bbox_stability: 1.0
+      
+      # Weight for gaze proximity (higher gives more importance to objects closer to gaze point)
+      gaze_proximity: 1.0
+      
+      # Weight for detection confidence (higher gives more importance to confident detections)
+      confidence: 1.0
+    
+    # Thresholds for component scores (objects with scores below thresholds will be filtered out)
+    thresholds:
+      # Bounding box stability threshold (0.0-1.0)
+      # Higher values require more stable bounding boxes
+      # 0.0 = No stability required, 1.0 = Perfect stability required (identical boxes)
+      bbox_stability: 0
+      
+      # Gaze proximity threshold (0.0-1.0)
+      # Higher values require gaze points to be closer to bbox centers
+      # 0.0 = No proximity requirement, 1.0 = Very close proximity required
+      # Value is normalized with 1.0/(1.0 + distance), so closer distances = higher values
+      gaze_proximity: 0
+      
+      # Confidence threshold (0.0-1.0)
+      # Higher values require more confident detections
+      # This is the geometric mean of detection confidences across frames
+      confidence: 0.3

@@ -21,6 +21,8 @@ class Playback:
         graph: NetworkX directed graph instance
         last_built_frame: Last frame number that was built
         last_added_node: Last node ID that was added
+        last_updated_node: Last node ID that was updated
+        most_recent_node: Most recently added or updated node based on frame number
         last_added_edge: Last edge that was added (source_id, target_id)
         object_detections: Dictionary mapping frame numbers to detection events
         events: List of all events loaded from the trace file
@@ -39,8 +41,11 @@ class Playback:
         self.graph = nx.DiGraph()
         self.last_built_frame = -1
         self.last_added_node = None
+        self.last_updated_node = None
+        self.most_recent_node = None
         self.last_added_edge = None
         self.object_detections = {}  # Frame number -> detection event
+        self.yolo_detections = {}  # Frame number -> YOLO detection event
         self._load_events()
     
     def _load_events(self) -> None:
@@ -59,6 +64,8 @@ class Playback:
                 # Track object detection events separately for quick access
                 if event.event_type == "gaze_object_detected":
                     self.object_detections[event.frame_number] = event
+                elif event.event_type == "yolo_objects_detected":
+                    self.yolo_detections[event.frame_number] = event
         
         frames = list(self.frame_to_events.keys())
         self.min_frame = min(frames) if frames else 0
@@ -105,6 +112,17 @@ class Playback:
         """
         return self.object_detections.get(frame_number)
     
+    def get_yolo_detections(self, frame_number: int) -> Optional[GraphEvent]:
+        """Get the YOLO-World detections for a specific frame, if any.
+        
+        Args:
+            frame_number: The frame number to get YOLO detections for
+            
+        Returns:
+            GraphEvent containing YOLO detection data, or None if not available
+        """
+        return self.yolo_detections.get(frame_number)
+    
     def _process_event(self, event: GraphEvent) -> None:
         """Process a single event and update the graph state accordingly.
         
@@ -123,6 +141,22 @@ class Playback:
                 features=features
             )
             self.last_added_node = node_id
+            self.last_updated_node = node_id
+            self.most_recent_node = node_id
+            
+        elif event.event_type == "node_updated":
+            node_id = event.data["node_id"]
+            label = event.data["label"]
+            features = event.data.get("features", {})
+            
+            # Update existing node with new features
+            if node_id in self.graph:
+                self.graph.nodes[node_id].update(
+                    label=label,
+                    features=features
+                )
+                self.last_updated_node = node_id
+                self.most_recent_node = node_id
             
         elif event.event_type == "edge_added":
             source_id = event.data["source_id"]
@@ -141,6 +175,10 @@ class Playback:
         elif event.event_type == "gaze_object_detected":
             # Store the latest object detection for this frame
             self.object_detections[event.frame_number] = event
+            
+        elif event.event_type == "yolo_objects_detected":
+            # Store the latest YOLO detections for this frame
+            self.yolo_detections[event.frame_number] = event
     
     def build_graph_until_frame(self, frame_number: int) -> nx.DiGraph:
         """Build the graph incrementally up to the specified frame.
@@ -157,6 +195,10 @@ class Playback:
         if frame_number < self.last_built_frame:
             self.graph = nx.DiGraph()
             self.last_built_frame = -1
+            self.last_added_node = None
+            self.last_updated_node = None
+            self.most_recent_node = None
+            self.last_added_edge = None
         
         if frame_number > self.last_built_frame:
             # Process events for each frame between last_built_frame+1 and frame_number

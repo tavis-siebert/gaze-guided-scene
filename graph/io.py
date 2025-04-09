@@ -175,44 +175,4 @@ class DataLoader:
         top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:num_classes]
         
         # Create mapping from action tuple to index
-        return {action: idx for idx, (action, _) in enumerate(top_actions)}
-
-
-def get_future_action_labels(
-    records: List[Record], 
-    current_frame: int, 
-    action_to_class: Dict[Tuple[int, int], int]
-) -> torch.Tensor:
-    """
-    Create a binary vector of future action labels.
-    
-    Args:
-        records: List of action records for a video
-        current_frame: Current frame number
-        action_to_class: Mapping from action tuples to class indices
-        
-    Returns:
-        Binary tensor indicating which actions occur in the future
-    """
-    num_action_classes = len(action_to_class)
-    
-    # Split records into past and future
-    past_records = [record for record in records if record.end_frame <= current_frame]
-    future_records = [record for record in records if record.start_frame > current_frame]
-    
-    # Ensure we have enough data
-    if len(past_records) < 3 or len(future_records) < 3:
-        return torch.tensor([])
-    
-    # Find actions that occur in the future
-    observed_future_actions = set()
-    for record in future_records:
-        action = (record.label[0], record.label[1])
-        if action in action_to_class:
-            observed_future_actions.add(action_to_class[action])
-    
-    # Create binary target vector
-    future_action_labels = torch.zeros(1, num_action_classes)
-    future_action_labels[0, list(observed_future_actions)] = 1
-    
-    return future_action_labels 
+        return {action: idx for idx, (action, _) in enumerate(top_actions)} 

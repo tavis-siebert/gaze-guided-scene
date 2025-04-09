@@ -196,7 +196,7 @@ class GraphTracer:
         
         Args:
             frame_number: Video frame number
-            detected_object: Most likely object label based on counts
+            detected_object: Fixated object label based on counts
             current_detected_label: Current frame's detected object label
             bounding_box: Region of interest coordinates [x, y, width, height]
             potential_labels: Dictionary of potential object labels and their counts
@@ -209,6 +209,20 @@ class GraphTracer:
         }
         
         self.log_event("gaze_object_detected", frame_number, data)
+    
+    def log_yolo_objects_detected(self, frame_number: int, detections: List[Dict[str, Any]]) -> None:
+        """
+        Log YOLO-World object detection results.
+        
+        Args:
+            frame_number: Video frame number
+            detections: List of detection objects with is_fixated field
+        """
+        data = {
+            "detections": detections
+        }
+        
+        self.log_event("yolo_objects_detected", frame_number, data)
     
     def _write_event(self, event: Dict[str, Any]) -> None:
         """
