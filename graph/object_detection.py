@@ -469,7 +469,7 @@ class ObjectDetector:
             # 4. Weight by fixation duration
             duration_weighted_score = mean_confidence * fixation_ratio
             
-            # 5. Compute final weighted fixation score
+            # 5. Compute al weighted fixation score
             final_score = (
                 pow(duration_weighted_score, self.duration_weight) * 
                 pow(stability_score, self.bbox_stability_weight) * 

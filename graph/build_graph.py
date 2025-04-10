@@ -174,7 +174,7 @@ class GraphBuilder:
         except StopIteration:
             logger.info(f"[Frame {self.frame_num}] End of data reached")
 
-        if self.object_detector.get_potential_labels() and self.object_detector.has_fixated_objects():
+        if self.object_detector.has_fixated_objects():
             self._finish_final_fixation()
         
         if print_graph and self.scene_graph.num_nodes > 0:
