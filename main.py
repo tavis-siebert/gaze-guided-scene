@@ -12,7 +12,7 @@ logger = None
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Gaze-guided scene understanding toolkit")
-    parser.add_argument("--config", type=str, default="config/student_cluster_config.yaml",
+    parser.add_argument("--config", type=str, default="config/euler_cluster_config.yaml",
                        help="Path to custom config file. Defaults to config/student_cluster_config.yaml")
     parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                        help="Set the logging level", default="DEBUG")
@@ -34,6 +34,13 @@ def setup_parser() -> argparse.ArgumentParser:
                             help="Specific video names to process (e.g., OP01-R04-ContinentalBreakfast). If not specified, all videos will be processed.")
     build_parser.add_argument("--enable-tracing", action="store_true",
                             help="Enable graph construction tracing for visualization")
+
+    # Training command
+    train_parser = subparsers.add_parser("train", help="Train a GNN on a specified task")
+    train_parser.add_argument("--device", type=str, choices=["gpu", "cpu"], default="gpu",
+                            help="Device to use for processing (default: gpu)")
+    train_parser.add_argument("--task", type=str, choices=["future_actions", "next_action", "future_actions_ordered"],
+                            help="Which tasks to train (e.g., 'future_actions'). Only one task is allowed per-run to avoid conflicting config args")
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
@@ -110,6 +117,19 @@ def main():
         dropbox_token = get_dropbox_token(args)
         logger.info("Starting scratch setup process")
         setup_scratch(config, access_token=dropbox_token)
+    elif args.command == "train":
+        from tasks import get_task
+        Task = get_task(args.task)
+
+        device = args.device
+        gpu_available = check_gpu_availability(args.device)
+        if not gpu_available:
+            device = 'cpu'
+        else:
+            device = 'cuda'
+
+        Task = Task(config, device)
+        Task.train()
     elif args.command == "build":
         from datasets.build_dataset import build_dataset
         logger.info("Starting dataset building process")
