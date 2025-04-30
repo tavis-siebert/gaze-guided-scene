@@ -7,7 +7,7 @@ from evaluation.metrics import confusion_matrix, mAP
 class FutureActionsTask(BaseTask):
     def __init__(self, config, device):
         super().__init__(config, device, "future_actions")
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
     
     def compute_loss(self, output, y):
         return self.criterion(output, y.float())

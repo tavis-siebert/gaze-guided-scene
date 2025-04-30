@@ -6,10 +6,10 @@ from tasks.base_task import BaseTask
 class NextActionTask(BaseTask):
     def __init__(self, config, device):
         super().__init__(config, device, "next_action")
-        self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
+        self.criterion = nn.CrossEntropyLoss(reduction='sum')
     
     def compute_loss(self, output, y):
-        return self.criterion(output, y)
+        return self.criterion(output, y.long())
     
     def calculate_epoch_metrics(self, epoch, epoch_loss, num_samples):
         train_acc = self.test(self.train_loader)
