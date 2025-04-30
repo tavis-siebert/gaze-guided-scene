@@ -39,8 +39,8 @@ def setup_parser() -> argparse.ArgumentParser:
     train_parser = subparsers.add_parser("train", help="Train a GNN on a specified task")
     train_parser.add_argument("--device", type=str, choices=["gpu", "cpu"], default="gpu",
                             help="Device to use for processing (default: gpu)")
-    train_parser.add_argument("--task", type=str, choices=["future_actions", "next_action", "future_actions_ordered"],
-                            help="Which tasks to train (e.g., 'future_actions'). Only one task is allowed per-run to avoid conflicting config args")
+    train_parser.add_argument("--task", type=str, choices=["future_actions", "next_action"],
+                            required=True, help="Task to train the model on")
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
@@ -119,17 +119,24 @@ def main():
         setup_scratch(config, access_token=dropbox_token)
     elif args.command == "train":
         from tasks import get_task
-        Task = get_task(args.task)
-
-        device = args.device
-        gpu_available = check_gpu_availability(args.device)
-        if not gpu_available:
-            device = 'cpu'
-        else:
+        logger.info(f"Starting training for task: {args.task}")
+        
+        # Determine the device to use
+        device = 'cpu'
+        if args.device == 'gpu' and check_gpu_availability(args.device):
             device = 'cuda'
-
-        Task = Task(config, device)
-        Task.train()
+        logger.info(f"Using device: {device}")
+        
+        # Initialize task and start training
+        try:
+            TaskClass = get_task(args.task)
+            task = TaskClass(config, device)
+            logger.info("Starting training process")
+            task.train()
+            logger.info("Training completed successfully")
+        except Exception as e:
+            logger.error(f"Error during training: {str(e)}")
+            raise
     elif args.command == "build":
         from datasets.build_dataset import build_dataset
         logger.info("Starting dataset building process")
