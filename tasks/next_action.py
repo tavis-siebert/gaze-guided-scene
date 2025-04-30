@@ -7,12 +7,7 @@ class NextActionTask(BaseTask):
     def __init__(self, config, device):
         super().__init__(config, device, "next_action")
         self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
-        self.metrics = {
-            'train_loss': [],
-            'train_acc': [],
-            'test_acc': []
-        }
-
+    
     def compute_loss(self, output, y):
         return self.criterion(output, y)
     
@@ -20,28 +15,25 @@ class NextActionTask(BaseTask):
         train_acc = self.test(self.train_loader)
         test_acc = self.test(self.test_loader)
         
-        self.metrics['train_loss'].append(epoch_loss / num_samples)
-        self.metrics['train_acc'].append(train_acc)
-        self.metrics['test_acc'].append(test_acc)
+        self.log_metric('train_loss', epoch_loss / num_samples)
+        self.log_metric('train_acc', train_acc)
+        self.log_metric('test_acc', test_acc)
     
     def print_progress(self, epoch, epoch_loss, num_samples):
         print(f'Epoch: {epoch+1}')
-        print('------------')
-        print(f'Train Loss: {epoch_loss / num_samples}')
-        print(f'Train Acc: {self.metrics["train_acc"][-1]}')
-        print(f'Test Acc: {self.metrics["test_acc"][-1]}')
-        print('------------')
+        self.print_separator()
+        self.print_metric_row('Train Loss', epoch_loss / num_samples)
+        self.print_metric_row('Train Acc', self.metrics["train_acc"][-1])
+        self.print_metric_row('Test Acc', self.metrics["test_acc"][-1])
+        self.print_separator()
     
     def test(self, dset):
-        self.model.eval()
-
         total_acc = 0
         total_samples = 0
-        with torch.no_grad():
+        
+        with self.evaluation_mode():
             for data in dset:
-                x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
-                edge_attr = edge_attr.to(x.dtype)
-                x, edge_index, edge_attr, y, batch = x.to(self.device), edge_index.to(self.device), edge_attr.to(self.device), y.to(self.device), batch.to(self.device)
+                x, edge_index, edge_attr, y, batch = self._transfer_batch_to_device(data)
                 output = self.model(x, edge_index, edge_attr, batch)
                 pred = output.argmax(dim=-1)
 

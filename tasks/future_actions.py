@@ -8,16 +8,7 @@ class FutureActionsTask(BaseTask):
     def __init__(self, config, device):
         super().__init__(config, device, "future_actions")
         self.criterion = nn.CrossEntropyLoss()
-        self.metrics = {
-            "train_losses": [],
-            "train_recalls": [],
-            "train_precisions": [],
-            "train_mAPs": [],
-            "test_recalls": [],
-            "test_precisions": [],
-            "test_mAPs": []
-        }
-
+    
     def compute_loss(self, output, y):
         return self.criterion(output, y.float())
     
@@ -25,37 +16,34 @@ class FutureActionsTask(BaseTask):
         train_recall, train_precision, train_mAP = self.test(self.train_loader)
         test_recall, test_precision, test_mAP = self.test(self.test_loader)
         
-        self.metrics["train_losses"].append(epoch_loss / num_samples)
-        self.metrics["train_recalls"].append(train_recall)
-        self.metrics["train_precisions"].append(train_precision)
-        self.metrics["train_mAPs"].append(train_mAP)
+        self.log_metric('train_loss', epoch_loss / num_samples)
+        self.log_metric('train_recall', train_recall)
+        self.log_metric('train_precision', train_precision)
+        self.log_metric('train_mAP', train_mAP)
         
-        self.metrics["test_recalls"].append(test_recall)
-        self.metrics["test_precisions"].append(test_precision)
-        self.metrics["test_mAPs"].append(test_mAP)
+        self.log_metric('test_recall', test_recall)
+        self.log_metric('test_precision', test_precision)
+        self.log_metric('test_mAP', test_mAP)
     
     def print_progress(self, epoch, epoch_loss, num_samples):
         print(f'Epoch: {epoch+1}')
-        print('------------')
-        print(f'Train Loss: {epoch_loss / num_samples}')
-        print(f'Test mAP: {self.metrics["test_mAPs"][-1]}')
-        print(f'Test Recall: {self.metrics["test_recalls"][-1]}')
-        print(f'Test Precision: {self.metrics["test_precisions"][-1]}')
-        print('------------')
+        self.print_separator()
+        self.print_metric_row('Train Loss', epoch_loss / num_samples)
+        self.print_metric_row('Test mAP', self.metrics["test_mAP"][-1])
+        self.print_metric_row('Test Recall', self.metrics["test_recall"][-1])
+        self.print_metric_row('Test Precision', self.metrics["test_precision"][-1])
+        self.print_separator()
     
     def test(self, dset):
-        self.model.eval()
-        
         all_targets = []
         all_predictions = []
         
         total_samples = 0
         total_recall, total_precision = 0, 0
-        with torch.no_grad():
+        
+        with self.evaluation_mode():
             for data in dset:
-                x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
-                edge_attr = edge_attr.to(x.dtype)
-                x, edge_index, edge_attr, y, batch = x.to(self.device), edge_index.to(self.device), edge_attr.to(self.device), y.to(self.device), batch.to(self.device)
+                x, edge_index, edge_attr, y, batch = self._transfer_batch_to_device(data)
                 
                 output = self.model(x, edge_index, edge_attr, batch)
                 pred = (output > 0.5).float()
