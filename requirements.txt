@@ -15,4 +15,5 @@ svg.path>=1.5
 requests
 torch-geometric
 scikit-learn
+debugpy
 yolo-world-onnx
