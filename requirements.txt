@@ -12,5 +12,6 @@ dash-bootstrap-components>=1.4.0
 plotly>=5.13.0
 networkx>=3.0
 svg.path>=1.5
-yolo-world-onnx
 requests
+torch-geometric
+yolo-world-onnx
