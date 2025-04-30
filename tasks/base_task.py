@@ -5,6 +5,7 @@ from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
 from datasets.model_ready_dataset import load_datasets, get_graph_dataset
 from models.gat_conv import GATForClassification
+from logger import get_logger
 
 class BaseTask:
     def __init__(self, config, device, task_name):
@@ -12,6 +13,7 @@ class BaseTask:
         self.device = device
         self.config = config
         self.num_classes = config.training.num_classes
+        self.logger = get_logger(__name__)
         
         # Load data and setup loaders
         self._setup_data()
@@ -111,17 +113,17 @@ class BaseTask:
             # Calculate metrics
             self.calculate_epoch_metrics(epoch, epoch_loss, num_samples)
             
-            # Print progress at specified intervals
+            # Log progress at specified intervals
             if (epoch + 1) % 5 == 0 or epoch == 0:
                 self.print_progress(epoch, epoch_loss, num_samples)
     
-    def print_metric_row(self, label, value):
-        """Print a formatted metric row"""
-        print(f"{label}: {value:.6f}")
+    def log_metric_row(self, label, value):
+        """Log a formatted metric row"""
+        self.logger.info(f"{label}: {value:.6f}")
     
-    def print_separator(self):
-        """Print a separator line"""
-        print('-' * 12)
+    def log_separator(self):
+        """Log a separator line"""
+        self.logger.info('-' * 12)
     
     def compute_loss(self, output, y):
         """Compute loss - to be implemented by subclasses"""
@@ -132,7 +134,7 @@ class BaseTask:
         raise NotImplementedError
     
     def print_progress(self, epoch, epoch_loss, num_samples):
-        """Print training progress - to be implemented by subclasses"""
+        """Log training progress - to be implemented by subclasses"""
         raise NotImplementedError
     
     def test(self, dset):

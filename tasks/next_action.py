@@ -20,12 +20,12 @@ class NextActionTask(BaseTask):
         self.log_metric('test_acc', test_acc)
     
     def print_progress(self, epoch, epoch_loss, num_samples):
-        print(f'Epoch: {epoch+1}')
-        self.print_separator()
-        self.print_metric_row('Train Loss', epoch_loss / num_samples)
-        self.print_metric_row('Train Acc', self.metrics["train_acc"][-1])
-        self.print_metric_row('Test Acc', self.metrics["test_acc"][-1])
-        self.print_separator()
+        self.logger.info(f'Epoch: {epoch+1}')
+        self.log_separator()
+        self.log_metric_row('Train Loss', epoch_loss / num_samples)
+        self.log_metric_row('Train Acc', self.metrics["train_acc"][-1])
+        self.log_metric_row('Test Acc', self.metrics["test_acc"][-1])
+        self.log_separator()
     
     def test(self, dset):
         total_acc = 0
