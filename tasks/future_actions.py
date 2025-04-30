@@ -46,7 +46,8 @@ class FutureActionsTask(BaseTask):
                 x, edge_index, edge_attr, y, batch = self._transfer_batch_to_device(data)
                 
                 output = self.model(x, edge_index, edge_attr, batch)
-                pred = (output > 0.5).float()
+                output_probs = torch.sigmoid(output)
+                pred = (output_probs > 0.5).float()
                 
                 all_targets.append(y.detach().cpu().numpy())
                 all_predictions.append(pred.detach().cpu().numpy())
