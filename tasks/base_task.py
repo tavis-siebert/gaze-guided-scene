@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import contextlib
 from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
 from datasets.model_ready_dataset import load_datasets, get_graph_dataset
@@ -9,42 +10,84 @@ class BaseTask:
     def __init__(self, config, device, task_name):
         self.task = task_name
         self.device = device
+        self.config = config
         self.num_classes = config.training.num_classes
         
-        # Load data
-        train_set, test_set = load_datasets(config.dataset.output.dataset_file)
-        
-        # Setup datasets and dataloaders
-        train_data = get_graph_dataset(
-            train_set, 
-            self.task, 
-            self.num_classes, 
-            config.training.node_drop_p, 
-            config.training.max_nodes_droppable
-        )
-        test_data = get_graph_dataset(test_set, self.task, self.num_classes)
-        self.train_loader = DataLoader(train_data, batch_size=config.training.batch_size, shuffle=True)
-        self.test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
-        
-        # Extract dimensions from data
-        x_sample, edge_attr_sample = train_data[0].x, train_data[0].edge_attr
-        self.input_dim = x_sample.shape[1]
-        self.edge_dim = edge_attr_sample.shape[1]
-        self.hidden_dim = config.training.hidden_dim
-        self.num_heads = config.training.num_heads
-        self.num_layers = config.training.num_layers
-        self.res_connect = config.training.res_connect
+        # Load data and setup loaders
+        self._setup_data()
         
         # Initialize model
-        self.model = GATForClassification(self.num_classes, self.input_dim, self.hidden_dim, 
-                                         self.edge_dim, self.num_heads, self.num_layers, self.res_connect)
+        self.model = GATForClassification(
+            self.num_classes,
+            self.input_dim, 
+            self.hidden_dim,
+            self.edge_dim, 
+            self.num_heads, 
+            self.num_layers, 
+            self.res_connect
+        )
         self.model.to(self.device)
         
         # Training parameters
         self.num_epochs = config.training.num_epochs
         self.optimizer = get_optimizer(config.training.optimizer, self.model, config.training.lr)
         
-        # Metrics dictionary is defined in child classes
+        # Initialize empty metrics dictionary (to be populated by subclasses)
+        self.metrics = {}
+    
+    def _setup_data(self):
+        """Setup datasets and data loaders"""
+        train_set, test_set = load_datasets(self.config.dataset.output.dataset_file)
+        
+        train_data = get_graph_dataset(
+            train_set, 
+            self.task, 
+            self.num_classes, 
+            self.config.training.node_drop_p, 
+            self.config.training.max_nodes_droppable
+        )
+        test_data = get_graph_dataset(test_set, self.task, self.num_classes)
+        
+        self.train_loader = DataLoader(train_data, batch_size=self.config.training.batch_size, shuffle=True)
+        self.test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
+        
+        # Extract dimensions from data
+        x_sample, edge_attr_sample = train_data[0].x, train_data[0].edge_attr
+        self.input_dim = x_sample.shape[1]
+        self.edge_dim = edge_attr_sample.shape[1]
+        self.hidden_dim = self.config.training.hidden_dim
+        self.num_heads = self.config.training.num_heads
+        self.num_layers = self.config.training.num_layers
+        self.res_connect = self.config.training.res_connect
+    
+    def _transfer_batch_to_device(self, data):
+        """Transfer batch data to device"""
+        x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
+        edge_attr = edge_attr.to(x.dtype)
+        return (
+            x.to(self.device),
+            edge_index.to(self.device),
+            edge_attr.to(self.device),
+            y.to(self.device),
+            batch.to(self.device)
+        )
+    
+    @contextlib.contextmanager
+    def evaluation_mode(self):
+        """Context manager for model evaluation mode with no gradient tracking"""
+        original_mode = self.model.training
+        self.model.eval()
+        with torch.no_grad():
+            try:
+                yield
+            finally:
+                self.model.train(original_mode)
+    
+    def log_metric(self, metric_name, value):
+        """Add a metric value to the metrics dictionary"""
+        if metric_name not in self.metrics:
+            self.metrics[metric_name] = []
+        self.metrics[metric_name].append(value)
     
     def train(self):
         for epoch in range(self.num_epochs):
@@ -53,9 +96,7 @@ class BaseTask:
             num_samples = 0
             
             for data in self.train_loader:
-                x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
-                edge_attr = edge_attr.to(x.dtype)
-                x, edge_index, edge_attr, y, batch = x.to(self.device), edge_index.to(self.device), edge_attr.to(self.device), y.to(self.device), batch.to(self.device)
+                x, edge_index, edge_attr, y, batch = self._transfer_batch_to_device(data)
                 
                 self.optimizer.zero_grad()
                 output = self.model(x, edge_index, edge_attr, batch)
@@ -67,12 +108,20 @@ class BaseTask:
                 loss.backward()
                 self.optimizer.step()
             
-            # Calculate metrics - these methods are implemented in subclasses
+            # Calculate metrics
             self.calculate_epoch_metrics(epoch, epoch_loss, num_samples)
             
-            # Print progress
+            # Print progress at specified intervals
             if (epoch + 1) % 5 == 0 or epoch == 0:
                 self.print_progress(epoch, epoch_loss, num_samples)
+    
+    def print_metric_row(self, label, value):
+        """Print a formatted metric row"""
+        print(f"{label}: {value:.6f}")
+    
+    def print_separator(self):
+        """Print a separator line"""
+        print('-' * 12)
     
     def compute_loss(self, output, y):
         """Compute loss - to be implemented by subclasses"""
