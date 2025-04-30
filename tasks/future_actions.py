@@ -26,13 +26,13 @@ class FutureActionsTask(BaseTask):
         self.log_metric('test_mAP', test_mAP)
     
     def print_progress(self, epoch, epoch_loss, num_samples):
-        print(f'Epoch: {epoch+1}')
-        self.print_separator()
-        self.print_metric_row('Train Loss', epoch_loss / num_samples)
-        self.print_metric_row('Test mAP', self.metrics["test_mAP"][-1])
-        self.print_metric_row('Test Recall', self.metrics["test_recall"][-1])
-        self.print_metric_row('Test Precision', self.metrics["test_precision"][-1])
-        self.print_separator()
+        self.logger.info(f'Epoch: {epoch+1}')
+        self.log_separator()
+        self.log_metric_row('Train Loss', epoch_loss / num_samples)
+        self.log_metric_row('Test mAP', self.metrics["test_mAP"][-1])
+        self.log_metric_row('Test Recall', self.metrics["test_recall"][-1])
+        self.log_metric_row('Test Precision', self.metrics["test_precision"][-1])
+        self.log_separator()
     
     def test(self, dset):
         all_targets = []
