@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import contextlib
+import os
+from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
 from datasets.model_ready_dataset import load_datasets, get_graph_dataset
@@ -36,6 +38,10 @@ class BaseTask:
         
         # Initialize empty metrics dictionary (to be populated by subclasses)
         self.metrics = {}
+        
+        # Setup tensorboard writer
+        log_dir = os.path.join('logs', f'{self.task}')
+        self.writer = SummaryWriter(log_dir=log_dir)
     
     def _setup_data(self):
         """Setup datasets and data loaders"""
@@ -85,11 +91,14 @@ class BaseTask:
             finally:
                 self.model.train(original_mode)
     
-    def log_metric(self, metric_name, value):
-        """Add a metric value to the metrics dictionary"""
+    def log_metric(self, metric_name, value, epoch):
+        """Add a metric value to the metrics dictionary and to tensorboard"""
         if metric_name not in self.metrics:
             self.metrics[metric_name] = []
         self.metrics[metric_name].append(value)
+
+        # Log to tensorboard
+        self.writer.add_scalar(metric_name, value, epoch)
     
     def train(self):
         for epoch in range(self.num_epochs):
@@ -139,4 +148,8 @@ class BaseTask:
     
     def test(self, dset):
         """Run evaluation - to be implemented by subclasses"""
-        raise NotImplementedError 
+        raise NotImplementedError
+    
+    def close(self):
+        """Close tensorboard writer and free resources"""
+        self.writer.close() 

@@ -99,6 +99,22 @@ trace_dir:           # Directory for graph construction trace files
 - Environment variables: `${USER}`, `${REPO_ROOT}`
 - Configuration files: `student_cluster_config.yaml`, `euler_cluster_config.yaml`
 
+## TensorBoard Integration
+
+The project includes TensorBoard integration for visualizing training metrics and model performance. The logs are stored under `logs/{task}/` by default.
+
+```bash
+# Run training with TensorBoard logging
+python main.py train --task next_action --device gpu
+
+# Run training with TensorBoard logging
+python main.py train --task future_actions --device gpu
+
+# Launch TensorBoard to view metrics
+tensorboard --logdir logs
+```
+
+
 ## Command-Line Interface
 
 ```bash
