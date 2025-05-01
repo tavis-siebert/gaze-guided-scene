@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from graph.graph import Graph
 from graph.action_utils import ActionUtils
+from graph.graph_tracer import GraphTracer
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -116,6 +117,14 @@ class CheckpointManager:
         
         self.graph.checkpoints.append(checkpoint)
         self.last_checkpoint_frame = frame_num
+        
+        action_labels_dict = {k: v.tolist() for k, v in action_labels.items()}
+        self.graph.tracer.log_checkpoint_created(
+            frame_num,
+            self.graph.num_nodes,
+            len(self.graph.edges),
+            action_labels_dict
+        )
         
         logger.info(f"Checkpoint created:")
         logger.info(f"- Nodes: {self.graph.num_nodes}")
