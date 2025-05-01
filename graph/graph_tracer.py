@@ -165,6 +165,25 @@ class GraphTracer:
             
         self.log_event("edge_added", frame_number, data)
     
+    def log_checkpoint_created(self, frame_number: int, node_count: int, edge_count: int, 
+                              action_labels: Dict[str, Any]) -> None:
+        """
+        Log a checkpoint creation event.
+        
+        Args:
+            frame_number: Video frame number
+            node_count: Number of nodes in the graph
+            edge_count: Number of edges in the graph
+            action_labels: Dictionary containing the future action labels
+        """
+        data = {
+            "node_count": node_count,
+            "edge_count": edge_count,
+            "action_labels": action_labels
+        }
+        
+        self.log_event("checkpoint_created", frame_number, data)
+    
     def log_frame(self, frame_number: int, gaze_position: Optional[List[float]], 
                  gaze_type: int, node_id: Optional[int] = None) -> None:
         """
