@@ -27,8 +27,7 @@ def load_mapping(file_path: str) -> Dict[int, str]:
             if len(parts) == 2:
                 name, idx_str = parts
                 try:
-                    # Convert to 0-indexed
-                    idx = int(idx_str) - 1
+                    idx = int(idx_str)
                     mapping[idx] = name
                 except ValueError:
                     print(f"Warning: Invalid line format in {file_path}: {line}")
@@ -77,7 +76,7 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
             start_time_fmt = format_ms_to_mmss(start_time)
             end_time_fmt = format_ms_to_mmss(end_time)
             
-            # Parse IDs (0-indexed in the file)
+            # Parse IDs (1-indexed in the file)
             try:
                 action_id = int(parts[1])
                 verb_id = int(parts[2])
@@ -91,7 +90,7 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
             action_name = action_mapping.get(action_id, f"Unknown action {action_id}")
             noun_names = [noun_mapping.get(n_id, f"Unknown noun {n_id}") for n_id in noun_ids]
             
-            # Create entry (store IDs as 0-indexed)
+            # Create entry (store IDs as 1-indexed)
             entry = {
                 'clip_name': clip_name,
                 'start_time_ms': start_time,
