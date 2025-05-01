@@ -7,7 +7,27 @@ by matching future action sequences to the groundtruth action annotations.
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Tuple, Optional, Set, NamedTuple
+from dataclasses import dataclass, field
+from collections import defaultdict
+
+
+@dataclass
+class SuffixNode:
+    """Node in the suffix graph representing an action in a sequence."""
+    action_id: int
+    clips: Dict[str, List[Tuple[int, int, str, Optional[str]]]] = field(default_factory=dict)
+    next_actions: Dict[int, 'SuffixNode'] = field(default_factory=dict)
+    
+    
+class MatchResult(NamedTuple):
+    """Result of matching a graph to a suffix."""
+    clip_name: str
+    frame_lower: int
+    frame_upper: int
+    time_lower: Optional[str]
+    time_upper: Optional[str]
+    is_ambiguous: bool
 
 
 def load_action_data(train_csv_path: str, test_csv_path: str) -> Dict[str, pd.DataFrame]:
@@ -36,120 +56,164 @@ def load_action_data(train_csv_path: str, test_csv_path: str) -> Dict[str, pd.Da
     return clip_dfs
 
 
-def build_action_suffixes(clip_dfs: Dict[str, pd.DataFrame]) -> Dict[str, Dict[int, List[int]]]:
+def build_suffix_graph(clip_dfs: Dict[str, pd.DataFrame]) -> Dict[int, SuffixNode]:
     """
-    Build action suffixes for each frame in each clip.
+    Build a suffix graph for all clips by traversing each clip from the back.
     
     Args:
         clip_dfs: Dictionary of DataFrames containing action data for each clip
     
     Returns:
-        Dictionary mapping clip names to another dictionary mapping frame numbers
-        to lists of action IDs that occur after that frame
+        Dictionary mapping action IDs to root nodes in the suffix graph
     """
-    clip_suffixes = {}
+    root_nodes = {}  # Maps action_id to SuffixNode for the root (last) actions
     
     for clip_name, clip_df in clip_dfs.items():
-        frame_to_suffix = {}
-        frames = sorted(clip_df['start_frame'].unique())
+        # Sort by start_frame in descending order to process from the end of the clip
+        clip_records = clip_df.sort_values('start_frame', ascending=False).to_dict('records')
         
-        # For each frame in the clip
-        for i, frame in enumerate(frames):
-            # Get all actions that start after this frame
-            future_actions = clip_df[clip_df['start_frame'] >= frame]
+        if not clip_records:
+            continue
             
-            # Create the suffix as a list of action IDs
-            suffix = future_actions['action_id'].tolist()
-            
-            # Store the suffix for this frame
-            frame_to_suffix[frame] = suffix
-            
-            # Also store suffixes for frames between the current action and the next one
-            if i < len(frames) - 1:
-                next_frame = frames[i + 1]
-                # For all frames between current and next action start
-                for intermediate_frame in range(frame + 1, next_frame):
-                    frame_to_suffix[intermediate_frame] = suffix
+        # For each action in the clip (from last to first)
+        prev_node = None
+        prev_record = None
         
-        clip_suffixes[clip_name] = frame_to_suffix
+        for i, record in enumerate(clip_records):
+            action_id = record['action_id']
+            frame_upper = record['start_frame']
+            time_upper = record['start_time_fmt']
+            
+            # Get or create the node for this action
+            if action_id not in root_nodes:
+                root_nodes[action_id] = SuffixNode(action_id=action_id)
+            
+            current_node = root_nodes[action_id]
+            
+            # Set frame bounds
+            if i == 0:  # Last action in clip
+                frame_lower = frame_upper
+                time_lower = time_upper
+            else:  # Actions in the middle
+                frame_lower = prev_record['start_frame']
+                time_lower = prev_record['start_time_fmt']
+            
+            # Add clip info to this node
+            if clip_name not in current_node.clips:
+                current_node.clips[clip_name] = []
+            current_node.clips[clip_name].append((frame_lower, frame_upper, time_lower, time_upper))
+            
+            # Connect to the previous node (if this isn't the last action)
+            if prev_node:
+                current_node.next_actions[prev_record['action_id']] = prev_node
+            
+            # Update previous node for next iteration
+            prev_node = current_node
+            prev_record = record
     
-    return clip_suffixes
+    return root_nodes
+
+
+def match_graph_to_suffix(
+    graph_future_actions: List[int],
+    suffix_graph: Dict[int, SuffixNode]
+) -> List[MatchResult]:
+    """
+    Find clips and frame ranges that match a graph's future actions by traversing the suffix graph.
+    
+    Args:
+        graph_future_actions: List of action IDs in the future actions sequence
+        suffix_graph: Dictionary mapping action IDs to root nodes in the suffix graph
+    
+    Returns:
+        List of MatchResults for matching clips and frames
+    """
+    if not graph_future_actions:
+        return []
+    
+    # Start with the last action in the future actions list
+    last_action_id = graph_future_actions[-1]
+    
+    if last_action_id not in suffix_graph:
+        return []
+    
+    # Start from the root node for the last action
+    current_node = suffix_graph[last_action_id]
+    
+    # Track possible paths through the graph
+    paths = [(current_node, len(graph_future_actions) - 1)]
+    complete_paths = []
+    
+    # Traverse the graph backward, following the future actions in reverse
+    while paths:
+        node, action_idx = paths.pop()
+        
+        # If we've reached the first action in the sequence
+        if action_idx == 0:
+            # Add all possible clip matches from this node
+            for clip_name, frame_ranges in node.clips.items():
+                for frame_lower, frame_upper, time_lower, time_upper in frame_ranges:
+                    complete_paths.append((clip_name, frame_lower, frame_upper, time_lower, time_upper))
+            continue
+        
+        # Try to follow the next action in the sequence (moving backward)
+        next_action_id = graph_future_actions[action_idx - 1]
+        
+        if next_action_id in node.next_actions:
+            # Follow this path
+            next_node = node.next_actions[next_action_id]
+            paths.append((next_node, action_idx - 1))
+    
+    # Convert paths to MatchResults, marking ambiguous results
+    if not complete_paths:
+        return []
+    
+    # Group by clip to detect ambiguity
+    clips_count = defaultdict(int)
+    for path in complete_paths:
+        clips_count[path[0]] += 1
+    
+    matches = []
+    for clip_name, frame_lower, frame_upper, time_lower, time_upper in complete_paths:
+        is_ambiguous = len(complete_paths) > 1
+        matches.append(MatchResult(
+            clip_name=clip_name,
+            frame_lower=frame_lower,
+            frame_upper=frame_upper,
+            time_lower=time_lower,
+            time_upper=time_upper,
+            is_ambiguous=is_ambiguous
+        ))
+    
+    return matches
 
 
 def align_graph_to_frames(
-    graph_row: pd.Series, 
-    clip_suffixes: Dict[str, Dict[int, List[int]]],
-    exact_match: bool = False
-) -> Tuple[Optional[str], Optional[int], Optional[int]]:
+    graph_row: pd.Series,
+    suffix_graph: Dict[int, SuffixNode]
+) -> Optional[MatchResult]:
     """
     Find the clip and frame range that matches a graph's future actions.
     
     Args:
         graph_row: A row from the dataset summary DataFrame containing graph info
-        clip_suffixes: Dictionary mapping clip names to frame suffixes
-        exact_match: Whether to require exact matches (default: False)
+        suffix_graph: Dictionary mapping action IDs to root nodes in the suffix graph
     
     Returns:
-        Tuple of (clip_name, frame_lower, frame_upper) or (None, None, None) if no match
+        MatchResult or None if no match
     """
     # Extract future actions from the graph
     if pd.isna(graph_row['future_actions_ordered']):
-        return None, None, None
+        return None
     
     # Convert future_actions_ordered string to list of integers
     graph_future_actions = [int(x) for x in graph_row['future_actions_ordered'].split(',')]
     
-    best_match = None
-    best_match_score = 0
-    best_frame_range = (None, None)
+    # Match the graph to the suffix graph
+    matches = match_graph_to_suffix(graph_future_actions, suffix_graph)
     
-    # Go through each clip
-    for clip_name, frame_to_suffix in clip_suffixes.items():
-        # Check each frame in the clip
-        for frame, suffix in frame_to_suffix.items():
-            # Skip if suffix is empty
-            if not suffix:
-                continue
-            
-            # For exact matching
-            if exact_match:
-                if graph_future_actions == suffix:
-                    return clip_name, frame, frame
-            
-            # For fuzzy matching, we'll use the longest common subsequence approach
-            else:
-                # Calculate match score (length of common prefix)
-                match_length = 0
-                for i in range(min(len(graph_future_actions), len(suffix))):
-                    if graph_future_actions[i] == suffix[i]:
-                        match_length += 1
-                    else:
-                        break
-                
-                # If we found a better match
-                if match_length > best_match_score:
-                    best_match_score = match_length
-                    best_match = clip_name
-                    
-                    # Find the upper bound for the frame range
-                    # The upper bound is the frame where the sequence of future actions changes
-                    frame_upper = frame
-                    for next_frame in sorted(frame_to_suffix.keys()):
-                        if next_frame <= frame:
-                            continue
-                            
-                        # If the suffix changes, we've found our upper bound
-                        if frame_to_suffix[next_frame][:match_length] != suffix[:match_length]:
-                            frame_upper = next_frame - 1
-                            break
-                    
-                    best_frame_range = (frame, frame_upper)
-    
-    # If we found a match with at least one matching action
-    if best_match_score > 0:
-        return best_match, best_frame_range[0], best_frame_range[1]
-    
-    return None, None, None
+    # Return the first match (if any)
+    return matches[0] if matches else None
 
 
 def align_dataset(
@@ -171,8 +235,8 @@ def align_dataset(
     print("Loading action data from CSV files...")
     clip_dfs = load_action_data(train_csv_path, test_csv_path)
     
-    print("Building action suffixes for each frame...")
-    clip_suffixes = build_action_suffixes(clip_dfs)
+    print("Building suffix graph from action data...")
+    suffix_graph = build_suffix_graph(clip_dfs)
     
     print(f"Aligning {len(dataset_summary_df)} graphs to video frames...")
     
@@ -182,6 +246,7 @@ def align_dataset(
     dataset_summary_df['frame_upper'] = None
     dataset_summary_df['time_lower'] = None
     dataset_summary_df['time_upper'] = None
+    dataset_summary_df['is_ambiguous'] = False
     
     # Process each graph in the dataset
     for idx, row in dataset_summary_df.iterrows():
@@ -190,33 +255,23 @@ def align_dataset(
             continue
             
         # Align the graph to a clip and frame range
-        clip_name, frame_lower, frame_upper = align_graph_to_frames(row, clip_suffixes)
+        match_result = align_graph_to_frames(row, suffix_graph)
         
-        if clip_name:
+        if match_result:
             # Update the DataFrame with alignment information
-            dataset_summary_df.at[idx, 'aligned_clip'] = clip_name
-            dataset_summary_df.at[idx, 'frame_lower'] = frame_lower
-            dataset_summary_df.at[idx, 'frame_upper'] = frame_upper
-            
-            # Add timestamp information
-            if clip_name in clip_dfs:
-                clip_df = clip_dfs[clip_name]
-                
-                # Find the closest frames in the clip data
-                lower_frame_data = clip_df[clip_df['start_frame'] <= frame_lower].iloc[-1] if not clip_df[clip_df['start_frame'] <= frame_lower].empty else None
-                upper_frame_data = clip_df[clip_df['start_frame'] >= frame_upper].iloc[0] if not clip_df[clip_df['start_frame'] >= frame_upper].empty else None
-                
-                # Extract time information
-                if lower_frame_data is not None:
-                    dataset_summary_df.at[idx, 'time_lower'] = lower_frame_data['start_time_fmt']
-                
-                if upper_frame_data is not None:
-                    dataset_summary_df.at[idx, 'time_upper'] = upper_frame_data['start_time_fmt']
+            dataset_summary_df.at[idx, 'aligned_clip'] = match_result.clip_name
+            dataset_summary_df.at[idx, 'frame_lower'] = match_result.frame_lower
+            dataset_summary_df.at[idx, 'frame_upper'] = match_result.frame_upper
+            dataset_summary_df.at[idx, 'time_lower'] = match_result.time_lower
+            dataset_summary_df.at[idx, 'time_upper'] = match_result.time_upper
+            dataset_summary_df.at[idx, 'is_ambiguous'] = match_result.is_ambiguous
     
     # Calculate alignment statistics
     aligned_count = dataset_summary_df['aligned_clip'].notna().sum()
+    ambiguous_count = dataset_summary_df['is_ambiguous'].sum()
     total_count = len(dataset_summary_df)
     print(f"Aligned {aligned_count}/{total_count} graphs ({aligned_count/total_count*100:.2f}%)")
+    print(f"Ambiguous alignments: {ambiguous_count}/{aligned_count} ({ambiguous_count/aligned_count*100:.2f}% of aligned)")
     
     return dataset_summary_df
 
@@ -246,6 +301,8 @@ def main(dataset_summary_path: str, output_path: str, train_csv_path: str, test_
     print(f"Total graphs: {len(aligned_df)}")
     print(f"Aligned graphs: {aligned_df['aligned_clip'].notna().sum()}")
     print(f"Alignment rate: {aligned_df['aligned_clip'].notna().sum() / len(aligned_df) * 100:.2f}%")
+    print(f"Ambiguous alignments: {aligned_df['is_ambiguous'].sum()}")
+    print(f"Ambiguous rate: {aligned_df['is_ambiguous'].sum() / aligned_df['aligned_clip'].notna().sum() * 100:.2f}% of aligned")
     
     # For each split, print alignment stats
     for split in aligned_df['split'].unique():
@@ -254,5 +311,7 @@ def main(dataset_summary_path: str, output_path: str, train_csv_path: str, test_
         print(f"  Total graphs: {len(split_df)}")
         print(f"  Aligned graphs: {split_df['aligned_clip'].notna().sum()}")
         print(f"  Alignment rate: {split_df['aligned_clip'].notna().sum() / len(split_df) * 100:.2f}%")
+        print(f"  Ambiguous alignments: {split_df['is_ambiguous'].sum()}")
+        print(f"  Ambiguous rate: {split_df['is_ambiguous'].sum() / split_df['aligned_clip'].notna().sum() * 100:.2f}% of aligned")
     
     return aligned_df 
