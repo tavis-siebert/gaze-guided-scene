@@ -40,8 +40,8 @@ class ActionUtils:
         future_records = sorted(future_records, key=lambda record: record.end_frame)
         
         future_actions = [
-            action_to_class[(record.label[0], record.label[1])] 
-            for record in future_records if (record.label[0], record.label[1]) in action_to_class
+            action_to_class[(record.verb_id, record.noun_id)] 
+            for record in future_records if (record.verb_id, record.noun_id) in action_to_class
         ]
         
         if not future_actions:
