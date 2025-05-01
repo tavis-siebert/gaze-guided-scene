@@ -2,6 +2,7 @@
 """
 Parse EGTEA Gaze+ dataset split files and generate structured CSV
 containing both IDs and translated names of actions, verbs, and nouns.
+Also parses timestamps and adds formatted time columns.
 """
 
 import csv
@@ -10,6 +11,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
+from datetime import timedelta
 
 def load_mapping(file_path: str) -> Dict[int, str]:
     """Load index to name mapping from file."""
@@ -32,6 +34,12 @@ def load_mapping(file_path: str) -> Dict[int, str]:
                     print(f"Warning: Invalid line format in {file_path}: {line}")
     return mapping
 
+def format_ms_to_mmss(ms: int) -> str:
+    """Convert milliseconds to mm:ss.ms format."""
+    seconds, ms = divmod(ms, 1000)
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes:02d}:{seconds:02d}.{ms:03d}"
+
 def parse_split_file(file_path: str, verb_mapping: Dict[int, str], 
                      action_mapping: Dict[int, str], noun_mapping: Dict[int, str]) -> List[dict]:
     """Parse split file and return structured data with IDs and names."""
@@ -50,13 +58,24 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
                 continue
                 
             clip_info = parts[0]
-            # Extract clip name and frame information
-            clip_match = re.match(r'(.+)-F(\d+)-F(\d+)', clip_info)
+            # Extract clip name, timestamps, and frame information
+            # Format: {clipname}-start_time-end_time-Fstart_frame-Fend_frame
+            clip_match = re.match(r'(.+)-(\d+)-(\d+)-F(\d+)-F(\d+)', clip_info)
             if not clip_match:
                 print(f"Warning: Invalid clip format: {clip_info}")
                 continue
                 
-            clip_name, start_frame, end_frame = clip_match.groups()
+            clip_name, start_time, end_time, start_frame, end_frame = clip_match.groups()
+            
+            # Convert to integers
+            start_time = int(start_time)
+            end_time = int(end_time)
+            start_frame = int(start_frame)
+            end_frame = int(end_frame)
+            
+            # Format time as mm:ss.ms
+            start_time_fmt = format_ms_to_mmss(start_time)
+            end_time_fmt = format_ms_to_mmss(end_time)
             
             # Parse IDs (0-indexed in the file)
             try:
@@ -75,6 +94,10 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
             # Create entry
             entry = {
                 'clip_name': clip_name,
+                'start_time_ms': start_time,
+                'end_time_ms': end_time,
+                'start_time_fmt': start_time_fmt,
+                'end_time_fmt': end_time_fmt,
                 'start_frame': start_frame,
                 'end_frame': end_frame,
                 'verb_id': verb_id + 1,  # Store as 1-indexed for consistency with original files
@@ -86,6 +109,8 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
             }
             results.append(entry)
             
+    # Sort by clip_name and start_frame
+    results.sort(key=lambda x: (x['clip_name'], x['start_frame']))
     return results
 
 def write_csv(data: List[dict], output_path: str) -> None:
@@ -95,10 +120,15 @@ def write_csv(data: List[dict], output_path: str) -> None:
         return
         
     # Define CSV fields
-    fields = ['clip_name', 'start_frame', 'end_frame', 
-              'verb_id', 'verb_name', 
-              'action_id', 'action_name', 
-              'noun_ids', 'noun_names']
+    fields = [
+        'clip_name', 
+        'start_time_ms', 'end_time_ms',
+        'start_time_fmt', 'end_time_fmt',
+        'start_frame', 'end_frame', 
+        'verb_id', 'verb_name', 
+        'action_id', 'action_name', 
+        'noun_ids', 'noun_names'
+    ]
     
     with open(output_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fields)
@@ -131,13 +161,9 @@ def main(split_file: str) -> None:
         
     data = parse_split_file(split_path, verb_map, action_map, noun_map)
     
-    # Create output directory if it doesn't exist
-    output_dir = Path('out')
-    output_dir.mkdir(exist_ok=True)
-    
-    # Generate output path
+    # Generate output path in the same directory as the input file
     split_name = os.path.splitext(os.path.basename(split_file))[0]
-    output_path = output_dir / f"{split_name}_parsed.csv"
+    output_path = base_dir / f"{split_name}_parsed.csv"
     
     # Write CSV
     write_csv(data, output_path)
