@@ -192,6 +192,7 @@ def main():
     parser.add_argument('--skip-alignment', action='store_true', help='Skip dataset alignment')
     parser.add_argument('--train-csv', help='Path to train_split1_parsed.csv (default: egtea_gaze/action_annotation/train_split1_parsed.csv)')
     parser.add_argument('--test-csv', help='Path to test_split1_parsed.csv (default: egtea_gaze/action_annotation/test_split1_parsed.csv)')
+    parser.add_argument('--mapping-csv', help='Path to ego-topo-action-mapping.csv (default: egtea_gaze/action_annotation/ego-topo-action-mapping.csv)')
     
     args = parser.parse_args()
     
@@ -207,6 +208,7 @@ def main():
     action_mapping = args.action_mapping or "egtea_gaze/action_annotation/action_idx.txt"
     train_csv = args.train_csv or "egtea_gaze/action_annotation/train_split1_parsed.csv"
     test_csv = args.test_csv or "egtea_gaze/action_annotation/test_split1_parsed.csv"
+    mapping_csv = args.mapping_csv or "egtea_gaze/action_annotation/ego-topo-action-mapping.csv"
     
     # Ensure output directories exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -252,7 +254,7 @@ def main():
                 aligned_output_path = os.path.join(dataset_output_dir, "dataset_aligned.csv")
                 
                 print(f"\nPerforming dataset alignment...")
-                aligned_df = align_dataset(df, train_csv, test_csv)
+                aligned_df = align_dataset(df, train_csv, test_csv, mapping_csv)
                 
                 # Save the aligned dataset
                 aligned_df.to_csv(aligned_output_path, index=False)
