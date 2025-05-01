@@ -79,9 +79,9 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
             
             # Parse IDs (0-indexed in the file)
             try:
-                verb_id = int(parts[1]) - 1  # Convert to 0-indexed
-                action_id = int(parts[2]) - 1
-                noun_ids = [int(n) - 1 for n in parts[3:]]  # Convert to 0-indexed
+                action_id = int(parts[1])
+                verb_id = int(parts[2])
+                noun_ids = [int(n) for n in parts[3:]]
             except ValueError:
                 print(f"Warning: Invalid ID format: {line}")
                 continue
@@ -91,7 +91,7 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
             action_name = action_mapping.get(action_id, f"Unknown action {action_id}")
             noun_names = [noun_mapping.get(n_id, f"Unknown noun {n_id}") for n_id in noun_ids]
             
-            # Create entry
+            # Create entry (store IDs as 0-indexed)
             entry = {
                 'clip_name': clip_name,
                 'start_time_ms': start_time,
@@ -100,11 +100,11 @@ def parse_split_file(file_path: str, verb_mapping: Dict[int, str],
                 'end_time_fmt': end_time_fmt,
                 'start_frame': start_frame,
                 'end_frame': end_frame,
-                'verb_id': verb_id + 1,  # Store as 1-indexed for consistency with original files
+                'verb_id': verb_id,
                 'verb_name': verb_name,
-                'action_id': action_id + 1,  # Store as 1-indexed
+                'action_id': action_id,
                 'action_name': action_name,
-                'noun_ids': [n_id + 1 for n_id in noun_ids],  # Store as 1-indexed
+                'noun_ids': noun_ids,
                 'noun_names': noun_names
             }
             results.append(entry)
