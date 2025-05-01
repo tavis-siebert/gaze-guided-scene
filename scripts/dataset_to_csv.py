@@ -349,21 +349,24 @@ def dataset_to_csv(dataset_path: str, output_path: str, noun_idx_path: str,
 def main():
     parser = argparse.ArgumentParser(description='Convert PyTorch Geometric dataset to CSV')
     parser.add_argument('dataset_path', help='Path to the .pth dataset file')
-    parser.add_argument('-o', '--output', help='Output CSV file path (default: out/{dataset_name}_summary.csv)')
+    parser.add_argument('-o', '--output', help='Output CSV file path (default: out/{dataset_name}/dataset_summary.csv)')
     parser.add_argument('--noun-mapping', help='Path to noun_idx.txt (default: egtea_gaze/action_annotation/noun_idx.txt)')
     parser.add_argument('--action-mapping', help='Path to action_idx.txt (default: egtea_gaze/action_annotation/action_idx.txt)')
-    parser.add_argument('--analysis-dir', help='Directory to save distribution plots (default: out/dataset-analysis)')
+    parser.add_argument('--analysis-dir', help='Directory to save distribution plots (default: out/{dataset_name}/analysis)')
     
     args = parser.parse_args()
     
     # Extract dataset name from path
     dataset_name = os.path.splitext(os.path.basename(args.dataset_path))[0]
     
+    # Create dataset-specific output directory
+    dataset_output_dir = os.path.join("out", dataset_name)
+    
     # Set defaults
-    output_path = args.output or os.path.join("out", f"{dataset_name}_summary.csv")
+    output_path = args.output or os.path.join(dataset_output_dir, "dataset_summary.csv")
     noun_mapping = args.noun_mapping or "egtea_gaze/action_annotation/noun_idx.txt"
     action_mapping = args.action_mapping or "egtea_gaze/action_annotation/action_idx.txt"
-    analysis_dir = args.analysis_dir or "out/dataset-analysis"
+    analysis_dir = args.analysis_dir or os.path.join(dataset_output_dir, "analysis")
     
     # Ensure output directories exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
