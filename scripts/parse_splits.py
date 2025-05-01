@@ -122,12 +122,11 @@ def write_csv(data: List[dict], output_path: str) -> None:
     # Define CSV fields
     fields = [
         'clip_name', 
+        'start_frame', 'start_time_fmt',
+        'action_name', 'verb_name', 'noun_names',
         'start_time_ms', 'end_time_ms',
-        'start_time_fmt', 'end_time_fmt',
-        'start_frame', 'end_frame', 
-        'verb_id', 'verb_name', 
-        'action_id', 'action_name', 
-        'noun_ids', 'noun_names'
+        'end_time_fmt', 'end_frame', 
+        'verb_id', 'action_id', 'noun_ids'
     ]
     
     with open(output_path, 'w', newline='') as f:
