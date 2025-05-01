@@ -77,6 +77,16 @@ class Record:
         return [int(x) for x in self._data[3:]]
 
     @property
+    def verb_id(self) -> int:
+        """Verb ID."""
+        return self.label[0]
+
+    @property
+    def noun_id(self) -> int:
+        """Noun ID."""
+        return self.label[1]
+
+    @property
     def num_frames(self) -> int:
         """Number of frames in the action clip."""
         return self.end_frame - self.start_frame + 1
@@ -169,10 +179,12 @@ class DataLoader:
             Dictionary mapping (verb, noun) tuples to class indices
         """
         # Count occurrences of each action
-        action_counts = Counter([(r.label[0], r.label[1]) for r in records])
+        action_counts = Counter([(r.verb_id, r.noun_id) for r in records])
         
         # Sort by frequency (descending) and take top N
         top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:num_classes]
-        
+
         # Create mapping from action tuple to index
-        return {action: idx for idx, (action, _) in enumerate(top_actions)} 
+        mapping = {action: idx for idx, (action, _) in enumerate(top_actions)} 
+
+        return mapping
