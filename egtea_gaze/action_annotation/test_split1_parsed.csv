@@ -1,0 +1,2023 @@
+clip_name,start_frame,end_frame,verb_id,verb_name,action_id,action_name,noun_ids,noun_names
+P04-R06-GreekSalad-682170-683940,016368,016419,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P04-R06-GreekSalad-69970-77130,001662,001869,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P04-R06-GreekSalad-767250-769130,018410,018464,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P04-R06-GreekSalad-861590-864300,020672,020750,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P04-R06-GreekSalad-967770-971840,023216,023335,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P04-R06-GreekSalad-971840-974170,023319,023386,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-101915-123786,002393,003023,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-1087378-1093795,026082,026267,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-1178767-1181856,028283,028372,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-1188018-1191841,028503,028614,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-1366454-1368950,032788,032861,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-160540-162131,003848,003896,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-1642140-1647269,039399,039547,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-169741-171463,004069,004120,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-173804-177635,004162,004273,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-199215-202448,004774,004866,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-251286-261006,006007,006288,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-281459-284512,006748,006836,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-340330-344219,008158,008271,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-345907-349339,008293,008393,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-410560-417296,009837,010032,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-574268-577060,013776,013856,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-644520-647456,015461,015546,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R01-PastaSalad-874785-879475,020983,021119,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R02-TurkeySandwich-276567-282554,006623,006796,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R02-TurkeySandwich-447731-449540,010741,010793,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R02-TurkeySandwich-496734-499255,011915,011989,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P05-R02-TurkeySandwich-73170-88496,001720,002160,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-105855-107865,002535,002594,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-1273430-1275909,030556,030628,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-164905-169109,003947,004069,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-180901-184815,004332,004445,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-307357-316256,007355,007612,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-339458-345999,008131,008319,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-371706-375641,008911,009025,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-456614-460421,010949,011060,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-603550-606586,014478,014566,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-813786-818190,019520,019647,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-819808-822324,019669,019742,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-918067-920617,022027,022101,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R01-PastaSalad-99825-102485,002389,002466,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-102069-104027,002445,002501,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-135928-137478,003259,003303,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-177496-185411,004240,004469,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-211132-217667,005052,005240,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-235751-239849,005648,005767,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-297771-301222,007138,007238,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-379224-382619,009093,009191,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-53676-62239,001268,001514,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P06-R02-TurkeySandwich-85436-89225,002041,002151,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-1562795-1567945,037495,037643,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-1823550-1827770,043755,043877,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-1916770-1933530,045962,046445,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-2159945-2164165,051828,051950,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-2242255-2248365,053800,053975,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-2354135-2355425,056496,056534,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-309960-320460,007414,007717,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-320470-321770,007688,007726,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-321775-326385,007711,007845,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-358730-365070,008594,008777,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P07-R01-PastaSalad-426275-434115,010211,010438,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-1069706-1072412,025666,025744,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-1356683-1359565,032553,032637,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-137016-139957,003281,003366,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-190795-195501,004568,004704,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-328896-333778,007882,008022,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-55235-61529,001310,001492,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-564977-572860,013540,013768,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-576771-580654,013833,013945,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-67029-70735,001599,001707,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-733843-734784,017610,017637,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P08-R01-PastaSalad-88956-95015,002120,002295,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-145350-147050,003484,003534,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-167550-171450,004012,004124,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-194000-198300,004646,004770,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-251250-252850,006026,006073,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-256100-260200,006136,006255,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-278075-280675,006667,006743,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-291525-295275,006987,007096,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-319475-323200,007658,007766,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-421224-425824,010098,010231,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-468800-471400,011245,011320,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P09-R02-TurkeySandwich-61500-87000,001415,002149,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-1031649-1049949,024715,025243,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-1052549-1056849,025251,025375,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-105850-109350,002532,002633,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-1128499-1133199,027072,027208,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-1350162-1370912,032353,032952,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-1823756-1828806,043758,043904,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-1882281-1886481,045164,045286,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-265079-272579,006343,006560,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-308279-309879,007394,007442,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-313111-315951,007507,007590,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-429048-430748,010293,010342,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-48817-76600,001105,001905,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-692488-695688,016612,016704,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-834049-836722,020011,020088,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R01-PastaSalad-859563-865263,020616,020780,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R02-TurkeySandwich-198700-202000,004760,004856,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R02-TurkeySandwich-262237-266837,006282,006416,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R02-TurkeySandwich-28900-48100,000647,001201,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R06-GreekSalad-303287-307787,007267,007398,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R06-GreekSalad-39600-52500,000919,001291,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R06-GreekSalad-581136-582836,013943,013993,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P10-R06-GreekSalad-618511-623064,014833,014965,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-1136331-1139131,027264,027347,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-1465618-1470118,035163,035294,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-159250-163025,003813,003922,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-1666218-1672918,039973,040167,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-175187-180387,004192,004342,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-2247797-2261197,053915,054301,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-2293397-2306397,055010,055385,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-235987-241887,005649,005820,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-252087-254987,006043,006127,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-398999-402449,009567,009667,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-425324-430024,010196,010332,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-487649-495349,011685,011907,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P11-R01-PastaSalad-95700-100900,002284,002434,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P12-R01-PastaSalad-125000-135098,002976,003267,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P12-R01-PastaSalad-1743631-1750708,041830,042034,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P12-R01-PastaSalad-176319-179778,004223,004323,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P12-R01-PastaSalad-1788558-1792657,042915,043034,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P12-R01-PastaSalad-55715-75632,001289,001864,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P12-R02-TurkeySandwich-36940-59142,000833,001473,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1027567-1058421,024587,025477,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1091810-1098175,026188,026372,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1133822-1136357,027205,027279,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1140990-1142458,027380,027422,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1213074-1217817,029102,029239,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1230320-1233200,029520,029604,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1442479-1443932,034616,034658,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1500883-1505583,036010,036145,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1597578-1608585,038315,038633,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1659722-1664353,039822,039956,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1688240-1692896,040506,040641,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1750912-1760780,041998,042282,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1843649-1845406,044243,044294,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1845406-1847895,044283,044356,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1847895-1850910,044342,044429,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-1850948-1851990,044420,044450,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-2186725-2193000,052466,052647,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-2194450-2196430,052661,052720,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-2324264-2333380,055760,056024,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-247161-267600,005882,006472,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-272317-276987,006524,006659,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-278918-295589,006654,007135,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-309297-311439,007418,007480,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-3103570-3109259,074472,074636,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-320051-331711,007653,007990,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+P13-R01-PastaSalad-396966-404250,009510,009719,1,Inspect/Read,1,Inspect/Read recipe,1,recipe
+OP04-R02-TurkeySandwich-119570-120950,002866,002906,2,Open,2,Open fridge,2,fridge
+OP04-R02-TurkeySandwich-231880-233230,005562,005601,2,Open,2,Open fridge,2,fridge
+OP04-R02-TurkeySandwich-250830-251640,006017,006042,2,Open,2,Open fridge,2,fridge
+OP04-R02-TurkeySandwich-94860-96050,002273,002309,2,Open,2,Open fridge,2,fridge
+OP04-R03-BaconAndEggs-131111-132330,003143,003179,2,Open,2,Open fridge,2,fridge
+OP04-R03-BaconAndEggs-462679-465769,011097,011186,2,Open,2,Open fridge,2,fridge
+OP04-R03-BaconAndEggs-56090-57601,001343,001386,2,Open,2,Open fridge,2,fridge
+OP04-R03-BaconAndEggs-750945-752113,018019,018054,2,Open,2,Open fridge,2,fridge
+OP04-R04-ContinentalBreakfast-292182-293458,007009,007046,2,Open,2,Open fridge,2,fridge
+OP04-R04-ContinentalBreakfast-41887-43277,001002,001042,2,Open,2,Open fridge,2,fridge
+OP04-R04-ContinentalBreakfast-81950-85680,001957,002066,2,Open,2,Open fridge,2,fridge
+OP04-R05-Cheeseburger-299190-301900,007174,007252,2,Open,2,Open fridge,2,fridge
+OP04-R05-Cheeseburger-330570-332060,007930,007973,2,Open,2,Open fridge,2,fridge
+OP04-R05-Cheeseburger-336330-337870,008068,008112,2,Open,2,Open fridge,2,fridge
+OP04-R05-Cheeseburger-405930-407330,009739,009779,2,Open,2,Open fridge,2,fridge
+OP04-R05-Cheeseburger-86040-88630,002058,002134,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-118340-119350,002838,002867,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-179480-180610,004305,004337,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-231690-233020,005557,005596,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-262605-263925,006299,006338,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-288980-289780,006933,006957,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-299155-300095,007177,007205,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-36860-38940,000879,000940,2,Open,2,Open fridge,2,fridge
+OP04-R06-GreekSalad-74820-75930,001793,001825,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-208455-210374,004998,005053,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-310032-311581,007437,007481,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-44490-45780,001064,001102,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-500074-501203,011999,012031,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-501246-502547,012026,012065,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-502579-503697,012059,012091,2,Open,2,Open fridge,2,fridge
+OP04-R07-Pizza-503735-505487,012085,012136,2,Open,2,Open fridge,2,fridge
+OP05-R03-BaconAndEggs-363810-366360,008725,008799,2,Open,2,Open fridge,2,fridge
+OP05-R03-BaconAndEggs-388275-389375,009316,009347,2,Open,2,Open fridge,2,fridge
+OP05-R03-BaconAndEggs-540860-542220,012977,013017,2,Open,2,Open fridge,2,fridge
+OP05-R03-BaconAndEggs-667700-669050,016021,016061,2,Open,2,Open fridge,2,fridge
+OP05-R04-ContinentalBreakfast-111260-112810,002667,002711,2,Open,2,Open fridge,2,fridge
+OP05-R04-ContinentalBreakfast-182395-185582,004370,004461,2,Open,2,Open fridge,2,fridge
+OP05-R04-ContinentalBreakfast-330250-332450,007921,007984,2,Open,2,Open fridge,2,fridge
+OP05-R04-ContinentalBreakfast-359010-360990,008612,008668,2,Open,2,Open fridge,2,fridge
+OP05-R07-Pizza-136425-139285,003267,003350,2,Open,2,Open fridge,2,fridge
+OP05-R07-Pizza-153955-155315,003691,003731,2,Open,2,Open fridge,2,fridge
+OP05-R07-Pizza-339245-339760,008140,008156,2,Open,2,Open fridge,2,fridge
+OP05-R07-Pizza-364495-366065,008743,008790,2,Open,2,Open fridge,2,fridge
+OP06-R02-TurkeySandwich-115140-117310,002758,002821,2,Open,2,Open fridge,2,fridge
+OP06-R02-TurkeySandwich-212075-213845,005085,005137,2,Open,2,Open fridge,2,fridge
+OP06-R02-TurkeySandwich-415250-417700,009960,010031,2,Open,2,Open fridge,2,fridge
+OP06-R02-TurkeySandwich-442035-444925,010601,010686,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-329950-332030,007913,007974,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-351950-352650,008445,008465,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-42970-45110,001026,001088,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-554970-557120,013314,013376,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-598710-601440,014363,014441,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-691970-693160,016604,016639,2,Open,2,Open fridge,2,fridge
+OP06-R04-ContinentalBreakfast-197390-199520,004732,004794,2,Open,2,Open fridge,2,fridge
+OP06-R05-Cheeseburger-139430-141430,003341,003400,2,Open,2,Open fridge,2,fridge
+OP06-R05-Cheeseburger-386908-388588,009281,009331,2,Open,2,Open fridge,2,fridge
+OP06-R05-Cheeseburger-621490-623690,014910,014974,2,Open,2,Open fridge,2,fridge
+OP06-R06-GreekSalad-296070-297720,007101,007150,2,Open,2,Open fridge,2,fridge
+OP06-R06-GreekSalad-353985-355495,008492,008535,2,Open,2,Open fridge,2,fridge
+OP06-R06-GreekSalad-445115-447375,010677,010742,2,Open,2,Open fridge,2,fridge
+OP06-R07-Pizza-273050-276580,006545,006646,2,Open,2,Open fridge,2,fridge
+OP06-R07-Pizza-408650-410680,009802,009862,2,Open,2,Open fridge,2,fridge
+OP06-R07-Pizza-474105-475935,011374,011427,2,Open,2,Open fridge,2,fridge
+P01-R01-PastaSalad-1000627-1003103,024009,024081,2,Open,2,Open fridge,2,fridge
+P01-R01-PastaSalad-1175694-1179687,028207,028322,2,Open,2,Open fridge,2,fridge
+P01-R01-PastaSalad-142452-145947,003410,003511,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-103236-106091,002470,002554,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-153046-156065,003666,003753,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-465617-468653,011167,011255,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-721612-723588,017313,017372,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-799639-801365,019187,019237,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-937057-939164,022484,022545,2,Open,2,Open fridge,2,fridge
+P01-R02-TurkeySandwich-945687-949271,022688,022791,2,Open,2,Open fridge,2,fridge
+P02-R01-PastaSalad-1383289-1384189,033196,033223,2,Open,2,Open fridge,2,fridge
+P02-R01-PastaSalad-228363-229897,005477,005521,2,Open,2,Open fridge,2,fridge
+P02-R01-PastaSalad-439762-440986,010551,010587,2,Open,2,Open fridge,2,fridge
+P02-R01-PastaSalad-459852-461231,011033,011073,2,Open,2,Open fridge,2,fridge
+P02-R01-PastaSalad-912672-913744,021902,021932,2,Open,2,Open fridge,2,fridge
+P02-R03-BaconAndEggs-1383304-1384385,033197,033228,2,Open,2,Open fridge,2,fridge
+P02-R03-BaconAndEggs-164834-167266,003950,004021,2,Open,2,Open fridge,2,fridge
+P02-R03-BaconAndEggs-308324-309756,007396,007438,2,Open,2,Open fridge,2,fridge
+P02-R03-BaconAndEggs-477091-479280,011445,011508,2,Open,2,Open fridge,2,fridge
+P02-R03-BaconAndEggs-596391-598580,014308,014371,2,Open,2,Open fridge,2,fridge
+P02-R04-ContinentalBreakfast-295190-297870,007078,007155,2,Open,2,Open fridge,2,fridge
+P02-R04-ContinentalBreakfast-401974-404733,009641,009720,2,Open,2,Open fridge,2,fridge
+P02-R04-ContinentalBreakfast-507312-508932,012171,012219,2,Open,2,Open fridge,2,fridge
+P02-R04-ContinentalBreakfast-520806-522608,012495,012547,2,Open,2,Open fridge,2,fridge
+P02-R04-ContinentalBreakfast-629725-631269,015110,015154,2,Open,2,Open fridge,2,fridge
+P02-R04-ContinentalBreakfast-926043-928979,022218,022303,2,Open,2,Open fridge,2,fridge
+P02-R05-Cheeseburger-102875-104805,002465,002520,2,Open,2,Open fridge,2,fridge
+P02-R05-Cheeseburger-168695-169525,004046,004071,2,Open,2,Open fridge,2,fridge
+P02-R05-Cheeseburger-420360-423250,010081,010165,2,Open,2,Open fridge,2,fridge
+P02-R05-Cheeseburger-998760-1002110,023962,024059,2,Open,2,Open fridge,2,fridge
+P02-R06-GreekSalad-397650-399900,009538,009603,2,Open,2,Open fridge,2,fridge
+P02-R06-GreekSalad-47880-49670,001145,001197,2,Open,2,Open fridge,2,fridge
+P02-R06-GreekSalad-594069-595362,014254,014292,2,Open,2,Open fridge,2,fridge
+P03-R01-PastaSalad-212900-215600,005103,005181,2,Open,2,Open fridge,2,fridge
+P03-R01-PastaSalad-2235494-2238278,053645,053725,2,Open,2,Open fridge,2,fridge
+P03-R01-PastaSalad-2371457-2372565,056912,056944,2,Open,2,Open fridge,2,fridge
+OP06-R03-BaconAndEggs-145740-149010,003489,003585,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R03-BaconAndEggs-153490-154510,003681,003711,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R03-BaconAndEggs-633100-634080,015192,015220,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R04-ContinentalBreakfast-251655-252495,006037,006062,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R04-ContinentalBreakfast-42749-43929,001022,001058,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R05-Cheeseburger-271040-272200,006501,006536,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R06-GreekSalad-167720-168430,004024,004044,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R06-GreekSalad-310955-311995,007460,007490,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R06-GreekSalad-413242-413942,009916,009936,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R06-GreekSalad-97735-99215,002342,002385,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R07-Pizza-170100-171420,004079,004118,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R07-Pizza-297735-298805,007143,007174,3,Take,3,Take eating_utensil,3,eating_utensil
+OP06-R07-Pizza-458265-459095,010996,011021,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R01-PastaSalad-211461-218155,005059,005252,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R01-PastaSalad-218155-220626,005229,005302,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R01-PastaSalad-314167-315644,007537,007579,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R01-PastaSalad-440824-441564,010577,010600,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R01-PastaSalad-585535-586246,014051,014071,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R01-PastaSalad-768950-770050,018452,018484,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R02-TurkeySandwich-168251-169071,004036,004060,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R02-TurkeySandwich-313820-315510,007527,007577,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R02-TurkeySandwich-634955-635836,015236,015263,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R02-TurkeySandwich-875755-876600,021016,021041,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1158912-1159831,027811,027838,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1221436-1222463,029312,029342,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1317631-1319172,031620,031664,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1331374-1332049,031951,031971,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1337508-1338535,032098,032127,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1493039-1494255,035829,035866,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-273514-274595,006562,006593,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-791227-792389,018986,019021,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-868088-869467,020831,020871,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-934593-935377,022428,022452,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R04-ContinentalBreakfast-252379-253811,006054,006095,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R04-ContinentalBreakfast-573437-576790,013754,013851,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R05-Cheeseburger-533935-536515,012808,012883,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R06-GreekSalad-108936-110926,002609,002668,3,Take,3,Take eating_utensil,3,eating_utensil
+P02-R06-GreekSalad-531705-533085,012757,012798,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1127366-1128885,027053,027097,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1273378-1274594,030558,030594,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1405957-1407093,033739,033774,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1515701-1516485,036374,036398,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1630093-1630823,039121,039141,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1848377-1849242,044359,044384,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1923513-1924432,046162,046189,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1954999-1955972,046917,046946,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-2056926-2057818,049364,049390,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-2060359-2061575,049445,049481,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-2090791-2091629,050176,050202,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-2280452-2281641,054727,054763,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-594529-596529,014263,014322,3,Take,3,Take eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-961344-962046,023071,023091,3,Take,3,Take eating_utensil,3,eating_utensil
+P04-R01-PastaSalad-452628-455582,010856,010941,3,Take,3,Take eating_utensil,3,eating_utensil
+P04-R01-PastaSalad-746524-748075,017913,017957,3,Take,3,Take eating_utensil,3,eating_utensil
+P04-R05-Cheeseburger-470463-471950,011288,011330,3,Take,3,Take eating_utensil,3,eating_utensil
+P04-R05-Cheeseburger-500637-502447,012011,012063,3,Take,3,Take eating_utensil,3,eating_utensil
+P04-R06-GreekSalad-1087430-1088540,026096,026127,3,Take,3,Take eating_utensil,3,eating_utensil
+P06-R01-PastaSalad-655394-656183,015727,015751,3,Take,3,Take eating_utensil,3,eating_utensil
+P06-R02-TurkeySandwich-142384-143117,003416,003436,3,Take,3,Take eating_utensil,3,eating_utensil
+P06-R02-TurkeySandwich-153409-155001,003677,003725,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-101450-102930,002431,002474,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-1274770-1277780,030587,030674,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-1319070-1321410,031652,031719,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-1731705-1734105,041554,041625,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-1734080-1735030,041615,041643,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-1797085-1798125,043128,043157,3,Take,3,Take eating_utensil,3,eating_utensil
+P07-R01-PastaSalad-188750-190600,004526,004579,3,Take,3,Take eating_utensil,3,eating_utensil
+P01-R02-TurkeySandwich-190481-199516,004550,004810,4,Cut,4,Cut tomato,4,tomato
+P01-R02-TurkeySandwich-201343-206357,004820,004965,4,Cut,4,Cut tomato,4,tomato
+P01-R02-TurkeySandwich-207519-211695,004970,005091,4,Cut,4,Cut tomato,4,tomato
+P01-R02-TurkeySandwich-214089-220027,005124,005295,4,Cut,4,Cut tomato,4,tomato
+P01-R02-TurkeySandwich-635800-640312,015248,015379,4,Cut,4,Cut tomato,4,tomato
+P02-R01-PastaSalad-350071-352174,008396,008458,4,Cut,4,Cut tomato,4,tomato
+P02-R01-PastaSalad-398855-402234,009564,009662,4,Cut,4,Cut tomato,4,tomato
+P02-R01-PastaSalad-405182-409852,009713,009848,4,Cut,4,Cut tomato,4,tomato
+P02-R01-PastaSalad-422887-423990,010147,010178,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-115601-116801,002771,002807,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-116856-117836,002802,002831,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-117836-119496,002824,002872,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-121676-122666,002918,002946,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-125351-127431,003003,003064,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-128606-129766,003083,003118,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-131501-132761,003153,003190,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-137351-138601,003293,003330,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-140071-141401,003358,003397,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-142051-143741,003405,003454,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-145301-146171,003485,003511,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-146671-148161,003517,003559,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-151776-152666,003640,003666,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-153076-154406,003670,003709,4,Cut,4,Cut tomato,4,tomato
+P02-R06-GreekSalad-156266-159416,003743,003833,4,Cut,4,Cut tomato,4,tomato
+P03-R01-PastaSalad-1519269-1522215,036455,036541,4,Cut,4,Cut tomato,4,tomato
+P03-R01-PastaSalad-1523918-1557323,036494,037456,4,Cut,4,Cut tomato,4,tomato
+P03-R01-PastaSalad-1559134-1585648,037356,038119,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-467356-472740,011203,011359,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-483491-490258,011587,011783,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-495945-498728,011896,011976,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-499832-507616,011977,012201,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-509698-519906,012208,012502,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-523880-526275,012568,012636,4,Cut,4,Cut tomato,4,tomato
+P04-R01-PastaSalad-609068-613492,014607,014734,4,Cut,4,Cut tomato,4,tomato
+P04-R06-GreekSalad-284400-302334,006782,007300,4,Cut,4,Cut tomato,4,tomato
+P04-R06-GreekSalad-303303-317518,007245,007655,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-524447-533192,012565,012818,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-533842-542922,012790,013053,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-543395-553051,013018,013297,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-559196-570821,013392,013728,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-583261-586055,013992,014072,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-587423-594359,014082,014281,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-594359-624337,014192,015057,4,Cut,4,Cut tomato,4,tomato
+P05-R01-PastaSalad-625088-631834,014986,015181,4,Cut,4,Cut tomato,4,tomato
+P05-R02-TurkeySandwich-240386-261692,005718,006332,4,Cut,4,Cut tomato,4,tomato
+P06-R01-PastaSalad-473412-474293,011359,011386,4,Cut,4,Cut tomato,4,tomato
+P06-R01-PastaSalad-474366-475596,011381,011418,4,Cut,4,Cut tomato,4,tomato
+P06-R01-PastaSalad-475641-476687,011413,011443,4,Cut,4,Cut tomato,4,tomato
+P06-R01-PastaSalad-476742-478531,011437,011489,4,Cut,4,Cut tomato,4,tomato
+P06-R01-PastaSalad-480971-482210,011540,011577,4,Cut,4,Cut tomato,4,tomato
+P06-R01-PastaSalad-482265-483238,011572,011600,4,Cut,4,Cut tomato,4,tomato
+P04-R06-GreekSalad-1154870-1155940,027714,027745,5,Turn on,5,Turn on faucet,5,faucet
+P04-R06-GreekSalad-1239230-1239900,029740,029759,5,Turn on,5,Turn on faucet,5,faucet
+P04-R06-GreekSalad-272335-272995,006535,006553,5,Turn on,5,Turn on faucet,5,faucet
+P04-R06-GreekSalad-770900-771870,018499,018527,5,Turn on,5,Turn on faucet,5,faucet
+P04-R06-GreekSalad-865990-866870,020781,020807,5,Turn on,5,Turn on faucet,5,faucet
+P04-R06-GreekSalad-951630-953750,022834,022895,5,Turn on,5,Turn on faucet,5,faucet
+P05-R01-PastaSalad-1116426-1118939,026788,026861,5,Turn on,5,Turn on faucet,5,faucet
+P06-R01-PastaSalad-1328944-1329923,031892,031921,5,Turn on,5,Turn on faucet,5,faucet
+P06-R01-PastaSalad-155496-156866,003728,003768,5,Turn on,5,Turn on faucet,5,faucet
+P06-R01-PastaSalad-83320-84990,001995,002044,5,Turn on,5,Turn on faucet,5,faucet
+P06-R01-PastaSalad-850898-851595,020420,020440,5,Turn on,5,Turn on faucet,5,faucet
+P06-R02-TurkeySandwich-515296-515916,012366,012383,5,Turn on,5,Turn on faucet,5,faucet
+P07-R01-PastaSalad-1522280-1525470,036527,036619,5,Turn on,5,Turn on faucet,5,faucet
+P07-R01-PastaSalad-1524130-1525460,036576,036615,5,Turn on,5,Turn on faucet,5,faucet
+P07-R01-PastaSalad-1802080-1803120,043247,043277,5,Turn on,5,Turn on faucet,5,faucet
+P07-R01-PastaSalad-2408515-2411145,057798,057874,5,Turn on,5,Turn on faucet,5,faucet
+P08-R01-PastaSalad-1361801-1363271,032680,032722,5,Turn on,5,Turn on faucet,5,faucet
+P09-R01-PastaSalad-112545-114075,002698,002741,5,Turn on,5,Turn on faucet,5,faucet
+P09-R01-PastaSalad-1419838-1420458,034075,034092,5,Turn on,5,Turn on faucet,5,faucet
+P09-R01-PastaSalad-1836545-1837170,044076,044094,5,Turn on,5,Turn on faucet,5,faucet
+P09-R01-PastaSalad-1840181-1845992,044150,044318,5,Turn on,5,Turn on faucet,5,faucet
+P09-R01-PastaSalad-1868712-1869682,044847,044875,5,Turn on,5,Turn on faucet,5,faucet
+P09-R01-PastaSalad-735911-737407,017658,017701,5,Turn on,5,Turn on faucet,5,faucet
+P09-R02-TurkeySandwich-509438-510726,012223,012261,5,Turn on,5,Turn on faucet,5,faucet
+P10-R01-PastaSalad-301979-303179,007244,007280,5,Turn on,5,Turn on faucet,5,faucet
+P10-R02-TurkeySandwich-332280-335680,007966,008065,5,Turn on,5,Turn on faucet,5,faucet
+P10-R05-Cheeseburger-764240-764780,018340,018356,5,Turn on,5,Turn on faucet,5,faucet
+P10-R05-Cheeseburger-839355-840055,020143,020163,5,Turn on,5,Turn on faucet,5,faucet
+P10-R06-GreekSalad-296560-297552,007115,007144,5,Turn on,5,Turn on faucet,5,faucet
+P10-R06-GreekSalad-376943-378093,009043,009078,5,Turn on,5,Turn on faucet,5,faucet
+P10-R06-GreekSalad-469562-470539,011267,011295,5,Turn on,5,Turn on faucet,5,faucet
+P10-R06-GreekSalad-708157-709317,016992,017027,5,Turn on,5,Turn on faucet,5,faucet
+P11-R01-PastaSalad-137707-140060,003299,003367,5,Turn on,5,Turn on faucet,5,faucet
+P11-R01-PastaSalad-1428693-1432043,034280,034378,5,Turn on,5,Turn on faucet,5,faucet
+P11-R01-PastaSalad-318512-320112,007640,007687,5,Turn on,5,Turn on faucet,5,faucet
+P11-R01-PastaSalad-391501-392694,009393,009428,5,Turn on,5,Turn on faucet,5,faucet
+P11-R01-PastaSalad-53700-57200,001280,001381,5,Turn on,5,Turn on faucet,5,faucet
+P11-R02-TurkeySandwich-172480-173140,004138,004157,5,Turn on,5,Turn on faucet,5,faucet
+P11-R02-TurkeySandwich-551650-552430,013237,013261,5,Turn on,5,Turn on faucet,5,faucet
+P11-R02-TurkeySandwich-651535-652345,015634,015659,5,Turn on,5,Turn on faucet,5,faucet
+P12-R01-PastaSalad-1078904-1080375,025890,025932,5,Turn on,5,Turn on faucet,5,faucet
+P12-R01-PastaSalad-1121027-1122911,026900,026954,5,Turn on,5,Turn on faucet,5,faucet
+P12-R01-PastaSalad-1730666-1732699,041530,041590,5,Turn on,5,Turn on faucet,5,faucet
+P12-R01-PastaSalad-41878-45272,000997,001095,5,Turn on,5,Turn on faucet,5,faucet
+P12-R01-PastaSalad-77361-79700,001851,001918,5,Turn on,5,Turn on faucet,5,faucet
+P12-R02-TurkeySandwich-127465-128756,003056,003094,5,Turn on,5,Turn on faucet,5,faucet
+P12-R02-TurkeySandwich-536890-542792,012871,013042,5,Turn on,5,Turn on faucet,5,faucet
+P13-R01-PastaSalad-1641930-1645248,039398,039494,5,Turn on,5,Turn on faucet,5,faucet
+P13-R01-PastaSalad-1645248-1654048,039464,039719,5,Turn on,5,Turn on faucet,5,faucet
+P13-R01-PastaSalad-2367777-2369178,056823,056864,5,Turn on,5,Turn on faucet,5,faucet
+P13-R01-PastaSalad-2427501-2432459,058248,058392,5,Turn on,5,Turn on faucet,5,faucet
+OP03-R06-GreekSalad-772860-773510,018547,018566,6,Put,6,Put eating_utensil,3,eating_utensil
+OP03-R06-GreekSalad-773690-774970,018565,018603,6,Put,6,Put eating_utensil,3,eating_utensil
+OP03-R07-Pizza-157125-158110,003769,003797,6,Put,6,Put eating_utensil,3,eating_utensil
+OP03-R07-Pizza-256340-257520,006149,006184,6,Put,6,Put eating_utensil,3,eating_utensil
+OP03-R07-Pizza-377329-378151,009053,009078,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R01-PastaSalad-331765-332485,007961,007981,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R01-PastaSalad-68860-69640,001650,001674,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R01-PastaSalad-699545-700265,016788,016808,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R04-ContinentalBreakfast-127680-128410,003063,003083,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R04-ContinentalBreakfast-158981-160090,003813,003845,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R05-Cheeseburger-83100-83940,001992,002017,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R06-GreekSalad-100390-101000,002408,002425,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R06-GreekSalad-147030-147680,003527,003546,6,Put,6,Put eating_utensil,3,eating_utensil
+OP04-R07-Pizza-466751-467730,011200,011228,6,Put,6,Put eating_utensil,3,eating_utensil
+OP05-R03-BaconAndEggs-605980-606830,014541,014566,6,Put,6,Put eating_utensil,3,eating_utensil
+OP06-R04-ContinentalBreakfast-113000-114960,002708,002764,6,Put,6,Put eating_utensil,3,eating_utensil
+OP06-R06-GreekSalad-271865-272465,006523,006541,6,Put,6,Put eating_utensil,3,eating_utensil
+OP06-R06-GreekSalad-343080-344130,008231,008262,6,Put,6,Put eating_utensil,3,eating_utensil
+OP06-R07-Pizza-169425-170095,004065,004084,6,Put,6,Put eating_utensil,3,eating_utensil
+OP06-R07-Pizza-314940-315640,007557,007577,6,Put,6,Put eating_utensil,3,eating_utensil
+OP06-R07-Pizza-471850-472840,011322,011351,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R01-PastaSalad-778382-779896,018678,018721,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1204438-1206195,028902,028953,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1251366-1253583,030027,030091,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1278189-1279432,030673,030710,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1325144-1325738,031802,031819,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1341251-1341927,032189,032208,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1492066-1492742,035808,035827,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-1494309-1495228,035861,035888,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-562898-563519,013508,013526,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-667654-668789,016021,016053,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R03-BaconAndEggs-805051-806213,019318,019353,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R04-ContinentalBreakfast-1144652-1145819,027468,027503,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R04-ContinentalBreakfast-227635-228681,005461,005491,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R04-ContinentalBreakfast-465261-466282,011164,011193,6,Put,6,Put eating_utensil,3,eating_utensil
+P02-R05-Cheeseburger-557310-558760,013372,013414,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1118774-1119478,026849,026869,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1366006-1366925,032782,032809,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1647093-1647660,039529,039545,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1952485-1953053,046858,046875,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-1974323-1975513,047380,047416,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-2057872-2058548,049387,049407,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-2089791-2090683,050152,050179,6,Put,6,Put eating_utensil,3,eating_utensil
+P03-R01-PastaSalad-584293-585940,014019,014067,6,Put,6,Put eating_utensil,3,eating_utensil
+P04-R01-PastaSalad-2119383-2120338,050863,050891,6,Put,6,Put eating_utensil,3,eating_utensil
+P04-R01-PastaSalad-726050-727042,017423,017452,6,Put,6,Put eating_utensil,3,eating_utensil
+P04-R01-PastaSalad-952945-953888,022868,022896,6,Put,6,Put eating_utensil,3,eating_utensil
+P04-R05-Cheeseburger-471982-474172,011322,011386,6,Put,6,Put eating_utensil,3,eating_utensil
+P04-R05-Cheeseburger-492389-494438,011812,011872,6,Put,6,Put eating_utensil,3,eating_utensil
+P05-R01-PastaSalad-1336448-1338002,032070,032117,6,Put,6,Put eating_utensil,3,eating_utensil
+P08-R01-PastaSalad-1579726-1581785,037908,037968,7,Operate,2,Open fridge,6,cabinet
+P08-R01-PastaSalad-1596608-1598020,038315,038356,7,Operate,2,Open fridge,6,cabinet
+P09-R01-PastaSalad-1240800-1242335,029776,029820,7,Operate,2,Open fridge,6,cabinet
+P09-R01-PastaSalad-164070-164870,003935,003959,7,Operate,2,Open fridge,6,cabinet
+P09-R01-PastaSalad-168330-168860,004038,004054,7,Operate,2,Open fridge,6,cabinet
+P09-R01-PastaSalad-558955-560212,013411,013449,7,Operate,2,Open fridge,6,cabinet
+P09-R02-TurkeySandwich-91900-94900,002198,002285,7,Operate,2,Open fridge,6,cabinet
+P10-R01-PastaSalad-1060049-1062249,025436,025499,7,Operate,2,Open fridge,6,cabinet
+P10-R01-PastaSalad-1889131-1890131,045337,045366,7,Operate,2,Open fridge,6,cabinet
+P10-R01-PastaSalad-278829-281529,006685,006763,7,Operate,2,Open fridge,6,cabinet
+P10-R02-TurkeySandwich-129532-130354,003106,003131,7,Operate,2,Open fridge,6,cabinet
+P10-R06-GreekSalad-54900-55800,001315,001342,7,Operate,2,Open fridge,6,cabinet
+P10-R06-GreekSalad-760139-761595,018240,018282,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-440497-445490,010559,010704,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-446855-450980,010714,010834,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-545183-547318,013079,013141,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-555375-557125,013325,013375,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-563542-567115,013517,013619,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-571183-573100,013704,013759,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-581960-584385,013961,014032,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-665943-667910,015978,016034,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-669379-671488,016060,016121,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-677754-679793,016261,016321,7,Operate,2,Open fridge,6,cabinet
+P13-R01-PastaSalad-75912-78829,001814,001899,7,Operate,2,Open fridge,6,cabinet
+P15-R01-PastaSalad-412750-414050,009903,009941,7,Operate,2,Open fridge,6,cabinet
+P15-R01-PastaSalad-418900-420700,010049,010101,7,Operate,2,Open fridge,6,cabinet
+P15-R01-PastaSalad-423550-425050,010162,010205,7,Operate,2,Open fridge,6,cabinet
+P15-R01-PastaSalad-426092-429956,010217,010328,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-1026100-1028900,024620,024700,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-103400-104500,002479,002510,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-1089151-1090998,026135,026188,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-111700-112800,002678,002710,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-148911-152184,003565,003661,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-1529800-1531600,036711,036763,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-1533500-1536200,036798,036875,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-190510-192100,004568,004615,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-2256264-2258289,054145,054204,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-494815-496152,011872,011911,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-497558-498518,011939,011967,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-523671-524861,012565,012600,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-526200-527300,012626,012658,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-539962-544113,012949,013069,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-676681-678224,016237,016281,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-728479-729704,017480,017516,7,Operate,2,Open fridge,6,cabinet
+P16-R03-BaconAndEggs-787155-788187,018889,018919,7,Operate,2,Open fridge,6,cabinet
+P17-R03-BaconAndEggs-167795-169978,004022,004085,7,Operate,2,Open fridge,6,cabinet
+P17-R03-BaconAndEggs-440127-441959,010559,010612,7,Operate,2,Open fridge,6,cabinet
+P17-R03-BaconAndEggs-470900-472000,011299,011330,7,Operate,2,Open fridge,6,cabinet
+P17-R04-ContinentalBreakfast-1082773-1084063,025983,026021,7,Operate,2,Open fridge,6,cabinet
+P17-R04-ContinentalBreakfast-309236-309859,007420,007438,7,Operate,2,Open fridge,6,cabinet
+OP03-R05-Cheeseburger-762095-762635,018289,018305,8,Close,3,Take eating_utensil,7,condiment_container
+OP03-R06-GreekSalad-651850-652870,015642,015671,8,Close,3,Take eating_utensil,7,condiment_container
+OP03-R07-Pizza-282302-283268,006773,006801,8,Close,3,Take eating_utensil,7,condiment_container
+OP03-R07-Pizza-523425-524327,012560,012586,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-712985-714055,017109,017140,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-716280-718610,017185,017252,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-722625-723315,017342,017361,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-811340-812120,019470,019493,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-829160-830140,019897,019926,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R02-TurkeySandwich-233240-234250,005595,005624,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R02-TurkeySandwich-260800-262120,006256,006294,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R02-TurkeySandwich-262200-263740,006289,006333,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R03-BaconAndEggs-773379-775412,018556,018615,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R04-ContinentalBreakfast-491290-493181,011786,011841,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R05-Cheeseburger-408000-409560,009789,009833,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R05-Cheeseburger-422640-423460,010141,010166,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R05-Cheeseburger-423560-424480,010163,010190,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-234230-234960,005619,005642,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-250515-251305,006010,006034,8,Close,3,Take eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-291555-292505,006995,007023,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R03-BaconAndEggs-544830-545950,013073,013105,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-112920-113840,002708,002735,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-149395-150265,003583,003609,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-345070-346060,008279,008308,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-40809-41679,000977,001003,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R07-Pizza-339760-341040,008151,008188,8,Close,3,Take eating_utensil,7,condiment_container
+OP05-R07-Pizza-341145-342245,008185,008216,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R02-TurkeySandwich-418095-419595,010031,010074,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R03-BaconAndEggs-602220-603800,014449,014496,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R04-ContinentalBreakfast-240780-242580,005774,005826,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R04-ContinentalBreakfast-275105-275725,006601,006619,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R04-ContinentalBreakfast-35429-36659,000847,000883,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R04-ContinentalBreakfast-66580-68000,001594,001635,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R05-Cheeseburger-632039-632949,015166,015193,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R06-GreekSalad-363065-364825,008709,008760,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R06-GreekSalad-366325-368425,008786,008848,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R06-GreekSalad-398380-399850,009558,009600,8,Close,3,Take eating_utensil,7,condiment_container
+OP06-R06-GreekSalad-442145-443845,010607,010657,8,Close,3,Take eating_utensil,7,condiment_container
+P01-R01-PastaSalad-1245465-1248035,029885,029959,8,Close,3,Take eating_utensil,7,condiment_container
+P01-R02-TurkeySandwich-723660-725148,017364,017407,8,Close,3,Take eating_utensil,7,condiment_container
+P02-R01-PastaSalad-1380767-1381553,033136,033160,8,Close,3,Take eating_utensil,7,condiment_container
+P02-R01-PastaSalad-138289-139806,003315,003359,8,Close,3,Take eating_utensil,7,condiment_container
+P02-R01-PastaSalad-1662231-1663246,039891,039920,8,Close,3,Take eating_utensil,7,condiment_container
+P02-R01-PastaSalad-171189-172586,004105,004146,8,Close,3,Take eating_utensil,7,condiment_container
+P02-R01-PastaSalad-605922-606892,014540,014568,9,Move Around,4,Cut tomato,8,cucumber
+P02-R01-PastaSalad-609674-619555,014609,014893,9,Move Around,4,Cut tomato,8,cucumber
+P02-R01-PastaSalad-623347-623947,014959,014976,9,Move Around,4,Cut tomato,8,cucumber
+P02-R01-PastaSalad-626580-627646,015035,015066,9,Move Around,4,Cut tomato,8,cucumber
+P02-R01-PastaSalad-636262-638162,015266,015320,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-175691-176961,004213,004251,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-188006-188846,004510,004535,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-190531-192271,004568,004619,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-195766-196416,004697,004715,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-196836-197416,004723,004739,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-197641-198371,004742,004762,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-198601-200041,004763,004804,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-201256-201956,004829,004848,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-203801-204351,004890,004906,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-204851-207111,004911,004976,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-211961-212571,005086,005103,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-212921-213421,005109,005124,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-214721-215501,005151,005175,9,Move Around,4,Cut tomato,8,cucumber
+P02-R06-GreekSalad-216876-217586,005204,005224,9,Move Around,4,Cut tomato,8,cucumber
+P03-R01-PastaSalad-1274621-1318268,030485,031744,9,Move Around,4,Cut tomato,8,cucumber
+P03-R01-PastaSalad-1369648-1398945,032801,033645,9,Move Around,4,Cut tomato,8,cucumber
+P04-R01-PastaSalad-1343166-1347622,032225,032353,9,Move Around,4,Cut tomato,8,cucumber
+P04-R01-PastaSalad-1411678-1421442,033857,034138,9,Move Around,4,Cut tomato,8,cucumber
+P04-R01-PastaSalad-1430718-1434054,034329,034426,9,Move Around,4,Cut tomato,8,cucumber
+P04-R01-PastaSalad-1438837-1447005,034513,034748,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-373745-379715,008955,009128,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-379740-388560,009092,009347,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-391252-395372,009380,009499,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-399726-459915,009449,011182,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-462230-473310,011067,011386,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-559420-568450,013405,013664,9,Move Around,4,Cut tomato,8,cucumber
+P04-R06-GreekSalad-568440-570600,013637,013700,9,Move Around,4,Cut tomato,8,cucumber
+P05-R01-PastaSalad-766671-770567,018391,018503,9,Move Around,4,Cut tomato,8,cucumber
+P05-R01-PastaSalad-802542-833198,019188,020070,9,Move Around,4,Cut tomato,8,cucumber
+P05-R01-PastaSalad-838229-843347,020105,020253,9,Move Around,4,Cut tomato,8,cucumber
+P05-R01-PastaSalad-868992-873264,020845,020969,9,Move Around,4,Cut tomato,8,cucumber
+P06-R01-PastaSalad-434999-436898,010435,010490,9,Move Around,4,Cut tomato,8,cucumber
+P06-R01-PastaSalad-436963-438623,010483,010531,9,Move Around,4,Cut tomato,8,cucumber
+P06-R01-PastaSalad-438687-439797,010526,010558,9,Move Around,4,Cut tomato,8,cucumber
+P06-R01-PastaSalad-439852-441182,010553,010592,9,Move Around,4,Cut tomato,8,cucumber
+P06-R01-PastaSalad-441219-442246,010587,010616,9,Move Around,4,Cut tomato,8,cucumber
+OP04-R05-Cheeseburger-279440-284090,006695,006830,10,Wash,7,Open cabinet,9,stove
+OP04-R07-Pizza-284634-286260,006827,006875,10,Wash,7,Open cabinet,9,stove
+OP05-R03-BaconAndEggs-26760-34480,000624,000846,10,Wash,7,Open cabinet,9,stove
+OP05-R04-ContinentalBreakfast-268410-271580,006434,006525,10,Wash,7,Open cabinet,9,stove
+OP05-R04-ContinentalBreakfast-377140-379550,009045,009116,10,Wash,7,Open cabinet,9,stove
+OP06-R03-BaconAndEggs-189450-197710,004526,004766,10,Wash,7,Open cabinet,9,stove
+OP06-R03-BaconAndEggs-460070-461170,011039,011071,10,Wash,7,Open cabinet,9,stove
+OP06-R03-BaconAndEggs-492580-499780,011804,012012,10,Wash,7,Open cabinet,9,stove
+OP06-R03-BaconAndEggs-736260-737690,017667,017708,10,Wash,7,Open cabinet,9,stove
+OP06-R04-ContinentalBreakfast-378830-381160,009086,009153,10,Wash,7,Open cabinet,9,stove
+OP06-R05-Cheeseburger-549000-550760,013172,013223,10,Wash,7,Open cabinet,9,stove
+OP06-R05-Cheeseburger-58950-61840,001407,001492,10,Wash,7,Open cabinet,9,stove
+OP06-R07-Pizza-117200-119340,002807,002870,10,Wash,7,Open cabinet,9,stove
+OP06-R07-Pizza-374665-375895,008988,009025,10,Wash,7,Open cabinet,9,stove
+OP06-R07-Pizza-617000-618320,014805,014843,10,Wash,7,Open cabinet,9,stove
+P01-R01-PastaSalad-433263-436009,010392,010471,10,Wash,7,Open cabinet,9,stove
+P01-R01-PastaSalad-85059-87478,002035,002106,10,Wash,7,Open cabinet,9,stove
+P02-R01-PastaSalad-59565-63262,001420,001528,10,Wash,7,Open cabinet,9,stove
+P02-R03-BaconAndEggs-1036526-1038147,024872,024920,10,Wash,7,Open cabinet,9,stove
+P02-R03-BaconAndEggs-1350710-1351656,032415,032442,10,Wash,7,Open cabinet,9,stove
+P02-R03-BaconAndEggs-432767-435875,010379,010468,10,Wash,7,Open cabinet,9,stove
+P02-R03-BaconAndEggs-709296-716729,017005,017220,10,Wash,7,Open cabinet,9,stove
+P02-R03-BaconAndEggs-766795-770498,018394,018501,10,Wash,7,Open cabinet,9,stove
+P02-R04-ContinentalBreakfast-512207-514288,012287,012348,10,Wash,7,Open cabinet,9,stove
+P02-R04-ContinentalBreakfast-830676-832141,019933,019975,10,Wash,7,Open cabinet,9,stove
+P02-R05-Cheeseburger-377680-384770,009047,009252,10,Wash,7,Open cabinet,9,stove
+P02-R05-Cheeseburger-751175-754495,018020,018116,10,Wash,7,Open cabinet,9,stove
+P02-R05-Cheeseburger-751185-756435,018016,018167,10,Wash,7,Open cabinet,9,stove
+P02-R05-Cheeseburger-93660-97230,002239,002342,10,Wash,7,Open cabinet,9,stove
+P03-R01-PastaSalad-2192606-2194038,052619,052660,10,Wash,7,Open cabinet,9,stove
+P03-R01-PastaSalad-641647-644411,015393,015472,10,Wash,7,Open cabinet,9,stove
+P04-R01-PastaSalad-1034952-1037364,024832,024903,10,Wash,7,Open cabinet,9,stove
+P04-R01-PastaSalad-167388-173641,004002,004183,10,Wash,7,Open cabinet,9,stove
+P04-R05-Cheeseburger-74842-78588,001787,001896,10,Wash,7,Open cabinet,9,stove
+P05-R01-PastaSalad-166180-169741,003980,004082,10,Wash,7,Open cabinet,9,stove
+P05-R01-PastaSalad-171644-173396,004115,004166,10,Wash,7,Open cabinet,9,stove
+P05-R01-PastaSalad-657020-659565,015762,015836,10,Wash,7,Open cabinet,9,stove
+P05-R01-PastaSalad-882440-883751,021175,021214,10,Wash,7,Open cabinet,9,stove
+P06-R01-PastaSalad-98020-99390,002349,002389,10,Wash,7,Open cabinet,9,stove
+OP03-R01-PastaSalad-155200-157750,003718,003792,11,Spread,8,Take condiment_container,2,fridge
+OP03-R02-TurkeySandwich-162060-163410,003886,003925,11,Spread,8,Take condiment_container,2,fridge
+OP03-R02-TurkeySandwich-167630-169800,004018,004081,11,Spread,8,Take condiment_container,2,fridge
+OP03-R02-TurkeySandwich-172380-173860,004134,004176,11,Spread,8,Take condiment_container,2,fridge
+OP03-R02-TurkeySandwich-179150-180830,004295,004344,11,Spread,8,Take condiment_container,2,fridge
+OP03-R02-TurkeySandwich-224760-226080,005391,005429,11,Spread,8,Take condiment_container,2,fridge
+OP03-R02-TurkeySandwich-376290-378060,009026,009078,11,Spread,8,Take condiment_container,2,fridge
+OP03-R03-BaconAndEggs-370866-372735,008896,008950,11,Spread,8,Take condiment_container,2,fridge
+OP03-R03-BaconAndEggs-790633-792532,018971,019025,11,Spread,8,Take condiment_container,2,fridge
+OP03-R03-BaconAndEggs-794784-795521,019072,019095,11,Spread,8,Take condiment_container,2,fridge
+OP03-R04-ContinentalBreakfast-206825-207974,004960,004995,11,Spread,8,Take condiment_container,2,fridge
+OP03-R05-Cheeseburger-458880-460400,011010,011053,11,Spread,8,Take condiment_container,2,fridge
+OP03-R05-Cheeseburger-746945-748905,017922,017978,11,Spread,8,Take condiment_container,2,fridge
+OP03-R06-GreekSalad-364610-367550,008743,008829,11,Spread,8,Take condiment_container,2,fridge
+OP03-R06-GreekSalad-655100-656820,015718,015768,11,Spread,8,Take condiment_container,2,fridge
+OP03-R07-Pizza-109585-111518,002626,002681,11,Spread,8,Take condiment_container,2,fridge
+OP04-R01-PastaSalad-350742-352002,008414,008452,11,Spread,8,Take condiment_container,2,fridge
+OP04-R01-PastaSalad-468175-469695,011233,011276,11,Spread,8,Take condiment_container,2,fridge
+OP04-R01-PastaSalad-641895-643335,015402,015444,11,Spread,8,Take condiment_container,2,fridge
+OP04-R02-TurkeySandwich-234290-235520,005619,005656,11,Spread,8,Take condiment_container,2,fridge
+OP04-R03-BaconAndEggs-770500-771590,018490,018521,11,Spread,8,Take condiment_container,2,fridge
+OP04-R04-ContinentalBreakfast-40817-41827,000977,001006,11,Spread,8,Take condiment_container,2,fridge
+OP04-R04-ContinentalBreakfast-52157-53387,001248,001285,11,Spread,8,Take condiment_container,2,fridge
+OP04-R04-ContinentalBreakfast-87025-88545,002085,002129,11,Spread,8,Take condiment_container,2,fridge
+OP04-R05-Cheeseburger-104350-105310,002502,002530,11,Spread,8,Take condiment_container,2,fridge
+OP04-R05-Cheeseburger-307880-311090,007382,007474,11,Spread,8,Take condiment_container,2,fridge
+OP04-R05-Cheeseburger-409750-411120,009831,009870,11,Spread,8,Take condiment_container,2,fridge
+OP04-R06-GreekSalad-317210-318210,007611,007640,11,Spread,8,Take condiment_container,2,fridge
+OP04-R06-GreekSalad-78740-79980,001886,001923,11,Spread,8,Take condiment_container,2,fridge
+OP05-R03-BaconAndEggs-251570-253740,006032,006095,11,Spread,8,Take condiment_container,2,fridge
+OP05-R03-BaconAndEggs-368215-371145,008830,008915,11,Spread,8,Take condiment_container,2,fridge
+OP05-R03-BaconAndEggs-62290-67540,001482,001633,11,Spread,8,Take condiment_container,2,fridge
+OP05-R04-ContinentalBreakfast-363010-365890,008705,008789,11,Spread,8,Take condiment_container,2,fridge
+OP05-R07-Pizza-155330-156770,003724,003766,11,Spread,8,Take condiment_container,2,fridge
+OP05-R07-Pizza-38955-42925,000925,001040,11,Spread,8,Take condiment_container,2,fridge
+OP05-R07-Pizza-80710-81350,001936,001954,11,Spread,8,Take condiment_container,2,fridge
+OP05-R07-Pizza-81565-82905,001954,001993,11,Spread,8,Take condiment_container,2,fridge
+OP06-R02-TurkeySandwich-230535-234555,005523,005639,11,Spread,8,Take condiment_container,2,fridge
+OP06-R02-TurkeySandwich-424390-427230,010178,010261,11,Spread,8,Take condiment_container,2,fridge
+P02-R01-PastaSalad-556536-557969,013353,013395,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-1013630-1043791,024255,025123,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-1058432-1086791,025334,026151,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-1101584-1105248,026430,026534,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-1129893-1151405,027066,027685,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-1152376-1174728,027604,028247,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-1175480-1189495,028178,028581,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-881705-885528,021151,021262,12,Turn off,4,Cut tomato,10,carrot
+P03-R01-PastaSalad-985198-987710,023638,023712,12,Turn off,4,Cut tomato,10,carrot
+P04-R01-PastaSalad-1212207-1221767,029069,029346,12,Turn off,4,Cut tomato,10,carrot
+P04-R01-PastaSalad-1244908-1253620,029856,030108,12,Turn off,4,Cut tomato,10,carrot
+P04-R01-PastaSalad-1253747-1262148,030069,030312,12,Turn off,4,Cut tomato,10,carrot
+P05-R01-PastaSalad-938032-942294,022502,022626,12,Turn off,4,Cut tomato,10,carrot
+P05-R01-PastaSalad-943846-972546,022583,023411,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-681292-683426,016346,016408,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-697831-698943,016745,016777,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-699684-700493,016790,016814,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-700505-701224,016811,016831,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-703943-705021,016892,016923,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-705044-706145,016919,016950,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-707190-708381,016969,017005,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-708470-709437,017001,017029,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-709639-711022,017028,017068,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-711168-712168,017066,017095,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-714359-714954,017143,017160,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-715134-715730,017162,017179,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-715999-717010,017181,017211,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-719718-721111,017270,017310,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-721314-722674,017308,017348,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-725246-726258,017403,017433,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-726921-728943,017441,017500,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-729055-730133,017495,017526,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-731257-732572,017547,017585,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-734639-736223,017627,017674,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-738145-739774,017711,017759,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-740504-741538,017770,017799,12,Turn off,4,Cut tomato,10,carrot
+P06-R01-PastaSalad-742628-743280,017822,017840,12,Turn off,4,Cut tomato,10,carrot
+OP03-R04-ContinentalBreakfast-361952-362709,008684,008708,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP03-R05-Cheeseburger-749140-750380,017976,018013,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP03-R06-GreekSalad-653700-655150,015685,015727,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP03-R06-GreekSalad-705020-705700,016919,016938,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP03-R07-Pizza-285110-286090,006840,006869,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-714390-716070,017141,017190,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-725385-726245,017407,017432,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-828185-829145,019874,019902,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-839540-840700,020145,020180,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R01-PastaSalad-854150-855090,020497,020525,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R02-TurkeySandwich-251650-252600,006037,006065,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R02-TurkeySandwich-270250-273590,006478,006575,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R03-BaconAndEggs-780570-781730,018730,018765,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R04-ContinentalBreakfast-141576-142376,003395,003420,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R04-ContinentalBreakfast-499849-500689,011994,012019,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R05-Cheeseburger-133380-134250,003199,003224,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R05-Cheeseburger-420800-421620,010097,010121,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R05-Cheeseburger-431510-433600,010351,010412,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-247215-248065,005931,005956,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-268010-268770,006430,006453,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-300090-300980,007200,007226,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R06-GreekSalad-316625-317245,007598,007615,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R07-Pizza-525231-526920,012601,012651,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP04-R07-Pizza-526661-527801,012636,012671,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP05-R03-BaconAndEggs-669070-669940,016055,016081,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-127855-128965,003066,003098,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-153305-154545,003676,003713,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-355065-356045,008519,008548,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP05-R04-ContinentalBreakfast-60702-61392,001455,001475,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP05-R07-Pizza-365895-367065,008778,008813,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP06-R02-TurkeySandwich-444200-446330,010655,010717,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP06-R03-BaconAndEggs-693220-694970,016633,016684,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP06-R04-ContinentalBreakfast-275745-277825,006612,006673,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP06-R06-GreekSalad-375445-376785,009007,009046,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+OP06-R06-GreekSalad-411902-413022,009883,009915,13,Divide/Pull Apart,6,Put eating_utensil,7,condiment_container
+P02-R01-PastaSalad-625705-626522,015014,015039,14,Clean/Wipe,4,Cut tomato,11,onion
+P02-R01-PastaSalad-633587-634904,015203,015241,14,Clean/Wipe,4,Cut tomato,11,onion
+P02-R01-PastaSalad-639379-640229,015343,015368,14,Clean/Wipe,4,Cut tomato,11,onion
+P03-R01-PastaSalad-1632580-1645255,039151,039517,14,Clean/Wipe,4,Cut tomato,11,onion
+P03-R01-PastaSalad-1728822-1732498,041482,041589,14,Clean/Wipe,4,Cut tomato,11,onion
+P03-R01-PastaSalad-1736268-1742079,041656,041824,14,Clean/Wipe,4,Cut tomato,11,onion
+P03-R01-PastaSalad-1766270-1780459,042356,042766,14,Clean/Wipe,4,Cut tomato,11,onion
+P03-R01-PastaSalad-1811324-1828675,043430,043930,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-1061152-1072832,025439,025776,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-875565-882438,020997,021195,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-886118-898271,021237,021588,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-905263-920272,021690,022123,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-922336-926465,022126,022246,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-960282-967962,023028,023250,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-975127-982145,023386,023589,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-983082-992818,023570,023851,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R01-PastaSalad-993564-1003037,023823,024095,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R05-Cheeseburger-553033-562833,013249,013531,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R05-Cheeseburger-564678-581727,013511,014003,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R06-GreekSalad-183565-184605,004403,004433,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R06-GreekSalad-523000-555250,012475,013403,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R06-GreekSalad-570620-584120,013662,014051,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R06-GreekSalad-603310-621046,014437,014948,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R06-GreekSalad-621734-633879,014892,015243,14,Clean/Wipe,4,Cut tomato,11,onion
+P04-R06-GreekSalad-635600-648120,015224,015585,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-1007445-1013285,024164,024333,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-935022-937864,022433,022516,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-961684-963190,023077,023120,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-980155-988655,023503,023748,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-997725-999055,023942,023981,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-999940-1002220,023993,024059,14,Clean/Wipe,4,Cut tomato,11,onion
+P07-R01-PastaSalad-1702580-1707830,040849,041000,14,Clean/Wipe,4,Cut tomato,11,onion
+P07-R01-PastaSalad-1717275-1720495,041207,041299,14,Clean/Wipe,4,Cut tomato,11,onion
+P08-R01-PastaSalad-399399-403693,009575,009699,14,Clean/Wipe,4,Cut tomato,11,onion
+P06-R01-PastaSalad-122526-125009,002934,003007,15,Mix,2,Open fridge,12,drawer
+P06-R01-PastaSalad-576687-577568,013838,013864,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-199405-200795,004782,004823,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-203235-203975,004875,004898,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-437390-439645,010492,010557,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-439645-443855,010541,010663,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-473080-475450,011348,011416,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-484825-486425,011631,011679,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-486425-487940,011671,011714,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-489350-492580,011737,011829,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-550550-552880,013208,013275,15,Mix,2,Open fridge,12,drawer
+P07-R01-PastaSalad-774375-776215,018581,018634,15,Mix,2,Open fridge,12,drawer
+P08-R01-PastaSalad-359515-360515,008626,008655,15,Mix,2,Open fridge,12,drawer
+P08-R01-PastaSalad-855088-857706,020516,020591,15,Mix,2,Open fridge,12,drawer
+P09-R01-PastaSalad-666546-668280,015993,016043,15,Mix,2,Open fridge,12,drawer
+P09-R01-PastaSalad-673021-675271,016147,016212,15,Mix,2,Open fridge,12,drawer
+P10-R01-PastaSalad-1154049-1156349,027692,027758,15,Mix,2,Open fridge,12,drawer
+P10-R01-PastaSalad-698038-699338,016749,016788,15,Mix,2,Open fridge,12,drawer
+P10-R01-PastaSalad-848738-850338,020365,020413,15,Mix,2,Open fridge,12,drawer
+P10-R05-Cheeseburger-138740-140000,003326,003363,15,Mix,2,Open fridge,12,drawer
+P10-R05-Cheeseburger-170315-171785,004084,004126,15,Mix,2,Open fridge,12,drawer
+P10-R05-Cheeseburger-524690-525660,012590,012618,15,Mix,2,Open fridge,12,drawer
+P10-R06-GreekSalad-218985-220640,005251,005300,15,Mix,2,Open fridge,12,drawer
+P10-R06-GreekSalad-308940-310087,007411,007446,15,Mix,2,Open fridge,12,drawer
+P10-R06-GreekSalad-392443-393643,009415,009451,15,Mix,2,Open fridge,12,drawer
+P10-R06-GreekSalad-473043-475143,011348,011409,15,Mix,2,Open fridge,12,drawer
+P10-R06-GreekSalad-85900-87000,002059,002090,15,Mix,2,Open fridge,12,drawer
+P11-R01-PastaSalad-1710968-1713468,041057,041130,15,Mix,2,Open fridge,12,drawer
+P11-R02-TurkeySandwich-126150-128500,003022,003089,15,Mix,2,Open fridge,12,drawer
+P12-R01-PastaSalad-184753-186100,004431,004470,15,Mix,2,Open fridge,12,drawer
+P12-R01-PastaSalad-271117-272158,006504,006534,15,Mix,2,Open fridge,12,drawer
+P13-R01-PastaSalad-1283037-1285284,030787,030852,15,Mix,2,Open fridge,12,drawer
+OP03-R05-Cheeseburger-75020-75910,001798,001824,16,Pour,3,Take eating_utensil,13,plate
+OP03-R07-Pizza-351295-352348,008429,008459,16,Pour,3,Take eating_utensil,13,plate
+OP04-R05-Cheeseburger-72880-74690,001745,001797,16,Pour,3,Take eating_utensil,13,plate
+OP05-R03-BaconAndEggs-398760-400230,009567,009609,16,Pour,3,Take eating_utensil,13,plate
+OP05-R03-BaconAndEggs-488890-489890,011731,011760,16,Pour,3,Take eating_utensil,13,plate
+OP05-R04-ContinentalBreakfast-175490-177280,004207,004259,16,Pour,3,Take eating_utensil,13,plate
+OP06-R02-TurkeySandwich-147610-149160,003539,003583,16,Pour,3,Take eating_utensil,13,plate
+OP06-R02-TurkeySandwich-237605-241325,005693,005801,16,Pour,3,Take eating_utensil,13,plate
+OP06-R02-TurkeySandwich-241365-245185,005783,005894,16,Pour,3,Take eating_utensil,13,plate
+OP06-R03-BaconAndEggs-441910-444930,010598,010686,16,Pour,3,Take eating_utensil,13,plate
+OP06-R03-BaconAndEggs-462240-463160,011091,011118,16,Pour,3,Take eating_utensil,13,plate
+OP06-R03-BaconAndEggs-698450-700070,016758,016806,16,Pour,3,Take eating_utensil,13,plate
+OP06-R04-ContinentalBreakfast-115100-116410,002759,002797,16,Pour,3,Take eating_utensil,13,plate
+OP06-R04-ContinentalBreakfast-232900-235570,005583,005660,16,Pour,3,Take eating_utensil,13,plate
+OP06-R05-Cheeseburger-358670-361740,008601,008689,16,Pour,3,Take eating_utensil,13,plate
+OP06-R05-Cheeseburger-553950-555930,013289,013348,16,Pour,3,Take eating_utensil,13,plate
+OP06-R06-GreekSalad-134350-136090,003220,003271,16,Pour,3,Take eating_utensil,13,plate
+OP06-R06-GreekSalad-87320-90540,002088,002180,16,Pour,3,Take eating_utensil,13,plate
+OP06-R07-Pizza-166030-169860,003975,004086,16,Pour,3,Take eating_utensil,13,plate
+P01-R01-PastaSalad-1198237-1200301,028752,028813,16,Pour,3,Take eating_utensil,13,plate
+P01-R01-PastaSalad-486111-487482,011663,011703,16,Pour,3,Take eating_utensil,13,plate
+P01-R01-PastaSalad-525307-526299,012605,012634,16,Pour,3,Take eating_utensil,13,plate
+P01-R01-PastaSalad-546673-547975,013117,013155,16,Pour,3,Take eating_utensil,13,plate
+P01-R01-PastaSalad-933229-934901,022393,022442,16,Pour,3,Take eating_utensil,13,plate
+P01-R02-TurkeySandwich-603576-605814,014480,014545,16,Pour,3,Take eating_utensil,13,plate
+P01-R02-TurkeySandwich-76687-77886,001837,001873,16,Pour,3,Take eating_utensil,13,plate
+P02-R01-PastaSalad-292518-295952,007012,007111,16,Pour,3,Take eating_utensil,13,plate
+P02-R01-PastaSalad-834095-835809,020014,020064,16,Pour,3,Take eating_utensil,13,plate
+P02-R03-BaconAndEggs-534858-540588,012822,012989,16,Pour,3,Take eating_utensil,13,plate
+P02-R03-BaconAndEggs-726905-734608,017427,017649,16,Pour,3,Take eating_utensil,13,plate
+P01-R02-TurkeySandwich-890873-896170,021367,021522,17,Compress,3,Take eating_utensil,14,bowl
+P01-R02-TurkeySandwich-895771-898259,021492,021565,17,Compress,3,Take eating_utensil,14,bowl
+P02-R01-PastaSalad-1507318-1508976,036171,036220,17,Compress,3,Take eating_utensil,14,bowl
+P02-R01-PastaSalad-929235-930621,022298,022338,17,Compress,3,Take eating_utensil,14,bowl
+P02-R04-ContinentalBreakfast-63925-66655,001528,001606,17,Compress,3,Take eating_utensil,14,bowl
+P02-R04-ContinentalBreakfast-67593-70521,001615,001700,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-116390-119173,002787,002867,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-1403161-1404404,033672,033709,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-2036982-2038036,048885,048915,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-2204470-2205254,052905,052929,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-2257304-2258602,054172,054210,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-2398305-2399873,057556,057600,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-528646-529469,012685,012710,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-532058-534823,012763,012842,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-542234-543234,013011,013040,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-936111-936935,022464,022489,17,Compress,3,Take eating_utensil,14,bowl
+P05-R01-PastaSalad-1168893-1170189,028050,028088,17,Compress,3,Take eating_utensil,14,bowl
+P05-R01-PastaSalad-1169682-1170833,028070,028102,17,Compress,3,Take eating_utensil,14,bowl
+P05-R01-PastaSalad-471018-472994,011300,011356,17,Compress,3,Take eating_utensil,14,bowl
+P06-R01-PastaSalad-357742-359687,008581,008637,17,Compress,3,Take eating_utensil,14,bowl
+P07-R01-PastaSalad-117165-118105,002809,002837,17,Compress,3,Take eating_utensil,14,bowl
+P07-R01-PastaSalad-131150-133100,003143,003199,17,Compress,3,Take eating_utensil,14,bowl
+P07-R01-PastaSalad-1557940-1558710,037388,037412,17,Compress,3,Take eating_utensil,14,bowl
+P07-R01-PastaSalad-766590-767920,018395,018434,17,Compress,3,Take eating_utensil,14,bowl
+P07-R01-PastaSalad-83215-85905,001991,002068,17,Compress,3,Take eating_utensil,14,bowl
+P07-R01-PastaSalad-85905-87485,002057,002104,17,Compress,3,Take eating_utensil,14,bowl
+P08-R01-PastaSalad-1160149-1166737,027827,028018,17,Compress,3,Take eating_utensil,14,bowl
+P08-R01-PastaSalad-1176885-1179296,028239,028310,17,Compress,3,Take eating_utensil,14,bowl
+P09-R01-PastaSalad-1243453-1246081,029836,029912,17,Compress,3,Take eating_utensil,14,bowl
+P10-R01-PastaSalad-282929-284529,006786,006833,17,Compress,3,Take eating_utensil,14,bowl
+P03-R01-PastaSalad-548646-549763,013165,013197,18,Crack,6,Put eating_utensil,14,bowl
+P04-R01-PastaSalad-650253-652428,015601,015664,18,Crack,6,Put eating_utensil,14,bowl
+P05-R01-PastaSalad-1156508-1158099,027752,027799,18,Crack,6,Put eating_utensil,14,bowl
+P05-R01-PastaSalad-1173352-1174498,028158,028190,18,Crack,6,Put eating_utensil,14,bowl
+P05-R01-PastaSalad-474524-475645,011386,011418,18,Crack,6,Put eating_utensil,14,bowl
+P06-R01-PastaSalad-1346044-1347919,032301,032355,18,Crack,6,Put eating_utensil,14,bowl
+P06-R01-PastaSalad-846156-847572,020304,020345,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-118090-120330,002829,002893,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-120335-122255,002884,002939,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-158880-162100,003806,003898,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-166510-168460,003992,004048,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-170720-172930,004092,004156,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-175340-176340,004206,004235,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-176350-178350,004227,004286,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-338500-339750,008121,008157,18,Crack,6,Put eating_utensil,14,bowl
+P07-R01-PastaSalad-594850-599160,014266,014390,18,Crack,6,Put eating_utensil,14,bowl
+P09-R01-PastaSalad-1257847-1259374,030185,030228,18,Crack,6,Put eating_utensil,14,bowl
+P10-R01-PastaSalad-1119772-1120429,026873,026892,18,Crack,6,Put eating_utensil,14,bowl
+P10-R01-PastaSalad-1124708-1126981,026987,027053,18,Crack,6,Put eating_utensil,14,bowl
+P10-R01-PastaSalad-288729-290029,006926,006964,18,Crack,6,Put eating_utensil,14,bowl
+P10-R06-GreekSalad-688132-691437,016507,016603,18,Crack,6,Put eating_utensil,14,bowl
+P11-R01-PastaSalad-1827874-1829074,043865,043901,18,Crack,6,Put eating_utensil,14,bowl
+P11-R01-PastaSalad-2182799-2186899,052377,052496,18,Crack,6,Put eating_utensil,14,bowl
+P13-R01-PastaSalad-128911-131850,003086,003172,18,Crack,6,Put eating_utensil,14,bowl
+P13-R01-PastaSalad-134502-139127,003217,003351,18,Crack,6,Put eating_utensil,14,bowl
+P13-R01-PastaSalad-137579-141992,003291,003418,18,Crack,6,Put eating_utensil,14,bowl
+P13-R01-PastaSalad-1612820-1614952,038702,038764,18,Crack,6,Put eating_utensil,14,bowl
+P13-R01-PastaSalad-1882768-1884850,045181,045242,18,Crack,6,Put eating_utensil,14,bowl
+P13-R01-PastaSalad-2303863-2306494,055286,055362,18,Crack,6,Put eating_utensil,14,bowl
+P03-R01-PastaSalad-1464006-1464655,035135,035153,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P03-R01-PastaSalad-2157864-2158540,051787,051806,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P03-R01-PastaSalad-2410858-2411480,057859,057877,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P03-R01-PastaSalad-317058-318411,007606,007645,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P04-R01-PastaSalad-1267158-1267958,030409,030433,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P04-R01-PastaSalad-336882-337715,008083,008108,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P04-R01-PastaSalad-430295-430951,010326,010344,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P04-R05-Cheeseburger-589375-590503,014143,014175,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P04-R05-Cheeseburger-671836-672983,016122,016154,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P04-R06-GreekSalad-1264970-1265630,030358,030377,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P05-R01-PastaSalad-1401341-1411701,033607,033906,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P05-R02-TurkeySandwich-665398-671190,015955,016123,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P05-R02-TurkeySandwich-833937-834985,020012,020042,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P06-R01-PastaSalad-1016370-1017010,024391,024410,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P07-R01-PastaSalad-1780810-1782010,042736,042772,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P08-R01-PastaSalad-2094502-2095149,050267,050285,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P09-R01-PastaSalad-1647701-1649076,039541,039581,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P09-R01-PastaSalad-1825070-1826588,043798,043842,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P09-R02-TurkeySandwich-568550-572050,013637,013738,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P09-R02-TurkeySandwich-637850-639450,015304,015351,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R01-PastaSalad-1150367-1151081,027607,027627,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R01-PastaSalad-1402214-1402830,033652,033669,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R01-PastaSalad-1492584-1493145,035821,035837,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R01-PastaSalad-427593-428376,010260,010284,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R01-PastaSalad-931834-932643,022362,022386,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R02-TurkeySandwich-165415-166335,003967,003995,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+P10-R06-GreekSalad-532543-533743,012778,012813,19,Squeeze,6,Put eating_utensil,"15,16","trash,trash_container"
+OP03-R07-Pizza-32199-33536,000769,000808,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP03-R07-Pizza-97262-98092,002332,002357,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP04-R06-GreekSalad-169230-169780,004060,004076,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP04-R07-Pizza-121540-123596,002911,002972,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP04-R07-Pizza-359386-360461,008623,008654,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP04-R07-Pizza-360455-361380,008648,008676,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP04-R07-Pizza-467740-468439,011224,011244,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP05-R03-BaconAndEggs-490360-491220,011766,011792,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP05-R04-ContinentalBreakfast-178840-179980,004290,004322,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R03-BaconAndEggs-448040-449340,010749,010788,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R03-BaconAndEggs-465390-466670,011166,011204,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R04-ContinentalBreakfast-119345-122125,002858,002937,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R04-ContinentalBreakfast-122155-124425,002926,002992,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R04-ContinentalBreakfast-239465-240385,005745,005772,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R05-Cheeseburger-179886-180956,004315,004345,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R06-GreekSalad-136100-137200,003264,003295,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R06-GreekSalad-95840-97570,002296,002346,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP06-R07-Pizza-189570-190550,004547,004576,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R01-PastaSalad-531914-533838,012761,012817,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-632026-633526,015165,015208,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-633526-635074,015201,015245,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-666904-668201,016002,016040,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-717404-718511,017215,017247,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-74814-75445,001794,001812,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-867844-875404,020810,021028,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P01-R02-TurkeySandwich-920134-922694,022077,022151,20,Unknown verb 19,6,Put eating_utensil,13,plate
+P02-R03-BaconAndEggs-1034972-1035783,024837,024861,20,Unknown verb 19,6,Put eating_utensil,13,plate
+OP03-R07-Pizza-223400-254800,005286,006191,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP03-R07-Pizza-588541-592208,014115,014222,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP04-R01-PastaSalad-234310-236110,005619,005671,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP04-R01-PastaSalad-243970-270170,005792,006548,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP04-R01-PastaSalad-272170-288870,006492,006973,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP04-R07-Pizza-216343-218573,005187,005251,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP05-R07-Pizza-113285-116235,002711,002797,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP05-R07-Pizza-121270-131180,002886,003173,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP06-R07-Pizza-223760-226260,005364,005437,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP06-R07-Pizza-225570-229440,005404,005516,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP06-R07-Pizza-231515-248515,005515,006006,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-586246-594596,014049,014291,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-601778-611972,014418,014712,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-614011-623787,014713,014994,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-624775-638092,014962,015347,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-639141-649427,015315,015611,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-649433-653216,015577,015687,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-668390-671752,016033,016131,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P01-R01-PastaSalad-676547-683053,016222,016409,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-671457-674957,016106,016207,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-675657-677024,016212,016252,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-686000-689049,016457,016545,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-717156-718699,017208,017252,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-722456-723942,017335,017378,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-743813-745370,017848,017892,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-746620-747506,017916,017943,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+P02-R01-PastaSalad-749220-750592,017978,018018,21,Unknown verb 20,4,Cut tomato,17,bell_pepper
+OP04-R03-BaconAndEggs-335439-336609,008047,008082,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP04-R05-Cheeseburger-226320-227370,005429,005459,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP05-R03-BaconAndEggs-435160-436200,010441,010471,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP05-R03-BaconAndEggs-560100-561320,013439,013475,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP05-R03-BaconAndEggs-568440-569600,013639,013674,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP05-R07-Pizza-214550-216060,005146,005189,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP05-R07-Pizza-297145-298275,007129,007161,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R03-BaconAndEggs-439540-440260,010546,010569,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R03-BaconAndEggs-592920-594130,014227,014263,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R03-BaconAndEggs-733870-735910,017607,017667,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R05-Cheeseburger-265115-266685,006358,006405,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R05-Cheeseburger-347700-349570,008340,008394,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R05-Cheeseburger-543990-545610,013051,013099,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R05-Cheeseburger-567010-568230,013605,013641,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R05-Cheeseburger-77192-78012,001850,001875,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R07-Pizza-161865-163675,003880,003933,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R07-Pizza-215890-217670,005177,005229,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R07-Pizza-268870-271090,006447,006512,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+OP06-R07-Pizza-400450-401140,009609,009629,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P01-R01-PastaSalad-1277466-1278438,030657,030685,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P01-R01-PastaSalad-872313-873493,020932,020967,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P01-R02-TurkeySandwich-862476-863880,020696,020737,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1118847-1119360,026851,026866,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1301322-1302673,031228,031268,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1378142-1381629,033067,033168,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1689540-1690108,040547,040564,22,Unknown verb 21,6,Put eating_utensil,18,cooking_utensil
+P02-R04-ContinentalBreakfast-397303-398600,009532,009570,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R04-ContinentalBreakfast-480563-483924,011525,011623,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R04-ContinentalBreakfast-495784-497712,011894,011950,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R04-ContinentalBreakfast-577754-580084,013861,013928,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R04-ContinentalBreakfast-694875-697157,016672,016737,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R04-ContinentalBreakfast-997656-1002120,023933,024061,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R05-Cheeseburger-413120-416540,009906,010005,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R05-Cheeseburger-634850-639000,015226,015346,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R05-Cheeseburger-732830-734680,017583,017637,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R05-Cheeseburger-81875-84255,001960,002028,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R05-Cheeseburger-989410-992760,023737,023835,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R06-GreekSalad-442240-443370,010611,010643,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P02-R06-GreekSalad-73260-75290,001753,001812,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P03-R01-PastaSalad-1361980-1364061,032682,032743,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P03-R01-PastaSalad-1831026-1832837,043940,043993,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P03-R01-PastaSalad-409294-411529,009818,009882,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P04-R06-GreekSalad-1010370-1011030,024247,024266,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P05-R01-PastaSalad-1611303-1617887,038655,038846,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P05-R02-TurkeySandwich-324699-327628,007785,007871,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P06-R02-TurkeySandwich-536321-537180,012869,012895,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P08-R01-PastaSalad-1330021-1331903,031916,031970,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P08-R01-PastaSalad-2017472-2019589,048414,048476,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P09-R01-PastaSalad-1718457-1719201,041240,041263,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P09-R01-PastaSalad-1783174-1788525,042783,042938,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P09-R02-TurkeySandwich-538650-541150,012921,012994,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+P10-R01-PastaSalad-1744981-1746881,041875,041930,23,Unknown verb 22,3,Take eating_utensil,19,paper_towel
+OP04-R03-BaconAndEggs-635580-637860,015248,015314,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP04-R03-BaconAndEggs-652725-654639,015661,015716,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP05-R03-BaconAndEggs-552480-559440,013243,013443,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP05-R03-BaconAndEggs-562750-564460,013502,013552,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP05-R03-BaconAndEggs-674640-678830,016181,016302,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP06-R03-BaconAndEggs-582550-592760,013957,014251,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP06-R03-BaconAndEggs-679440-684380,016294,016438,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-1287444-1300147,030868,031234,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-1351710-1372872,032391,032999,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-793767-803281,019027,019302,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-821118-833767,019676,020041,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-888558-891207,021319,021395,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-900972-926674,021562,022302,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P02-R03-BaconAndEggs-965350-994242,023099,023931,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P16-R03-BaconAndEggs-1672100-1678366,040115,040296,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P16-R03-BaconAndEggs-1682158-1685063,040364,040449,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P16-R03-BaconAndEggs-1755900-1761300,042128,042285,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P16-R03-BaconAndEggs-1762845-1770084,042291,042500,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P17-R03-BaconAndEggs-1002300-1009500,024038,024245,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P17-R03-BaconAndEggs-1078100-1092523,025840,026255,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P17-R03-BaconAndEggs-1108300-1120900,026569,026932,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P17-R03-BaconAndEggs-1185800-1212400,028395,029162,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P17-R03-BaconAndEggs-1222800-1241100,029303,029831,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P17-R03-BaconAndEggs-908794-912849,021802,021918,24,Unknown verb 23,9,Cut cucumber,20,bacon
+P18-R03-BaconAndEggs-1040769-1043664,024971,025055,24,Unknown verb 23,9,Cut cucumber,20,bacon
+OP03-R03-BaconAndEggs-690988-696007,016571,016717,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R04-ContinentalBreakfast-34260-35580,000819,000857,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R04-ContinentalBreakfast-350968-352517,008420,008464,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R04-ContinentalBreakfast-36955-38204,000883,000920,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R04-ContinentalBreakfast-38214-39589,000914,000954,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R05-Cheeseburger-750335-751795,018005,018047,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R05-Cheeseburger-762980-764340,018308,018348,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R06-GreekSalad-690150-694730,016552,016685,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R06-GreekSalad-694770-695400,016673,016691,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP03-R07-Pizza-524381-526584,012580,012644,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R01-PastaSalad-812725-816085,019497,019595,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R01-PastaSalad-844815-846595,020271,020323,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R02-TurkeySandwich-236880-239160,005680,005745,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R03-BaconAndEggs-782388-784499,018772,018833,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R04-ContinentalBreakfast-115509-117229,002768,002818,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R04-ContinentalBreakfast-133070-134500,003190,003231,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R04-ContinentalBreakfast-297235-298371,007131,007163,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R04-ContinentalBreakfast-493194-494894,011832,011882,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R05-Cheeseburger-411130-412990,009863,009916,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R06-GreekSalad-235440-238310,005643,005727,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R06-GreekSalad-294480-295410,007065,007092,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R06-GreekSalad-306685-308975,007355,007421,25,Unknown verb 24,2,Open fridge,7,condiment_container
+OP04-R07-Pizza-510513-512901,012247,012315,25,Unknown verb 24,2,Open fridge,7,condiment_container
+P07-R01-PastaSalad-2225120-2232110,053385,053588,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P08-R01-PastaSalad-1945234-1951352,046671,046847,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P08-R01-PastaSalad-999029-1000264,023973,024010,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R01-PastaSalad-1426394-1428642,034228,034293,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R01-PastaSalad-1616650-1622061,038786,038943,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R01-PastaSalad-1622795-1625950,038940,039030,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R01-PastaSalad-1631850-1632980,039162,039194,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R01-PastaSalad-1639144-1640722,039335,039382,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R02-TurkeySandwich-510726-512300,012253,012300,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R02-TurkeySandwich-517850-528550,012403,012711,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P09-R02-TurkeySandwich-530850-533750,012733,012817,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R01-PastaSalad-1357093-1363093,032556,032729,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R01-PastaSalad-1857949-1859249,044587,044625,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R01-PastaSalad-1860449-1862824,044645,044713,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R01-PastaSalad-1862824-1871724,044686,044943,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R01-PastaSalad-1871724-1882699,044895,045211,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R01-PastaSalad-645717-648517,015491,015571,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R02-TurkeySandwich-552440-554750,013253,013319,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R02-TurkeySandwich-556600-564300,013340,013562,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P11-R02-TurkeySandwich-564320-565510,013540,013576,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P13-R01-PastaSalad-2369761-2371507,056870,056921,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P13-R01-PastaSalad-2373024-2375087,056947,057008,26,Unknown verb 25,10,Operate stove,3,eating_utensil
+P02-R03-BaconAndEggs-1247799-1251069,029939,030034,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R03-BaconAndEggs-1258717-1260825,030204,030265,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R03-BaconAndEggs-1260893-1263649,030255,030334,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R03-BaconAndEggs-1263663-1271420,030309,030533,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R03-BaconAndEggs-1273703-1278162,030558,030686,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-347010-351609,008317,008450,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-364228-368631,008731,008858,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-371698-374429,008914,008993,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-377723-381007,009057,009153,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-417487-420879,010011,010110,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-426064-438209,010196,010547,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R04-ContinentalBreakfast-448525-465261,010724,011207,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R05-Cheeseburger-541810-557300,012966,013413,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P02-R05-Cheeseburger-619295-626340,014846,015050,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P16-R03-BaconAndEggs-1850700-1863100,044386,044745,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-959100-962300,023011,023103,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-962300-966100,023086,023196,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-966600-969300,023192,023270,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-969300-972600,023255,023351,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-973600-976200,023360,023435,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-979100-982600,023490,023591,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P17-R03-BaconAndEggs-982600-984800,023577,023641,27,Unknown verb 26,11,Close fridge,"21,22,3","condiment,bread,eating_utensil"
+P04-R06-GreekSalad-953750-955530,022886,022937,28,Unknown verb 27,12,Cut carrot,5,faucet
+P06-R01-PastaSalad-1341103-1341811,032185,032205,28,Unknown verb 27,12,Cut carrot,5,faucet
+P06-R01-PastaSalad-867111-867943,020808,020833,28,Unknown verb 27,12,Cut carrot,5,faucet
+P06-R01-PastaSalad-877021-878122,021046,021077,28,Unknown verb 27,12,Cut carrot,5,faucet
+P07-R01-PastaSalad-1545465-1546735,037088,037125,28,Unknown verb 27,12,Cut carrot,5,faucet
+P07-R01-PastaSalad-2117940-2119570,050826,050874,28,Unknown verb 27,12,Cut carrot,5,faucet
+P07-R01-PastaSalad-2232130-2233400,053568,053605,28,Unknown verb 27,12,Cut carrot,5,faucet
+P08-R01-PastaSalad-1980941-1982294,047539,047579,28,Unknown verb 27,12,Cut carrot,5,faucet
+P09-R01-PastaSalad-124725-126515,002989,003041,28,Unknown verb 27,12,Cut carrot,5,faucet
+P09-R01-PastaSalad-1655858-1656561,039739,039759,28,Unknown verb 27,12,Cut carrot,5,faucet
+P09-R01-PastaSalad-1838211-1838871,044116,044134,28,Unknown verb 27,12,Cut carrot,5,faucet
+P10-R01-PastaSalad-117400-118300,002815,002842,28,Unknown verb 27,12,Cut carrot,5,faucet
+P10-R01-PastaSalad-1640176-1641536,039361,039400,28,Unknown verb 27,12,Cut carrot,5,faucet
+P10-R05-Cheeseburger-871770-874330,020916,020990,28,Unknown verb 27,12,Cut carrot,5,faucet
+P10-R06-GreekSalad-210927-211944,005060,005089,28,Unknown verb 27,12,Cut carrot,5,faucet
+P11-R01-PastaSalad-1706339-1707715,040949,040989,28,Unknown verb 27,12,Cut carrot,5,faucet
+P12-R01-PastaSalad-97342-98669,002333,002372,28,Unknown verb 27,12,Cut carrot,5,faucet
+P12-R01-PastaSalad-97600-100938,002334,002431,28,Unknown verb 27,12,Cut carrot,5,faucet
+P12-R02-TurkeySandwich-136065-137190,003263,003295,28,Unknown verb 27,12,Cut carrot,5,faucet
+P13-R01-PastaSalad-1687130-1688240,040489,040520,28,Unknown verb 27,12,Cut carrot,5,faucet
+P13-R01-PastaSalad-2371507-2372625,056914,056945,28,Unknown verb 27,12,Cut carrot,5,faucet
+P13-R01-PastaSalad-2381160-2382490,057144,057183,28,Unknown verb 27,12,Cut carrot,5,faucet
+P01-R02-TurkeySandwich-134801-135870,003233,003263,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R03-BaconAndEggs-1082470-1083957,025976,026018,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R03-BaconAndEggs-1453732-1454624,034887,034913,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R03-BaconAndEggs-1661270-1662513,039867,039904,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R03-BaconAndEggs-260150-261880,006239,006290,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R03-BaconAndEggs-743729-745215,017846,017889,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R03-BaconAndEggs-99675-101404,002388,002438,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R05-Cheeseburger-581810-582540,013962,013982,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R05-Cheeseburger-90695-93600,002169,002254,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P02-R06-GreekSalad-614278-618484,014732,014854,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P03-R01-PastaSalad-2220266-2221077,053284,053308,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P03-R01-PastaSalad-522528-523117,012539,012556,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P04-R05-Cheeseburger-72177-74777,001726,001801,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P04-R05-Cheeseburger-982595-983881,023579,023617,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P07-R01-PastaSalad-1839320-1840370,044141,044171,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P09-R01-PastaSalad-133320-134430,003197,003229,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P10-R05-Cheeseburger-918330-919180,022037,022063,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P16-R03-BaconAndEggs-1134900-1137400,027231,027304,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P16-R03-BaconAndEggs-1255500-1257500,030128,030184,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P16-R03-BaconAndEggs-1557958-1559861,037386,037441,29,Unknown verb 28,6,Put eating_utensil,23,pan
+P16-R03-BaconAndEggs-1783363-1785604,042795,042860,29,Unknown verb 28,6,Put eating_utensil,23,pan
+OP04-R01-PastaSalad-643790-644890,015448,015480,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP04-R01-PastaSalad-682325-683085,016373,016397,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP04-R03-BaconAndEggs-519071-521631,012451,012526,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP04-R07-Pizza-377935-378988,009068,009098,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP05-R03-BaconAndEggs-550630-551340,013214,013234,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP06-R03-BaconAndEggs-581040-582240,013941,013977,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP06-R03-BaconAndEggs-678810-679390,016290,016307,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP06-R03-BaconAndEggs-738280-739210,017716,017744,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP06-R05-Cheeseburger-72565-73115,001740,001756,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP06-R07-Pizza-191880-192940,004603,004633,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP06-R07-Pizza-250925-252245,006019,006057,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P01-R01-PastaSalad-655342-656558,015725,015761,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R01-PastaSalad-1596045-1597159,038303,038334,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1346143-1347170,032305,032335,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1396844-1398006,033521,033556,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R03-BaconAndEggs-1483797-1484797,035609,035638,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R04-ContinentalBreakfast-102107-103720,002446,002494,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R04-ContinentalBreakfast-129662-130869,003108,003144,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R04-ContinentalBreakfast-341043-343163,008180,008241,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R04-ContinentalBreakfast-413709-416295,009923,009998,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+P02-R05-Cheeseburger-234165-235295,005616,005651,30,Unknown verb 29,3,Take eating_utensil,18,cooking_utensil
+OP03-R05-Cheeseburger-634170-636850,015214,015291,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP03-R06-GreekSalad-155210-156810,003721,003768,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP03-R06-GreekSalad-221300-222980,005307,005356,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP03-R06-GreekSalad-282020-284250,006763,006827,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP04-R05-Cheeseburger-387700-396160,009284,009528,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP04-R06-GreekSalad-75950-77710,001818,001870,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP06-R02-TurkeySandwich-260680-262590,006252,006307,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP06-R05-Cheeseburger-197725-201165,004737,004836,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP06-R05-Cheeseburger-223130-224110,005353,005381,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP06-R06-GreekSalad-55160-58920,001314,001424,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP06-R06-GreekSalad-94600-95310,002269,002289,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-138725-139669,003327,003355,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-290108-291557,006959,007001,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-295701-312945,007055,007552,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-346057-348426,008300,008368,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-364300-366848,008737,008811,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-366860-371121,008794,008917,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-373305-376168,008952,009036,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-380310-381382,009125,009156,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-381406-384477,009146,009235,31,Unknown verb 30,6,Put eating_utensil,24,lettuce
+OP03-R05-Cheeseburger-435450-438080,010444,010520,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP03-R05-Cheeseburger-438530-449890,010497,010825,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP03-R05-Cheeseburger-482640-483660,011581,011610,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP03-R05-Cheeseburger-503920-511470,012076,012294,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-184270-195100,004396,004709,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-200200-203630,004796,004896,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-204400-205190,004903,004927,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-207070-212320,004957,005108,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-216770-221260,005191,005322,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-229660-230580,005509,005536,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-250450-259690,005988,006255,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-267200-270020,006405,006488,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP04-R05-Cheeseburger-275230-276980,006601,006652,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-338445-343655,008110,008260,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-343680-347520,008239,008350,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-443150-449600,010620,010806,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-466390-473950,011175,011393,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-487180-496040,011671,011926,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-496140-504120,011888,012118,32,Unknown verb 31,9,Cut cucumber,25,patty
+OP06-R05-Cheeseburger-512290-519870,012276,012495,32,Unknown verb 31,9,Cut cucumber,25,patty
+P02-R01-PastaSalad-1126122-1127780,027022,027071,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P02-R01-PastaSalad-1478279-1479464,035475,035511,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P02-R01-PastaSalad-1505318-1507004,036123,036173,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P02-R04-ContinentalBreakfast-536701-538348,012876,012925,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P02-R04-ContinentalBreakfast-856926-858470,020563,020607,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P03-R01-PastaSalad-2017227-2017957,048412,048432,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P03-R01-PastaSalad-2023483-2024862,048560,048600,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P03-R01-PastaSalad-2190647-2191890,052572,052609,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P03-R01-PastaSalad-546823-547529,013122,013142,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P03-R01-PastaSalad-637940-641587,015301,015408,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P04-R01-PastaSalad-1133228-1135858,027191,027267,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P04-R01-PastaSalad-154384-156505,003700,003762,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P04-R01-PastaSalad-164202-166754,003934,004009,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P05-R01-PastaSalad-139898-143114,003350,003442,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P05-R01-PastaSalad-150874-154972,003610,003730,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P05-R01-PastaSalad-1554481-1557115,037301,037377,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P05-R01-PastaSalad-158643-159820,003804,003839,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P05-R01-PastaSalad-242405-245798,005809,005908,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P05-R01-PastaSalad-894274-895602,021459,021498,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P06-R01-PastaSalad-809741-811179,019430,019472,33,Unknown verb 32,6,Put eating_utensil,26,pot
+P07-R01-PastaSalad-481300-482000,011550,011569,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P07-R01-PastaSalad-501940-503480,012043,012087,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P07-R01-PastaSalad-511720-512860,012279,012311,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P07-R01-PastaSalad-570265-571815,013683,013727,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P09-R02-TurkeySandwich-98960-102729,002366,002475,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P10-R01-PastaSalad-1075949-1078899,025815,025901,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P12-R01-PastaSalad-1784732-1785950,042830,042866,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P13-R01-PastaSalad-445490-446853,010688,010728,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P13-R01-PastaSalad-450980-452418,010820,010862,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P13-R01-PastaSalad-573470-575316,013759,013812,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P13-R01-PastaSalad-594967-596970,014274,014333,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P13-R01-PastaSalad-667910-669379,016026,016069,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P13-R01-PastaSalad-684448-685999,016423,016467,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P15-R01-PastaSalad-438579-441452,010518,010602,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P16-R03-BaconAndEggs-1078085-1079560,025871,025913,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P16-R03-BaconAndEggs-147558-148510,003539,003567,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P16-R03-BaconAndEggs-189271-190510,004539,004576,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P16-R03-BaconAndEggs-208269-209438,004995,005030,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+P16-R03-BaconAndEggs-287000-288300,006885,006923,34,Unknown verb 33,8,Take condiment_container,6,cabinet
+OP03-R05-Cheeseburger-85245-87585,002040,002108,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP04-R02-TurkeySandwich-177310-189460,004226,004577,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP04-R02-TurkeySandwich-275560-277880,006608,006675,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP04-R03-BaconAndEggs-765365-766135,018366,018390,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP04-R03-BaconAndEggs-807780-808455,019385,019404,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP04-R05-Cheeseburger-183240-183980,004395,004418,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP06-R03-BaconAndEggs-670340-671100,016086,016109,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP06-R04-ContinentalBreakfast-317645-319215,007619,007666,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP06-R04-ContinentalBreakfast-322190-323440,007729,007766,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP06-R05-Cheeseburger-381733-383543,009157,009210,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP06-R05-Cheeseburger-643497-645177,015439,015489,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-1213531-1215126,029120,029168,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-1280864-1282621,030736,030787,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-665695-666884,015973,016009,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-845495-847144,020287,020336,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-863724-864589,020727,020753,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-864656-865602,020749,020777,35,Unknown verb 34,6,Put eating_utensil,22,bread
+P02-R03-BaconAndEggs-933701-934539,022406,022431,35,Unknown verb 34,6,Put eating_utensil,22,bread
+OP03-R04-ContinentalBreakfast-224277-225826,005379,005423,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP04-R02-TurkeySandwich-144750-148470,003465,003573,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP04-R03-BaconAndEggs-762720-764280,018302,018346,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP04-R04-ContinentalBreakfast-352336-355990,008448,008552,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP04-R05-Cheeseburger-63940-66850,001527,001612,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP05-R04-ContinentalBreakfast-225915-227655,005417,005468,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP06-R03-BaconAndEggs-615600-618150,014768,014842,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP06-R03-BaconAndEggs-669500-670320,016066,016090,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP06-R04-ContinentalBreakfast-282680-284630,006780,006836,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP06-R04-ContinentalBreakfast-315110-317160,007557,007617,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP06-R05-Cheeseburger-373748-377878,008959,009080,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P01-R02-TurkeySandwich-480301-484147,011518,011629,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P02-R03-BaconAndEggs-1206248-1207221,028947,028976,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P02-R03-BaconAndEggs-1279769-1280851,030712,030743,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P02-R03-BaconAndEggs-639115-644521,015325,015482,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P02-R03-BaconAndEggs-746215-747242,017907,017936,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P02-R03-BaconAndEggs-747282-748363,017932,017963,36,Unknown verb 35,3,Take eating_utensil,22,bread
+P02-R03-BaconAndEggs-836077-839780,020056,020164,36,Unknown verb 35,3,Take eating_utensil,22,bread
+OP03-R04-ContinentalBreakfast-198942-199748,004772,004796,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP03-R04-ContinentalBreakfast-199970-200820,004797,004822,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP03-R05-Cheeseburger-761190-762010,018266,018291,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP03-R05-Cheeseburger-773330-773930,018558,018576,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP03-R06-GreekSalad-717710-720970,017217,017312,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP03-R07-Pizza-537674-538506,012902,012927,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R01-PastaSalad-824880-828140,019789,019884,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R02-TurkeySandwich-247840-249430,005944,005991,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R04-ContinentalBreakfast-129170-130590,003097,003138,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R04-ContinentalBreakfast-139921-141367,003355,003396,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R05-Cheeseburger-417330-419030,010011,010061,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R05-Cheeseburger-429080-429770,010296,010316,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R06-GreekSalad-243400-246240,005834,005917,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R06-GreekSalad-297210-298390,007130,007165,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP04-R06-GreekSalad-311740-315260,007473,007575,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP05-R04-ContinentalBreakfast-146795-147475,003522,003541,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP05-R04-ContinentalBreakfast-49552-51712,001184,001247,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP06-R03-BaconAndEggs-674700-676930,016187,016252,37,Unknown verb 36,8,Take condiment_container,7,condiment_container
+OP03-R03-BaconAndEggs-682822-684856,016382,016442,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP03-R05-Cheeseburger-110300-112920,002641,002717,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP03-R05-Cheeseburger-454090-456170,010893,010954,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP03-R05-Cheeseburger-91170-94110,002181,002266,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP03-R06-GreekSalad-353520-355100,008480,008527,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP03-R06-GreekSalad-356490-358310,008551,008604,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP03-R06-GreekSalad-638190-639860,015312,015361,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP04-R01-PastaSalad-458445-459335,011000,011027,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP04-R03-BaconAndEggs-771670-772899,018517,018553,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+OP06-R03-BaconAndEggs-471620-473670,011313,011374,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-129155-130915,003095,003146,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-178255-179625,004275,004314,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-179625-180565,004309,004336,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-180560-183050,004327,004400,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-446600-450740,010708,010828,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-455730-458510,010931,011011,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-459340-460500,011022,011054,38,Unknown verb 37,2,Open fridge,27,fridge_drawer
+P02-R05-Cheeseburger-966750-977650,023176,023490,39,Unknown verb 38,10,Operate stove,28,hand
+P02-R05-Cheeseburger-978935-988265,023472,023741,39,Unknown verb 38,10,Operate stove,28,hand
+P02-R06-GreekSalad-460260-462070,011042,011094,39,Unknown verb 38,10,Operate stove,28,hand
+P02-R06-GreekSalad-467860-472350,011217,011348,39,Unknown verb 38,10,Operate stove,28,hand
+P02-R06-GreekSalad-473830-477470,011362,011469,39,Unknown verb 38,10,Operate stove,28,hand
+P02-R06-GreekSalad-548150-551240,013148,013237,39,Unknown verb 38,10,Operate stove,28,hand
+P02-R06-GreekSalad-554980-577060,013266,013903,39,Unknown verb 38,10,Operate stove,28,hand
+P03-R01-PastaSalad-341293-351469,008167,008460,39,Unknown verb 38,10,Operate stove,28,hand
+P04-R01-PastaSalad-126411-128331,003029,003084,39,Unknown verb 38,10,Operate stove,28,hand
+P04-R01-PastaSalad-131751-137697,003148,003319,39,Unknown verb 38,10,Operate stove,28,hand
+P07-R01-PastaSalad-2411145-2422575,057840,058169,39,Unknown verb 38,10,Operate stove,28,hand
+P08-R01-PastaSalad-2116385-2122973,050777,050968,39,Unknown verb 38,10,Operate stove,28,hand
+P09-R01-PastaSalad-1641343-1642379,039390,039420,39,Unknown verb 38,10,Operate stove,28,hand
+P10-R01-PastaSalad-274579-276329,006585,006636,39,Unknown verb 38,10,Operate stove,28,hand
+P10-R05-Cheeseburger-204565-206545,004904,004963,39,Unknown verb 38,10,Operate stove,28,hand
+P11-R01-PastaSalad-1050133-1053756,025195,025299,39,Unknown verb 38,10,Operate stove,28,hand
+OP02-R05-Cheeseburger-346548-348395,008313,008366,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP02-R06-GreekSalad-64221-64888,001540,001559,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R02-TurkeySandwich-122490-124050,002935,002982,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R02-TurkeySandwich-269560-273570,006460,006575,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R02-TurkeySandwich-275810-276670,006617,006643,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R02-TurkeySandwich-345940-346560,008301,008319,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-672805-673525,016146,016166,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-672910-673490,016148,016165,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-709140-710330,017016,017051,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-717390-719200,017213,017265,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-777405-778785,018654,018694,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-779670-780370,018711,018730,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R05-Cheeseburger-801795-802635,019241,019266,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R06-GreekSalad-192720-193790,004623,004653,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP03-R06-GreekSalad-598120-599890,014350,014402,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+OP04-R01-PastaSalad-118640-120515,002843,002897,40,Unknown verb 39,6,Put eating_utensil,4,tomato
+P04-R06-GreekSalad-1013410-1015000,024317,024364,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P04-R06-GreekSalad-1015000-1015660,024359,024377,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P04-R06-GreekSalad-1023600-1024590,024564,024593,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P05-R02-TurkeySandwich-725225-726105,017403,017429,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P05-R02-TurkeySandwich-753170-754241,018074,018104,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P06-R01-PastaSalad-922471-923774,022136,022174,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-1871920-1872730,044924,044948,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-1892155-1892975,045409,045434,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-653880-656240,015688,015755,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-656245-658660,015743,015814,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-756000-757350,018141,018180,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P10-R01-PastaSalad-1184952-1186128,028435,028471,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P10-R01-PastaSalad-1204743-1205638,028911,028938,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P10-R06-GreekSalad-624272-626025,014978,015029,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P11-R01-PastaSalad-1741768-1743168,041799,041840,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P13-R01-PastaSalad-2250411-2252262,054005,054059,41,Unknown verb 40,3,Take eating_utensil,29,seasoning_container
+P02-R03-BaconAndEggs-197573-199682,004736,004798,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P02-R04-ContinentalBreakfast-608063-609217,014590,014625,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P02-R04-ContinentalBreakfast-85560-87850,002048,002114,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P04-R01-PastaSalad-220690-223355,005290,005367,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P06-R01-PastaSalad-1068200-1069210,025634,025664,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P06-R01-PastaSalad-127943-130032,003065,003126,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P07-R01-PastaSalad-2309775-2311065,055431,055469,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P07-R01-PastaSalad-2339315-2340795,056140,056183,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P07-R01-PastaSalad-386980-388140,009284,009319,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P07-R01-PastaSalad-388140-393040,009304,009444,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P09-R01-PastaSalad-157210-157890,003772,003791,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P13-R01-PastaSalad-1014853-1017930,024349,024438,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P13-R01-PastaSalad-1610080-1612820,038635,038714,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P13-R01-PastaSalad-1775834-1776878,042618,042648,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P13-R01-PastaSalad-2390370-2391891,057365,057409,42,Unknown verb 41,3,Take eating_utensil,30,cup
+P13-R01-PastaSalad-2725828-2728794,065412,065499,42,Unknown verb 41,3,Take eating_utensil,30,cup
+OP01-R06-GreekSalad-391470-393060,009391,009438,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-396010-398180,009499,009562,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-402235-403045,009651,009676,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-405085-405935,009720,009745,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-409310-410270,009821,009849,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-410535-428330,009810,010322,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-425915-429675,010212,010322,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-430930-449265,010298,010827,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP01-R06-GreekSalad-441235-441765,010588,010604,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP02-R02-TurkeySandwich-251410-255820,006023,006150,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP02-R02-TurkeySandwich-255845-256605,006138,006161,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP02-R05-Cheeseburger-109800-111420,002631,002679,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP02-R05-Cheeseburger-152160-153030,003649,003675,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP02-R06-GreekSalad-75053-75887,001799,001824,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP02-R06-GreekSalad-78526-79637,001882,001914,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+OP03-R05-Cheeseburger-623850-632440,014952,015199,43,Unknown verb 42,13,Put condiment_container,24,lettuce
+P02-R04-ContinentalBreakfast-333043-334444,007990,008030,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P02-R04-ContinentalBreakfast-638614-642702,015316,015435,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P05-R01-PastaSalad-1511148-1512083,036265,036292,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P05-R01-PastaSalad-1539766-1541581,036950,037002,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P05-R01-PastaSalad-1540755-1542051,036975,037013,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P05-R01-PastaSalad-310699-311779,007454,007485,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-114260-115350,002740,002771,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-180540-183060,004326,004400,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-1953245-1955425,046872,046936,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-2345975-2347215,056300,056337,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-335775-338495,008052,008130,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-393060-396840,009424,009534,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P07-R01-PastaSalad-418085-419185,010032,010063,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P13-R01-PastaSalad-1020599-1024138,024486,024588,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P13-R01-PastaSalad-2395950-2399503,057494,057597,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P13-R01-PastaSalad-2516467-2519530,060388,060476,44,Unknown verb 43,6,Put eating_utensil,30,cup
+P01-R01-PastaSalad-905362-907708,021723,021790,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P01-R01-PastaSalad-960711-964115,023049,023147,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P02-R01-PastaSalad-1115284-1117612,026761,026828,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P02-R01-PastaSalad-1455766-1457094,034935,034974,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P02-R01-PastaSalad-37853-39208,000905,000944,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P02-R01-PastaSalad-43014-44925,001028,001083,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P02-R03-BaconAndEggs-426025-429457,010216,010315,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P02-R04-ContinentalBreakfast-515457-516778,012367,012406,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P03-R01-PastaSalad-1334362-1335092,032022,032045,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P03-R01-PastaSalad-1994432-1995729,047863,047901,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P03-R01-PastaSalad-2014849-2015795,048354,048382,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P03-R01-PastaSalad-2216482-2217104,053194,053212,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P04-R01-PastaSalad-1039806-1041422,024951,024999,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P04-R01-PastaSalad-140891-141734,003379,003404,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P04-R01-PastaSalad-91060-93461,002179,002250,45,Unknown verb 44,3,Take eating_utensil,26,pot
+P07-R01-PastaSalad-2378575-2384465,057071,057242,46,Unknown verb 45,14,Cut onion,31,counter
+P07-R01-PastaSalad-2389205-2393785,057329,057462,46,Unknown verb 45,14,Cut onion,31,counter
+P08-R01-PastaSalad-2006325-2012442,048137,048313,46,Unknown verb 45,14,Cut onion,31,counter
+P08-R01-PastaSalad-2023972-2034442,048550,048852,46,Unknown verb 45,14,Cut onion,31,counter
+P08-R01-PastaSalad-2048531-2054296,049150,049318,46,Unknown verb 45,14,Cut onion,31,counter
+P08-R01-PastaSalad-2058913-2060090,049410,049446,46,Unknown verb 45,14,Cut onion,31,counter
+P09-R01-PastaSalad-1791461-1797772,042980,043162,46,Unknown verb 45,14,Cut onion,31,counter
+P09-R01-PastaSalad-1806818-1808525,043359,043409,46,Unknown verb 45,14,Cut onion,31,counter
+P10-R01-PastaSalad-1482012-1490312,035548,035788,46,Unknown verb 45,14,Cut onion,31,counter
+P10-R01-PastaSalad-1747181-1750781,041924,042027,46,Unknown verb 45,14,Cut onion,31,counter
+P10-R05-Cheeseburger-497935-504015,011936,012111,46,Unknown verb 45,14,Cut onion,31,counter
+P10-R06-GreekSalad-777045-786645,018626,018903,46,Unknown verb 45,14,Cut onion,31,counter
+P10-R06-GreekSalad-794312-799312,019051,019196,46,Unknown verb 45,14,Cut onion,31,counter
+P11-R01-PastaSalad-2272397-2277897,054524,054683,46,Unknown verb 45,14,Cut onion,31,counter
+P13-R01-PastaSalad-2905919-2929349,069686,070361,46,Unknown verb 45,14,Cut onion,31,counter
+OP04-R02-TurkeySandwich-132670-135680,003177,003264,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP04-R03-BaconAndEggs-756560-757953,018154,018194,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP04-R04-ContinentalBreakfast-47317-49807,001129,001202,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP05-R03-BaconAndEggs-530240-531750,012722,012765,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP05-R04-ContinentalBreakfast-186390-187710,004470,004509,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP05-R04-ContinentalBreakfast-187745-189255,004502,004546,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP06-R02-TurkeySandwich-128585-132535,003077,003190,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P02-R03-BaconAndEggs-169955-171496,004075,004119,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P02-R03-BaconAndEggs-175576-177522,004209,004265,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P02-R04-ContinentalBreakfast-302947-305964,007263,007351,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P02-R04-ContinentalBreakfast-585569-588586,014046,014134,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P02-R04-ContinentalBreakfast-625569-626649,015011,015042,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P02-R05-Cheeseburger-440470-443210,010565,010644,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P05-R02-TurkeySandwich-357284-363891,008558,008750,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+P10-R02-TurkeySandwich-68100-71000,001627,001711,47,Unknown verb 46,3,Take eating_utensil,32,bread_container
+OP03-R02-TurkeySandwich-99770-105050,002382,002534,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R05-Cheeseburger-668530-671500,016037,016123,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R05-Cheeseburger-715850-716600,017178,017201,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R05-Cheeseburger-751780-752290,018041,018056,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R06-GreekSalad-191820-192400,004602,004619,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R06-GreekSalad-573800-577330,013763,013864,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R06-GreekSalad-582510-583210,013979,013999,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R06-GreekSalad-583820-584660,014009,014034,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP03-R06-GreekSalad-590920-591550,014181,014199,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP04-R01-PastaSalad-117175-117925,002810,002833,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP04-R02-TurkeySandwich-60430-62190,001446,001497,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP04-R02-TurkeySandwich-73900-74600,001772,001792,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP04-R05-Cheeseburger-346140-347490,008304,008343,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP04-R06-GreekSalad-82100-83450,001967,002006,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP06-R02-TurkeySandwich-224990-227100,005394,005456,48,Unknown verb 47,3,Take eating_utensil,4,tomato
+OP06-R03-BaconAndEggs-452490-453770,010856,010894,49,Unknown verb 48,3,Take eating_utensil,23,pan
+OP06-R05-Cheeseburger-604270-605300,014500,014530,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P01-R01-PastaSalad-71582-72746,001714,001749,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R03-BaconAndEggs-1067579-1068552,025619,025648,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R03-BaconAndEggs-1462137-1463137,035089,035118,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R03-BaconAndEggs-258718-260097,006206,006246,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R03-BaconAndEggs-738094-738797,017713,017733,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R03-BaconAndEggs-95418-97310,002286,002340,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R05-Cheeseburger-78630-79370,001886,001906,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P02-R05-Cheeseburger-79365-80275,001902,001929,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P10-R05-Cheeseburger-182660-184390,004379,004430,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P16-R03-BaconAndEggs-1215700-1218300,029170,029246,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P16-R03-BaconAndEggs-1603133-1605382,038470,038535,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P16-R03-BaconAndEggs-1986285-1987341,047668,047699,49,Unknown verb 48,3,Take eating_utensil,23,pan
+P16-R03-BaconAndEggs-2063332-2066269,049512,049598,49,Unknown verb 48,3,Take eating_utensil,23,pan
+OP04-R07-Pizza-362654-364238,008699,008746,50,Unknown verb 49,9,Cut cucumber,23,pan
+OP06-R07-Pizza-137875-139345,003306,003348,50,Unknown verb 49,9,Cut cucumber,23,pan
+OP06-R07-Pizza-139350-145490,003330,003506,50,Unknown verb 49,9,Cut cucumber,23,pan
+P04-R05-Cheeseburger-205858-208571,004934,005012,50,Unknown verb 49,9,Cut cucumber,23,pan
+P04-R05-Cheeseburger-220582-223493,005286,005371,50,Unknown verb 49,9,Cut cucumber,23,pan
+P04-R05-Cheeseburger-654663-658143,015703,015804,50,Unknown verb 49,9,Cut cucumber,23,pan
+P10-R05-Cheeseburger-149440-151790,003581,003648,50,Unknown verb 49,9,Cut cucumber,23,pan
+P10-R05-Cheeseburger-162725-164125,003902,003942,50,Unknown verb 49,9,Cut cucumber,23,pan
+P16-R03-BaconAndEggs-1120926-1123989,026895,026983,50,Unknown verb 49,9,Cut cucumber,23,pan
+P17-R03-BaconAndEggs-1251279-1253930,030024,030101,50,Unknown verb 49,9,Cut cucumber,23,pan
+P17-R03-BaconAndEggs-453900-456300,010887,010958,50,Unknown verb 49,9,Cut cucumber,23,pan
+P18-R03-BaconAndEggs-1052872-1055959,025261,025351,50,Unknown verb 49,9,Cut cucumber,23,pan
+P18-R03-BaconAndEggs-333981-342808,007994,008249,50,Unknown verb 49,9,Cut cucumber,23,pan
+P18-R03-BaconAndEggs-396387-401820,009500,009657,50,Unknown verb 49,9,Cut cucumber,23,pan
+P07-R01-PastaSalad-2092215-2094365,050208,050270,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P07-R01-PastaSalad-2094355-2104655,050240,050536,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P07-R01-PastaSalad-2106820-2117930,050537,050857,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P09-R01-PastaSalad-1546088-1563187,037065,037558,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R01-PastaSalad-1448766-1455429,034754,034947,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R01-PastaSalad-1456724-1460518,034952,035062,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R01-PastaSalad-1462041-1472439,035063,035364,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R02-TurkeySandwich-372240-380201,008914,009144,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R05-Cheeseburger-764890-766040,018355,018387,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R05-Cheeseburger-945305-956825,022660,022991,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R06-GreekSalad-709317-711709,017017,017088,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R06-GreekSalad-726020-732933,017408,017607,51,Unknown verb 50,10,Operate stove,33,cutting_board
+P10-R06-GreekSalad-734887-759087,017579,018277,51,Unknown verb 50,10,Operate stove,33,cutting_board
+OP03-R05-Cheeseburger-64685-65555,001550,001576,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP04-R03-BaconAndEggs-755750-756400,018137,018155,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP04-R04-ContinentalBreakfast-54267-55297,001300,001330,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP04-R04-ContinentalBreakfast-85490-86730,002048,002085,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP04-R05-Cheeseburger-332170-333230,007970,008000,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP04-R05-Cheeseburger-61300-62680,001468,001508,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP05-R04-ContinentalBreakfast-248070-249350,005950,005988,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP06-R02-TurkeySandwich-143860-145070,003449,003485,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+OP06-R05-Cheeseburger-378813-380573,009087,009138,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+P01-R02-TurkeySandwich-478623-480051,011483,011525,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+P02-R03-BaconAndEggs-174063-175279,004174,004210,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+P04-R05-Cheeseburger-779305-780113,018701,018725,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+P04-R05-Cheeseburger-815272-816351,019564,019595,52,Unknown verb 51,6,Put eating_utensil,32,bread_container
+P08-R01-PastaSalad-1763028-1764734,042308,042358,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P10-R02-TurkeySandwich-360739-361475,008655,008678,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P10-R05-Cheeseburger-919895-920495,022076,022093,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P11-R01-PastaSalad-2058635-2060460,049403,049456,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P11-R02-TurkeySandwich-554785-555295,013313,013329,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P12-R02-TurkeySandwich-502919-503846,012068,012095,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P13-R01-PastaSalad-2607881-2609739,062585,062638,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P14-R01-PastaSalad-1521944-1524641,036520,036598,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P14-R01-PastaSalad-1577724-1578880,037862,037897,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P14-R01-PastaSalad-1774894-1776413,042594,042637,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P14-R01-PastaSalad-1951914-1953225,046842,046881,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+P16-R03-BaconAndEggs-1234646-1235989,029628,029667,53,Unknown verb 52,3,Take eating_utensil,34,sponge
+OP02-R06-GreekSalad-65776-68721,001571,001657,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP03-R05-Cheeseburger-657810-660390,015781,015856,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP03-R06-GreekSalad-204120-207260,004891,004982,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP03-R06-GreekSalad-207260-208460,004971,005007,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP03-R06-GreekSalad-208590-210760,005001,005064,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP04-R05-Cheeseburger-382490-386060,009171,009274,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP06-R02-TurkeySandwich-247655-255915,005923,006162,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP06-R02-TurkeySandwich-272620-273960,006539,006579,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP06-R06-GreekSalad-45460-48610,001084,001174,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-137549-138645,003299,003330,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-315511-317475,007568,007624,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+P01-R02-TurkeySandwich-353794-355032,008488,008524,54,Unknown verb 53,3,Take eating_utensil,24,lettuce
+OP04-R01-PastaSalad-466235-467045,011187,011212,55,Unknown verb 54,3,Take eating_utensil,11,onion
+OP04-R01-PastaSalad-504765-505305,012113,012129,55,Unknown verb 54,3,Take eating_utensil,11,onion
+OP04-R06-GreekSalad-120420-122290,002886,002939,55,Unknown verb 54,3,Take eating_utensil,11,onion
+OP04-R06-GreekSalad-122300-123290,002933,002961,55,Unknown verb 54,3,Take eating_utensil,11,onion
+OP06-R06-GreekSalad-244550-245510,005867,005895,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P01-R01-PastaSalad-332573-335168,007975,008051,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P02-R01-PastaSalad-275245-276625,006602,006642,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P03-R01-PastaSalad-2344257-2345122,056260,056285,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P03-R01-PastaSalad-700411-701764,016806,016846,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P04-R05-Cheeseburger-175877-182365,004206,004392,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P04-R06-GreekSalad-84660-89220,002020,002153,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P04-R06-GreekSalad-89225-90870,002137,002185,55,Unknown verb 54,3,Take eating_utensil,11,onion
+P10-R01-PastaSalad-1779584-1780237,042709,042727,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P11-R01-PastaSalad-2082949-2084349,049987,050028,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P11-R02-TurkeySandwich-584330-585030,014022,014042,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P13-R01-PastaSalad-2480970-2482073,059541,059572,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P13-R01-PastaSalad-2859970-2872630,068609,068974,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P16-R03-BaconAndEggs-1249140-1250900,029975,030026,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P17-R03-BaconAndEggs-1293588-1294379,031044,031068,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P17-R04-ContinentalBreakfast-922192-922782,022131,022148,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P18-R03-BaconAndEggs-1115435-1116915,026767,026809,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P18-R03-BaconAndEggs-1199825-1200489,028794,028813,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P18-R03-BaconAndEggs-1256437-1257351,030152,030179,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P18-R04-ContinentalBreakfast-707171-707951,016970,016993,56,Unknown verb 55,6,Put eating_utensil,34,sponge
+P05-R02-TurkeySandwich-319875-321986,007672,007733,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P07-R01-PastaSalad-2358745-2360215,056606,056649,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P08-R01-PastaSalad-1108868-1110280,026609,026650,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P08-R01-PastaSalad-2134768-2135532,051232,051255,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P09-R01-PastaSalad-1888189-1890618,045310,045381,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P09-R02-TurkeySandwich-597100-601100,014321,014436,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P09-R02-TurkeySandwich-618950-620550,014850,014898,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P10-R01-PastaSalad-1644000-1645600,039452,039499,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P10-R06-GreekSalad-772869-776550,018539,018647,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P11-R02-TurkeySandwich-673605-677315,016157,016265,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P11-R02-TurkeySandwich-70870-72220,001697,001737,57,Unknown verb 56,13,Put condiment_container,19,paper_towel
+P07-R01-PastaSalad-2257370-2259440,054171,054232,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P07-R01-PastaSalad-72750-75200,001740,001811,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P08-R01-PastaSalad-1967558-1969205,047217,047265,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P10-R05-Cheeseburger-844585-845975,020267,020307,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P10-R06-GreekSalad-686685-688132,016477,016519,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P10-R06-GreekSalad-697587-699182,016738,016785,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P10-R06-GreekSalad-699182-700356,016777,016812,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P13-R01-PastaSalad-2382490-2386076,057171,057274,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P13-R01-PastaSalad-66956-71550,001595,001729,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P13-R01-PastaSalad-85963-89004,002056,002144,58,Unknown verb 57,2,Open fridge,35,dishwasher
+P16-R03-BaconAndEggs-2167995-2170300,052026,052093,58,Unknown verb 57,2,Open fridge,35,dishwasher
+OP06-R05-Cheeseburger-391350-394770,009384,009483,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+OP06-R06-GreekSalad-298475-300565,007158,007219,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+OP06-R07-Pizza-477200-479050,011448,011502,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P01-R02-TurkeySandwich-118203-119597,002833,002874,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P02-R06-GreekSalad-411070-414270,009858,009950,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P02-R06-GreekSalad-414475-415375,009945,009971,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P03-R01-PastaSalad-274999-275587,006598,006616,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P05-R02-TurkeySandwich-434309-438420,010413,010533,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P06-R02-TurkeySandwich-337702-341772,008094,008213,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P06-R02-TurkeySandwich-91520-92308,002194,002218,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+P09-R02-TurkeySandwich-132350-136250,003167,003279,59,Unknown verb 58,3,Take eating_utensil,36,cheese_container
+OP04-R05-Cheeseburger-118170-119480,002833,002871,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+OP04-R07-Pizza-291882-293583,007001,007050,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+OP06-R03-BaconAndEggs-491440-492490,011792,011822,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+OP06-R07-Pizza-120620-121810,002891,002927,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R01-PastaSalad-1368205-1368976,032834,032858,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R03-BaconAndEggs-126037-127577,003021,003065,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R03-BaconAndEggs-129145-130405,003096,003133,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R03-BaconAndEggs-291364-291932,006991,007008,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R05-Cheeseburger-291170-294060,006981,007065,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R05-Cheeseburger-294060-295840,007053,007105,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R06-GreekSalad-510485-512025,012248,012292,60,Unknown verb 59,3,Take eating_utensil,37,oil_container
+P02-R06-GreekSalad-497115-498055,011928,011956,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P05-R02-TurkeySandwich-756181-757397,018145,018181,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-1874630-1876180,044988,045032,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P07-R01-PastaSalad-1890175-1890845,045363,045382,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P10-R01-PastaSalad-1186864-1188161,028481,028519,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P10-R01-PastaSalad-1219391-1220383,029263,029292,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P10-R01-PastaSalad-1282033-1282673,030767,030786,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P13-R01-PastaSalad-1749034-1750912,041972,042026,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P13-R01-PastaSalad-2252262-2254373,054049,054110,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P13-R01-PastaSalad-2257667-2259683,054179,054238,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+P13-R01-PastaSalad-2270045-2270886,054479,054504,61,Unknown verb 60,6,Put eating_utensil,29,seasoning_container
+OP03-R06-GreekSalad-381420-382060,009153,009171,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+OP03-R06-GreekSalad-600490-601760,014408,014446,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+OP04-R01-PastaSalad-415619-416899,009971,010009,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+OP04-R01-PastaSalad-423644-424374,010166,010186,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+OP04-R06-GreekSalad-186110-192870,004450,004645,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+OP06-R06-GreekSalad-127300-128890,003051,003098,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+P01-R01-PastaSalad-723504-726785,017356,017451,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+P02-R01-PastaSalad-255360-257704,006123,006190,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+P02-R01-PastaSalad-385252-388097,009239,009322,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+P02-R06-GreekSalad-183661-184901,004404,004441,62,Unknown verb 61,3,Take eating_utensil,8,cucumber
+P17-R03-BaconAndEggs-1128628-1130000,027084,027123,63,Unknown verb 62,10,Operate stove,23,pan
+P17-R03-BaconAndEggs-1458700-1473200,034973,035392,63,Unknown verb 62,10,Operate stove,23,pan
+P17-R03-BaconAndEggs-1476300-1489500,035400,035779,63,Unknown verb 62,10,Operate stove,23,pan
+P18-R03-BaconAndEggs-1084640-1104184,025984,026548,63,Unknown verb 62,10,Operate stove,23,pan
+P19-R03-BaconAndEggs-1397844-1437444,033453,034594,63,Unknown verb 62,10,Operate stove,23,pan
+P19-R03-BaconAndEggs-1438975-1459036,034487,035065,63,Unknown verb 62,10,Operate stove,23,pan
+P19-R03-BaconAndEggs-1460224-1492414,034968,035895,63,Unknown verb 62,10,Operate stove,23,pan
+P19-R03-BaconAndEggs-1463815-1469116,035119,035271,63,Unknown verb 62,10,Operate stove,23,pan
+P19-R03-BaconAndEggs-1470366-1478470,035269,035503,63,Unknown verb 62,10,Operate stove,23,pan
+P20-R03-BaconAndEggs-1007029-1013189,024153,024332,63,Unknown verb 62,10,Operate stove,23,pan
+OP03-R07-Pizza-172447-173709,004135,004173,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP03-R07-Pizza-568881-569878,013651,013680,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP04-R07-Pizza-212368-213328,005094,005122,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP04-R07-Pizza-213563-214813,005122,005159,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP04-R07-Pizza-268070-269544,006430,006473,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP06-R07-Pizza-219450-220870,005263,005304,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP06-R07-Pizza-39970-40980,000957,000986,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+P01-R01-PastaSalad-564388-572679,013525,013765,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+P01-R01-PastaSalad-713435-714762,017119,017158,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+P02-R01-PastaSalad-1330848-1332420,031936,031983,64,Unknown verb 63,3,Take eating_utensil,17,bell_pepper
+OP03-R06-GreekSalad-455059-466659,010893,011228,65,Unknown verb 64,13,Put condiment_container,11,onion
+OP04-R01-PastaSalad-477490-480445,011452,011538,65,Unknown verb 64,13,Put condiment_container,11,onion
+OP04-R01-PastaSalad-483867-485847,011607,011666,65,Unknown verb 64,13,Put condiment_container,11,onion
+P01-R01-PastaSalad-357831-377025,008541,009095,65,Unknown verb 64,13,Put condiment_container,11,onion
+P03-R01-PastaSalad-1649930-1706946,039461,041104,65,Unknown verb 64,13,Put condiment_container,11,onion
+P03-R01-PastaSalad-1717715-1726066,041205,041446,65,Unknown verb 64,13,Put condiment_container,11,onion
+P04-R01-PastaSalad-1017122-1027277,024386,024679,65,Unknown verb 64,13,Put condiment_container,11,onion
+P04-R06-GreekSalad-486290-505640,011624,012182,65,Unknown verb 64,13,Put condiment_container,11,onion
+P04-R06-GreekSalad-506610-519850,012126,012509,65,Unknown verb 64,13,Put condiment_container,11,onion
+P06-R01-PastaSalad-953258-960460,022861,023069,65,Unknown verb 64,13,Put condiment_container,11,onion
+P06-R02-TurkeySandwich-437991-439076,010509,010540,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P07-R01-PastaSalad-1800870-1802040,043217,043252,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P07-R01-PastaSalad-2131905-2133175,051162,051200,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P07-R01-PastaSalad-2133185-2136465,051188,051284,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P07-R01-PastaSalad-575265-577445,013801,013864,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P07-R01-PastaSalad-576570-577450,013835,013861,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P07-R01-PastaSalad-577455-581485,013849,013965,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P10-R01-PastaSalad-1475492-1476996,035408,035451,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P10-R01-PastaSalad-97337-98572,002333,002369,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+P10-R02-TurkeySandwich-380563-382509,009129,009185,66,Unknown verb 65,6,Put eating_utensil,33,cutting_board
+OP04-R03-BaconAndEggs-157139-176489,003725,004282,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP04-R03-BaconAndEggs-202790-207420,004855,004990,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP04-R04-ContinentalBreakfast-142681-158908,003385,003853,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP05-R03-BaconAndEggs-118370-157410,002747,003871,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP05-R03-BaconAndEggs-209925-211545,005034,005082,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP05-R03-BaconAndEggs-209980-226920,004999,005487,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP06-R03-BaconAndEggs-250010-276450,005937,006698,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+OP06-R04-ContinentalBreakfast-84700-110660,001970,002718,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+P01-R01-PastaSalad-1261992-1277466,030250,030697,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+P02-R01-PastaSalad-1389268-1397281,033323,033554,67,Unknown verb 66,15,Open drawer,"38,3","mixture,eating_utensil"
+P02-R01-PastaSalad-185972-187023,004461,004491,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P02-R06-GreekSalad-394870-395940,009474,009505,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P02-R06-GreekSalad-51080-52390,001222,001261,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P03-R01-PastaSalad-112738-114999,002700,002765,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P03-R01-PastaSalad-2375578-2377011,057010,057052,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P03-R01-PastaSalad-655587-656352,015732,015755,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P04-R01-PastaSalad-380945-382761,009138,009191,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P04-R06-GreekSalad-115410-117060,002765,002814,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P04-R06-GreekSalad-267750-270080,006421,006487,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+P04-R06-GreekSalad-690670-695260,016565,016698,68,Unknown verb 67,3,Take eating_utensil,39,tomato_container
+OP03-R02-TurkeySandwich-335310-336580,008044,008081,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP03-R02-TurkeySandwich-343700-345670,008243,008302,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP03-R05-Cheeseburger-474655-477475,011384,011467,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP03-R05-Cheeseburger-519175-520965,012456,012508,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP03-R07-Pizza-631905-655719,015108,015795,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP04-R02-TurkeySandwich-222700-223750,005342,005372,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP04-R05-Cheeseburger-318540-320490,007640,007696,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP06-R02-TurkeySandwich-197300-199410,004730,004791,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+OP06-R05-Cheeseburger-427830-432100,010257,010381,69,Unknown verb 68,6,Put eating_utensil,40,cheese
+P01-R02-TurkeySandwich-1005981-1007255,024140,024178,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P02-R01-PastaSalad-666774-667758,016000,016029,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P02-R03-BaconAndEggs-1254933-1255933,030116,030145,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P02-R04-ContinentalBreakfast-318379-321301,007634,007719,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P08-R01-PastaSalad-203355-204590,004877,004914,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P08-R01-PastaSalad-208605-210722,005001,005063,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P11-R02-TurkeySandwich-602495-604775,014454,014520,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P13-R01-PastaSalad-1323144-1325932,031749,031829,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+P13-R01-PastaSalad-1851990-1853448,044444,044486,70,Unknown verb 69,9,Cut cucumber,3,eating_utensil
+OP03-R01-PastaSalad-701870-702760,016842,016869,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP03-R01-PastaSalad-715970-717150,017180,017215,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP03-R07-Pizza-258873-260951,006207,006268,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP03-R07-Pizza-260987-263390,006257,006328,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP04-R01-PastaSalad-337167-338277,008090,008121,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP04-R07-Pizza-271776-272976,006519,006555,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP04-R07-Pizza-272571-273433,006539,006565,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP05-R07-Pizza-131150-132250,003145,003176,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP06-R07-Pizza-229775-230435,005513,005532,71,Unknown verb 70,6,Put eating_utensil,17,bell_pepper
+OP03-R07-Pizza-387192-389182,009287,009346,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP04-R03-BaconAndEggs-248018-250158,005947,006009,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP04-R03-BaconAndEggs-547157-549767,013125,013201,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP04-R05-Cheeseburger-124620-128300,002981,003089,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP04-R07-Pizza-300497-303480,007204,007291,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP05-R03-BaconAndEggs-447000-449530,010722,010795,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP06-R03-BaconAndEggs-217980-229220,005204,005529,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+OP06-R05-Cheeseburger-63100-67920,001503,001642,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+P02-R05-Cheeseburger-295825-297955,007094,007156,72,Unknown verb 71,16,Take plate,"41,37,23","oil,oil_container,pan"
+P03-R01-PastaSalad-2435458-2436431,058448,058477,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P04-R01-PastaSalad-187936-189840,004506,004561,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P04-R01-PastaSalad-283312-285496,006794,006857,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P06-R01-PastaSalad-112710-114370,002701,002749,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P06-R01-PastaSalad-133301-134549,003196,003233,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P09-R01-PastaSalad-148005-148895,003550,003576,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P09-R01-PastaSalad-349333-350544,008380,008417,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P10-R01-PastaSalad-310529-312529,007447,007506,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+P11-R01-PastaSalad-101650-104150,002433,002506,73,Unknown verb 72,3,Take eating_utensil,42,pasta_container
+OP03-R06-GreekSalad-224540-229280,005377,005514,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP03-R06-GreekSalad-234990-238020,005632,005720,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP03-R06-GreekSalad-243590-245980,005841,005909,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP03-R06-GreekSalad-250140-255300,005991,006140,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP04-R06-GreekSalad-61210-66920,001456,001620,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP06-R05-Cheeseburger-280050-292260,006692,007044,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP06-R06-GreekSalad-101595-121135,002391,002955,74,Unknown verb 73,4,Cut tomato,24,lettuce
+P01-R02-TurkeySandwich-348586-354217,008353,008515,74,Unknown verb 73,4,Cut tomato,24,lettuce
+P01-R02-TurkeySandwich-376168-380287,009018,009137,74,Unknown verb 73,4,Cut tomato,24,lettuce
+OP04-R05-Cheeseburger-365940-367450,008779,008822,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+OP04-R05-Cheeseburger-367430-368360,008816,008843,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P02-R06-GreekSalad-404820-405920,009713,009745,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P03-R01-PastaSalad-2373889-2375565,056969,057018,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P03-R01-PastaSalad-2379104-2380996,057094,057148,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P03-R01-PastaSalad-291529-293823,006991,007057,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P04-R06-GreekSalad-118445-120625,002837,002900,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P05-R01-PastaSalad-351946-353403,008443,008485,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P05-R01-PastaSalad-390356-391909,009365,009409,75,Unknown verb 74,6,Put eating_utensil,39,tomato_container
+P10-R01-PastaSalad-1374387-1379737,032972,033127,76,Unknown verb 75,10,Operate stove,14,bowl
+P10-R01-PastaSalad-1392112-1395912,033401,033511,76,Unknown verb 75,10,Operate stove,14,bowl
+P10-R06-GreekSalad-681100-685675,016335,016468,76,Unknown verb 75,10,Operate stove,14,bowl
+P13-R01-PastaSalad-2488062-2504256,059674,060142,76,Unknown verb 75,10,Operate stove,14,bowl
+P14-R01-PastaSalad-1545264-1552172,037070,037269,76,Unknown verb 75,10,Operate stove,14,bowl
+P14-R01-PastaSalad-1885961-1890600,045252,045386,76,Unknown verb 75,10,Operate stove,14,bowl
+P14-R01-PastaSalad-1902114-1904441,045645,045712,76,Unknown verb 75,10,Operate stove,14,bowl
+P15-R01-PastaSalad-1449550-1457250,034771,034992,76,Unknown verb 75,10,Operate stove,14,bowl
+P15-R01-PastaSalad-1459950-1467950,035019,035250,76,Unknown verb 75,10,Operate stove,14,bowl
+P08-R01-PastaSalad-878777-880836,021085,021146,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-881542-886483,021145,021288,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-886689-889630,021273,021359,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-891836-895659,021395,021505,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-909571-913159,021821,021924,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-914807-918336,021947,022049,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-918777-926012,022033,022242,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-928894-934836,022279,022451,77,Unknown verb 76,4,Cut tomato,43,olive
+P08-R01-PastaSalad-937365-941718,022486,022612,77,Unknown verb 76,4,Cut tomato,43,olive
+P01-R01-PastaSalad-763096-764292,018311,018347,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P02-R05-Cheeseburger-169545-170065,004068,004083,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P03-R01-PastaSalad-821881-823234,019722,019761,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P04-R01-PastaSalad-716239-717184,017187,017215,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P04-R05-Cheeseburger-483725-484501,011607,011631,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P06-R01-PastaSalad-1039945-1040695,024956,024979,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P07-R01-PastaSalad-465435-470875,011157,011314,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P07-R01-PastaSalad-784315-786095,018819,018871,78,Unknown verb 77,8,Take condiment_container,12,drawer
+P12-R01-PastaSalad-1062992-1065001,025506,025566,78,Unknown verb 77,8,Take condiment_container,12,drawer
+OP04-R01-PastaSalad-835495-836375,020049,020075,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP04-R01-PastaSalad-847920-849040,020348,020379,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP04-R06-GreekSalad-254535-256805,006103,006169,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP04-R06-GreekSalad-295900-297070,007098,007133,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP04-R06-GreekSalad-309335-310055,007423,007443,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP04-R06-GreekSalad-310430-311200,007448,007471,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP06-R06-GreekSalad-387740-390030,009300,009366,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+OP06-R06-GreekSalad-403365-408295,009668,009812,79,Unknown verb 78,16,Take plate,"21,7,44","condiment,condiment_container,salad"
+P07-R01-PastaSalad-2025530-2028810,048604,048700,80,Unknown verb 79,10,Operate stove,26,pot
+P09-R01-PastaSalad-1567642-1574951,037606,037816,80,Unknown verb 79,10,Operate stove,26,pot
+P09-R01-PastaSalad-1601813-1602899,038441,038472,80,Unknown verb 79,10,Operate stove,26,pot
+P09-R01-PastaSalad-1606353-1612987,038536,038728,80,Unknown verb 79,10,Operate stove,26,pot
+P10-R01-PastaSalad-1768738-1774778,042435,042609,80,Unknown verb 79,10,Operate stove,26,pot
+P10-R01-PastaSalad-1781051-1799860,042700,043242,80,Unknown verb 79,10,Operate stove,26,pot
+P11-R01-PastaSalad-2062899-2080299,049467,049970,80,Unknown verb 79,10,Operate stove,26,pot
+P11-R01-PastaSalad-2087399-2124099,050009,051067,80,Unknown verb 79,10,Operate stove,26,pot
+OP03-R01-PastaSalad-879780-892210,021084,021444,81,Unknown verb 80,15,Open drawer,45,pasta
+OP04-R01-PastaSalad-604895-611825,014501,014700,81,Unknown verb 80,15,Open drawer,45,pasta
+OP04-R01-PastaSalad-644945-660050,015442,015878,81,Unknown verb 80,15,Open drawer,45,pasta
+OP04-R01-PastaSalad-672460-678690,016124,016304,81,Unknown verb 80,15,Open drawer,45,pasta
+OP04-R01-PastaSalad-800845-801505,019219,019238,81,Unknown verb 80,15,Open drawer,45,pasta
+OP04-R01-PastaSalad-801650-808010,019224,019408,81,Unknown verb 80,15,Open drawer,45,pasta
+OP04-R01-PastaSalad-858935-866615,020596,020817,81,Unknown verb 80,15,Open drawer,45,pasta
+P01-R01-PastaSalad-1216924-1239641,029152,029806,81,Unknown verb 80,15,Open drawer,45,pasta
+OP03-R03-BaconAndEggs-696879-700005,016718,016808,82,Unknown verb 81,2,Open fridge,32,bread_container
+OP04-R02-TurkeySandwich-137100-144600,003272,003489,82,Unknown verb 81,2,Open fridge,32,bread_container
+OP04-R04-ContinentalBreakfast-55767-67210,001311,001641,82,Unknown verb 81,2,Open fridge,32,bread_container
+OP05-R03-BaconAndEggs-578850-582890,013883,013999,82,Unknown verb 81,2,Open fridge,32,bread_container
+OP06-R02-TurkeySandwich-150330-151680,003604,003644,82,Unknown verb 81,2,Open fridge,32,bread_container
+P02-R03-BaconAndEggs-637589-639102,015299,015342,82,Unknown verb 81,2,Open fridge,32,bread_container
+P02-R04-ContinentalBreakfast-312737-315500,007499,007578,82,Unknown verb 81,2,Open fridge,32,bread_container
+P04-R05-Cheeseburger-780113-783857,018713,018822,82,Unknown verb 81,2,Open fridge,32,bread_container
+P02-R01-PastaSalad-855185-855942,020522,020545,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P02-R06-GreekSalad-392975-394195,009428,009464,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P03-R01-PastaSalad-176400-179200,004227,004307,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P04-R01-PastaSalad-1299367-1301453,031179,031240,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P04-R01-PastaSalad-700777-702145,016815,016855,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P04-R06-GreekSalad-83660-84650,002005,002034,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P04-R06-GreekSalad-99290-103220,002373,002487,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+P05-R02-TurkeySandwich-430445-433229,010324,010404,83,Unknown verb 82,3,Take eating_utensil,46,grocery_bag
+OP03-R05-Cheeseburger-515680-518340,012370,012447,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP04-R02-TurkeySandwich-211010-214800,005055,005165,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP04-R02-TurkeySandwich-214900-216280,005154,005194,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP06-R02-TurkeySandwich-176990-180220,004239,004334,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP06-R07-Pizza-514097-516137,012333,012393,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP06-R07-Pizza-520662-525292,012484,012619,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP06-R07-Pizza-536330-539120,012865,012945,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+OP06-R07-Pizza-546820-550330,013115,013216,84,Unknown verb 83,3,Take eating_utensil,40,cheese
+P05-R02-TurkeySandwich-737811-741114,017699,017795,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P06-R01-PastaSalad-925167-928763,022196,022299,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P07-R01-PastaSalad-1876180-1878810,045022,045098,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P07-R01-PastaSalad-1880540-1882730,045127,045191,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P07-R01-PastaSalad-1882730-1886140,045177,045276,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P07-R01-PastaSalad-1903840-1906240,045687,045755,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P08-R01-PastaSalad-1530938-1538468,036724,036942,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+P08-R01-PastaSalad-1539792-1545454,036942,037104,85,Unknown verb 84,16,Take plate,"47,29,44","seasoning,seasoning_container,salad"
+OP03-R03-BaconAndEggs-121140-147813,002843,003612,86,Unknown verb 85,15,Open drawer,48,egg
+OP05-R03-BaconAndEggs-284570-317780,006750,007706,86,Unknown verb 85,15,Open drawer,48,egg
+P02-R03-BaconAndEggs-385499-399661,009217,009626,86,Unknown verb 85,15,Open drawer,48,egg
+P02-R03-BaconAndEggs-414971-416296,009956,009995,86,Unknown verb 85,15,Open drawer,48,egg
+P02-R03-BaconAndEggs-544020-544777,013054,013077,86,Unknown verb 85,15,Open drawer,48,egg
+P16-R03-BaconAndEggs-954000-970700,022856,023337,86,Unknown verb 85,15,Open drawer,48,egg
+P17-R03-BaconAndEggs-303400-316700,007249,007633,86,Unknown verb 85,15,Open drawer,48,egg
+P17-R03-BaconAndEggs-601900-607500,014432,014593,86,Unknown verb 85,15,Open drawer,48,egg
+OP04-R01-PastaSalad-48565-51885,001157,001254,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+OP04-R01-PastaSalad-53775-55645,001286,001340,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+OP04-R04-ContinentalBreakfast-94080-99880,002243,002412,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+OP05-R04-ContinentalBreakfast-258640-259470,006205,006230,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+OP06-R04-ContinentalBreakfast-139275-146265,003325,003528,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+OP06-R04-ContinentalBreakfast-146000-146580,003503,003519,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+P01-R01-PastaSalad-1290602-1291626,030972,031002,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+P03-R01-PastaSalad-2020511-2021078,048491,048507,87,Unknown verb 86,16,Take plate,"49,5,26","water,faucet,pot"
+P02-R04-ContinentalBreakfast-501494-503848,012030,012098,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P02-R06-GreekSalad-612336-613098,014694,014717,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P03-R01-PastaSalad-517881-518411,012428,012443,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P04-R06-GreekSalad-1060560-1063760,025446,025538,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P05-R01-PastaSalad-1620407-1621484,038887,038918,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P05-R01-PastaSalad-909350-910896,021821,021865,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P07-R01-PastaSalad-2367615-2368235,056821,056839,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+P12-R02-TurkeySandwich-266860-268046,006401,006437,88,Unknown verb 87,6,Put eating_utensil,19,paper_towel
+OP04-R01-PastaSalad-428224-429614,010274,010314,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+OP06-R06-GreekSalad-179370-180410,004302,004332,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+P01-R01-PastaSalad-743387-744458,017839,017869,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+P02-R01-PastaSalad-265316-266954,006363,006411,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+P02-R01-PastaSalad-314731-315352,007552,007570,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+P02-R06-GreekSalad-177591-178581,004260,004288,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+P02-R06-GreekSalad-219306-220006,005262,005282,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+P03-R01-PastaSalad-1325215-1325729,031804,031819,89,Unknown verb 88,6,Put eating_utensil,8,cucumber
+OP03-R05-Cheeseburger-781775-782345,018761,018778,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP03-R05-Cheeseburger-782365-783795,018773,018815,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP04-R02-TurkeySandwich-278260-279940,006674,006723,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP04-R04-ContinentalBreakfast-356540-361676,008544,008693,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP04-R05-Cheeseburger-436720-437320,010480,010497,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP04-R05-Cheeseburger-437420-439520,010493,010554,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP06-R02-TurkeySandwich-452615-454075,010859,010901,90,Unknown verb 89,17,Take bowl,50,sandwich
+OP02-R07-Pizza-631630-632700,015157,015187,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP03-R06-GreekSalad-663430-664180,015920,015943,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP03-R07-Pizza-279391-280379,006703,006732,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP04-R06-GreekSalad-287100-288210,006888,006920,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP05-R07-Pizza-336225-337405,008066,008101,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP05-R07-Pizza-337520-339100,008096,008143,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP06-R06-GreekSalad-306600-307260,007357,007376,91,Unknown verb 90,6,Put eating_utensil,36,cheese_container
+OP03-R06-GreekSalad-639370-643630,015334,015458,92,Unknown verb 91,6,Put eating_utensil,11,onion
+OP04-R01-PastaSalad-485917-486417,011661,011676,92,Unknown verb 91,6,Put eating_utensil,11,onion
+OP04-R01-PastaSalad-510955-511500,012261,012277,92,Unknown verb 91,6,Put eating_utensil,11,onion
+OP04-R06-GreekSalad-126750-127610,003040,003065,92,Unknown verb 91,6,Put eating_utensil,11,onion
+OP06-R06-GreekSalad-264310-265010,006342,006362,92,Unknown verb 91,6,Put eating_utensil,11,onion
+P01-R01-PastaSalad-496142-497618,011904,011946,92,Unknown verb 91,6,Put eating_utensil,11,onion
+P01-R01-PastaSalad-514360-515655,012341,012379,92,Unknown verb 91,6,Put eating_utensil,11,onion
+OP04-R03-BaconAndEggs-90206-93835,002155,002262,93,Unknown verb 92,18,Put bowl,48,egg
+OP05-R03-BaconAndEggs-85165-91245,002029,002204,93,Unknown verb 92,18,Put bowl,48,egg
+OP06-R03-BaconAndEggs-84370-90060,002011,002175,93,Unknown verb 92,18,Put bowl,48,egg
+OP06-R03-BaconAndEggs-92840-97780,002216,002359,93,Unknown verb 92,18,Put bowl,48,egg
+P02-R03-BaconAndEggs-202032-213978,004820,005164,93,Unknown verb 92,18,Put bowl,48,egg
+P02-R03-BaconAndEggs-327080-333783,007833,008027,93,Unknown verb 92,18,Put bowl,48,egg
+P16-R03-BaconAndEggs-893132-899725,021419,021610,93,Unknown verb 92,18,Put bowl,48,egg
+P06-R02-TurkeySandwich-139343-141104,003340,003391,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+P07-R01-PastaSalad-1735030-1739340,041630,041755,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+P07-R01-PastaSalad-1810690-1811800,043454,043486,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+P09-R01-PastaSalad-1259742-1261416,030229,030278,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+P10-R02-TurkeySandwich-93300-95500,002234,002297,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+P10-R06-GreekSalad-706116-708157,016941,017001,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+P11-R01-PastaSalad-1683178-1687646,040386,040514,94,Unknown verb 93,3,Take eating_utensil,33,cutting_board
+OP03-R07-Pizza-295784-298071,007093,007159,95,Unknown verb 94,2,Open fridge,37,oil_container
+OP03-R07-Pizza-385279-387396,009241,009303,95,Unknown verb 94,2,Open fridge,37,oil_container
+OP04-R03-BaconAndEggs-544112-546892,013052,013132,95,Unknown verb 94,2,Open fridge,37,oil_container
+OP04-R05-Cheeseburger-119860-123790,002867,002980,95,Unknown verb 94,2,Open fridge,37,oil_container
+OP04-R06-GreekSalad-251365-254295,006025,006111,95,Unknown verb 94,2,Open fridge,37,oil_container
+OP04-R07-Pizza-295337-299327,007079,007193,95,Unknown verb 94,2,Open fridge,37,oil_container
+OP05-R07-Pizza-57048-57988,001367,001394,95,Unknown verb 94,2,Open fridge,37,oil_container
+P04-R06-GreekSalad-1106700-1110140,026552,026652,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+P05-R01-PastaSalad-1423261-1424862,034154,034201,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+P05-R01-PastaSalad-1424862-1425920,034194,034225,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+P07-R01-PastaSalad-1965175-1967675,047158,047231,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+P11-R01-PastaSalad-1852774-1854974,044461,044525,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+P13-R01-PastaSalad-2450038-2452257,058795,058860,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+P13-R01-PastaSalad-2452257-2453414,058852,058884,96,Unknown verb 95,19,"Put trash,trash_container","51,34","washing_liquid,sponge"
+OP06-R07-Pizza-203160-215820,004845,005210,97,Unknown verb 96,7,Open cabinet,52,microwave
+P02-R04-ContinentalBreakfast-269835-280192,006451,006750,97,Unknown verb 96,7,Open cabinet,52,microwave
+P02-R04-ContinentalBreakfast-281035-290299,006722,006990,97,Unknown verb 96,7,Open cabinet,52,microwave
+P05-R01-PastaSalad-635472-638311,015244,015327,97,Unknown verb 96,7,Open cabinet,52,microwave
+P12-R01-PastaSalad-108063-110186,002588,002650,97,Unknown verb 96,7,Open cabinet,52,microwave
+P17-R04-ContinentalBreakfast-251300-257910,006015,006206,97,Unknown verb 96,7,Open cabinet,52,microwave
+P18-R04-ContinentalBreakfast-165694-169654,003967,004081,97,Unknown verb 96,7,Open cabinet,52,microwave
+OP02-R06-GreekSalad-58305-58916,001398,001415,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+OP03-R06-GreekSalad-643780-644810,015448,015478,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+OP04-R01-PastaSalad-523890-524650,012571,012594,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+P02-R05-Cheeseburger-460500-461200,011051,011070,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+P03-R01-PastaSalad-261469-263352,006271,006325,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+P04-R05-Cheeseburger-454528-455064,010907,010923,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+P04-R05-Cheeseburger-598193-598987,014354,014378,98,Unknown verb 97,8,Take condiment_container,27,fridge_drawer
+P06-R01-PastaSalad-1162158-1190702,027823,028645,99,Unknown verb 98,10,Operate stove,53,strainer
+P07-R01-PastaSalad-2265325-2266185,054365,054391,99,Unknown verb 98,10,Operate stove,53,strainer
+P07-R01-PastaSalad-2276405-2278385,054628,054687,99,Unknown verb 98,10,Operate stove,53,strainer
+P07-R01-PastaSalad-2298990-2306990,055156,055387,99,Unknown verb 98,10,Operate stove,53,strainer
+P08-R01-PastaSalad-1819146-1828529,043637,043907,99,Unknown verb 98,10,Operate stove,53,strainer
+P08-R01-PastaSalad-1829646-1904587,043731,045891,99,Unknown verb 98,10,Operate stove,53,strainer
+P09-R01-PastaSalad-1453083-1500143,034760,036117,99,Unknown verb 98,10,Operate stove,53,strainer
+P07-R01-PastaSalad-133080-133690,003192,003210,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P07-R01-PastaSalad-1558720-1561760,037402,037490,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P07-R01-PastaSalad-164450-166500,003941,004001,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P07-R01-PastaSalad-1834805-1835315,044034,044049,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P07-R01-PastaSalad-2370060-2371790,056877,056927,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P07-R01-PastaSalad-87485-88075,002098,002115,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P10-R01-PastaSalad-878713-879913,021086,021121,100,Unknown verb 99,9,Cut cucumber,14,bowl
+P02-R04-ContinentalBreakfast-538348-540151,012916,012968,101,Unknown verb 100,9,Cut cucumber,26,pot
+P03-R01-PastaSalad-1053557-1055406,025281,025334,101,Unknown verb 100,9,Cut cucumber,26,pot
+P03-R01-PastaSalad-1328079-1328863,031871,031895,101,Unknown verb 100,9,Cut cucumber,26,pot
+P03-R01-PastaSalad-1344117-1345496,032255,032295,101,Unknown verb 100,9,Cut cucumber,26,pot
+P03-R01-PastaSalad-1354615-1356129,032507,032551,101,Unknown verb 100,9,Cut cucumber,26,pot
+P03-R01-PastaSalad-2169648-2170999,052068,052107,101,Unknown verb 100,9,Cut cucumber,26,pot
+OP04-R06-GreekSalad-193550-195570,004640,004699,102,Unknown verb 101,6,Put eating_utensil,46,grocery_bag
+P01-R01-PastaSalad-1180154-1182369,028318,028382,102,Unknown verb 101,6,Put eating_utensil,46,grocery_bag
+P01-R01-PastaSalad-1186532-1187875,028473,028512,102,Unknown verb 101,6,Put eating_utensil,46,grocery_bag
+P01-R02-TurkeySandwich-952419-954122,022854,022903,102,Unknown verb 101,6,Put eating_utensil,46,grocery_bag
+P02-R01-PastaSalad-864814-865994,020752,020787,102,Unknown verb 101,6,Put eating_utensil,46,grocery_bag
+P02-R06-GreekSalad-595513-596796,014289,014327,102,Unknown verb 101,6,Put eating_utensil,46,grocery_bag
+OP04-R03-BaconAndEggs-65711-67793,001572,001633,103,Unknown verb 102,3,Take eating_utensil,48,egg
+OP04-R03-BaconAndEggs-82348-83491,001974,002006,103,Unknown verb 102,3,Take eating_utensil,48,egg
+OP05-R03-BaconAndEggs-50880-51690,001219,001243,103,Unknown verb 102,3,Take eating_utensil,48,egg
+OP05-R03-BaconAndEggs-51615-55250,001230,001334,103,Unknown verb 102,3,Take eating_utensil,48,egg
+OP05-R03-BaconAndEggs-84210-85160,002019,002046,103,Unknown verb 102,3,Take eating_utensil,48,egg
+P02-R03-BaconAndEggs-188142-190953,004509,004589,103,Unknown verb 102,3,Take eating_utensil,48,egg
+OP04-R07-Pizza-74178-77738,001772,001874,104,Unknown verb 103,2,Open fridge,36,cheese_container
+OP05-R07-Pizza-310995-311975,007461,007490,104,Unknown verb 103,2,Open fridge,36,cheese_container
+OP06-R02-TurkeySandwich-180260-197290,004285,004776,104,Unknown verb 103,2,Open fridge,36,cheese_container
+OP06-R07-Pizza-487555-490815,011693,011788,104,Unknown verb 103,2,Open fridge,36,cheese_container
+P01-R02-TurkeySandwich-680070-686546,016306,016493,104,Unknown verb 103,2,Open fridge,36,cheese_container
+P02-R05-Cheeseburger-790155-798305,018944,019179,104,Unknown verb 103,2,Open fridge,36,cheese_container
+OP03-R05-Cheeseburger-144910-146730,003473,003526,105,Unknown verb 104,8,Take condiment_container,37,oil_container
+OP03-R06-GreekSalad-688160-688930,016513,016537,105,Unknown verb 104,8,Take condiment_container,37,oil_container
+OP03-R07-Pizza-310371-311377,007446,007476,105,Unknown verb 104,8,Take condiment_container,37,oil_container
+OP03-R07-Pizza-311210-313112,007465,007519,105,Unknown verb 104,8,Take condiment_container,37,oil_container
+OP03-R07-Pizza-389452-391686,009341,009406,105,Unknown verb 104,8,Take condiment_container,37,oil_container
+OP04-R03-BaconAndEggs-250473-254353,006002,006114,105,Unknown verb 104,8,Take condiment_container,37,oil_container
+OP03-R07-Pizza-313761-314620,007528,007553,106,Unknown verb 105,6,Put eating_utensil,37,oil_container
+OP03-R07-Pizza-392124-392827,009409,009429,106,Unknown verb 105,6,Put eating_utensil,37,oil_container
+OP04-R03-BaconAndEggs-254328-256438,006098,006160,106,Unknown verb 105,6,Put eating_utensil,37,oil_container
+OP05-R03-BaconAndEggs-208275-209285,004996,005025,106,Unknown verb 105,6,Put eating_utensil,37,oil_container
+OP05-R03-BaconAndEggs-452570-453830,010858,010895,106,Unknown verb 105,6,Put eating_utensil,37,oil_container
+OP06-R03-BaconAndEggs-233820-234980,005608,005643,106,Unknown verb 105,6,Put eating_utensil,37,oil_container
