@@ -11,6 +11,7 @@ from graph.dashboard.components.video_display import VideoDisplay
 from graph.dashboard.components.graph_display import GraphDisplay
 from graph.dashboard.components.playback_controls import PlaybackControls
 from graph.dashboard.components.meta_info import MetaInfo
+from graph.dashboard.components.snapshot import Snapshot
 
 
 class Dashboard:
@@ -18,7 +19,8 @@ class Dashboard:
         self, 
         trace_file_path: str, 
         video_path: Optional[str] = None,
-        play_interval_ms: int = DEFAULT_PLAY_INTERVAL_MS
+        play_interval_ms: int = DEFAULT_PLAY_INTERVAL_MS,
+        action_mapping_path: str = None
     ):
         """Initialize the dashboard.
         
@@ -26,6 +28,7 @@ class Dashboard:
             trace_file_path: Path to the trace file
             video_path: Optional path to the video file
             play_interval_ms: Interval between frame updates in milliseconds
+            action_mapping_path: Path to the action mapping CSV file
         """
         self.playback = Playback(trace_file_path)
         self.video_display = VideoDisplay(video_path, playback=self.playback)
@@ -37,6 +40,12 @@ class Dashboard:
             playback=self.playback
         )
         self.meta_info = MetaInfo(video_path, trace_file_path)
+        
+        # Initialize the snapshot component if action mapping is provided
+        self.snapshot = None
+        if action_mapping_path:
+            self.snapshot = Snapshot(playback=self.playback, action_mapping_path=action_mapping_path)
+            
         self.play_interval_ms = play_interval_ms
         
         self.app = self._create_app()
@@ -89,9 +98,18 @@ class Dashboard:
                 ], width=6, className="d-flex"),
             ], className="mb-3 g-3"),
             
-            dbc.Row(dbc.Col(
-                self.playback_controls.create_layout()
-            ), className="mb-2"),
+            dbc.Row([
+                dbc.Col([
+                    self.playback_controls.create_layout()
+                ], width=9 if self.snapshot else 12),
+                
+                # Only add the snapshot column if the component is available
+                *([
+                    dbc.Col([
+                        self.snapshot.create_layout()
+                    ], width=3)
+                ] if self.snapshot else []),
+            ], className="mb-2"),
             
             dbc.Row(dbc.Col(
                 self.meta_info.create_layout()
@@ -107,6 +125,10 @@ class Dashboard:
             app: Dash application instance
         """
         self.playback_controls.register_callbacks(app)
+        
+        # Register snapshot callbacks if the component is available
+        if self.snapshot:
+            self.snapshot.register_callbacks(app)
         
         @app.callback(
             [Output(f"{self.video_display.component_id}-graph", "figure"),

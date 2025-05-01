@@ -47,6 +47,9 @@ def setup_parser() -> argparse.ArgumentParser:
     visualize_parser.add_argument("--video-name", type=str, help="Name of the video to process (used to locate trace file if trace-path not provided)")
     visualize_parser.add_argument("--video-path", type=str, help="Path to the video file")
     visualize_parser.add_argument("--trace-path", type=str, help="Path to the trace file")
+    visualize_parser.add_argument("--action-mapping-path", type=str, 
+                               default="egtea_gaze/action_annotation/ego-topo-action-mapping.csv",
+                               help="Path to the action mapping CSV file")
     visualize_parser.add_argument("--port", type=int, default=8050, help="Port to run the server on")
     visualize_parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode")
     
@@ -201,6 +204,7 @@ def main():
         visualize_graph_construction(
             trace_file=str(trace_file),
             video_path=video_path,
+            action_mapping_path=args.action_mapping_path,
             port=args.port,
             debug=args.debug
         )

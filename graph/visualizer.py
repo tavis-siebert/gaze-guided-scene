@@ -109,6 +109,7 @@ class GraphVisualizer:
 def visualize_graph_construction(
     trace_file: str,
     video_path: Optional[str] = None,
+    action_mapping_path: Optional[str] = None,
     port: int = 8050,
     debug: bool = False
 ) -> None:
@@ -120,8 +121,9 @@ def visualize_graph_construction(
     Args:
         trace_file: Path to the trace file with graph events
         video_path: Optional path to the video file
+        action_mapping_path: Optional path to the action mapping CSV file
         port: Port number to run the server on
         debug: Whether to run in debug mode
     """
-    dashboard = Dashboard(trace_file, video_path)
+    dashboard = Dashboard(trace_file, video_path, action_mapping_path=action_mapping_path)
     dashboard.run(port=port, debug=debug)
