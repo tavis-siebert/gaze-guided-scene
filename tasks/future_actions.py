@@ -16,14 +16,14 @@ class FutureActionsTask(BaseTask):
         train_recall, train_precision, train_mAP = self.test(self.train_loader)
         test_recall, test_precision, test_mAP = self.test(self.test_loader)
         
-        self.log_metric('train_loss', epoch_loss / num_samples)
-        self.log_metric('train_recall', train_recall)
-        self.log_metric('train_precision', train_precision)
-        self.log_metric('train_mAP', train_mAP)
+        self.log_metric('train_loss', epoch_loss / num_samples, epoch)
+        self.log_metric('train_recall', train_recall, epoch)
+        self.log_metric('train_precision', train_precision, epoch)
+        self.log_metric('train_mAP', train_mAP, epoch)
         
-        self.log_metric('test_recall', test_recall)
-        self.log_metric('test_precision', test_precision)
-        self.log_metric('test_mAP', test_mAP)
+        self.log_metric('test_recall', test_recall, epoch)
+        self.log_metric('test_precision', test_precision, epoch)
+        self.log_metric('test_mAP', test_mAP, epoch)
     
     def print_progress(self, epoch, epoch_loss, num_samples):
         self.logger.info(f'Epoch: {epoch+1}')

@@ -128,6 +128,7 @@ def main():
         logger.info(f"Using device: {device}")
         
         # Initialize task and start training
+        task = None
         try:
             TaskClass = get_task(args.task)
             task = TaskClass(config, device)
@@ -137,6 +138,11 @@ def main():
         except Exception as e:
             logger.error(f"Error during training: {str(e)}")
             raise
+        finally:
+            # Close tensorboard writer if task was initialized
+            if task is not None:
+                task.close()
+                logger.info("TensorBoard writer closed")
     elif args.command == "build":
         from datasets.build_dataset import build_dataset
         logger.info("Starting dataset building process")

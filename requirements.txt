@@ -17,3 +17,5 @@ torch-geometric
 scikit-learn
 debugpy
 yolo-world-onnx
+tensorboard>=2.0.0
+standard-imghdr
