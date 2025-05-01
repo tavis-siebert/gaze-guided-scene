@@ -256,7 +256,7 @@ def dataset_to_csv(dataset_path: str, output_path: str, noun_idx_path: str,
             next_action_id = y["next_action"].item() if "next_action" in y else None
             next_action_name = None
             if next_action_id is not None:
-                next_action_name = action_mapping.get(next_action_id, f"Unknown-{next_action_id}")
+                next_action_name = action_mapping.get(next_action_id + 1, f"Unknown-{next_action_id}")
                 # Update action distribution
                 action_distribution[split][next_action_name] += 1
             
@@ -267,7 +267,7 @@ def dataset_to_csv(dataset_path: str, output_path: str, noun_idx_path: str,
                 # Convert binary tensor to list of indices
                 future_actions = torch.nonzero(y["future_actions"]).squeeze(1).tolist()
                 future_actions_str = ",".join(str(idx) for idx in future_actions)
-                future_actions_names = "|".join(action_mapping.get(idx, f"Unknown-{idx}") for idx in future_actions)
+                future_actions_names = "|".join(action_mapping.get(idx + 1, f"Unknown-{idx}") for idx in future_actions)
                 
                 # Update action distribution
                 for idx in future_actions:
@@ -280,7 +280,7 @@ def dataset_to_csv(dataset_path: str, output_path: str, noun_idx_path: str,
             if "future_actions_ordered" in y:
                 ordered_actions = y["future_actions_ordered"].tolist()
                 future_actions_ordered_str = ",".join(str(idx) for idx in ordered_actions)
-                future_actions_ordered_names = "|".join(action_mapping.get(idx, f"Unknown-{idx}") for idx in ordered_actions)
+                future_actions_ordered_names = "|".join(action_mapping.get(idx + 1, f"Unknown-{idx}") for idx in ordered_actions)
             
             # Create row
             row = {
