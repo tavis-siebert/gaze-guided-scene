@@ -189,6 +189,9 @@ def main():
     parser.add_argument('--noun-mapping', help='Path to noun_idx.txt (default: egtea_gaze/action_annotation/noun_idx.txt)')
     parser.add_argument('--action-mapping', help='Path to action_idx.txt (default: egtea_gaze/action_annotation/action_idx.txt)')
     parser.add_argument('--skip-analysis', action='store_true', help='Skip dataset analysis')
+    parser.add_argument('--skip-alignment', action='store_true', help='Skip dataset alignment')
+    parser.add_argument('--train-csv', help='Path to train_split1_parsed.csv (default: egtea_gaze/action_annotation/train_split1_parsed.csv)')
+    parser.add_argument('--test-csv', help='Path to test_split1_parsed.csv (default: egtea_gaze/action_annotation/test_split1_parsed.csv)')
     
     args = parser.parse_args()
     
@@ -202,6 +205,8 @@ def main():
     output_path = args.output or os.path.join(dataset_output_dir, "dataset_summary.csv")
     noun_mapping = args.noun_mapping or "egtea_gaze/action_annotation/noun_idx.txt"
     action_mapping = args.action_mapping or "egtea_gaze/action_annotation/action_idx.txt"
+    train_csv = args.train_csv or "egtea_gaze/action_annotation/train_split1_parsed.csv"
+    test_csv = args.test_csv or "egtea_gaze/action_annotation/test_split1_parsed.csv"
     
     # Ensure output directories exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -231,6 +236,30 @@ def main():
         except ImportError:
             print("Warning: dataset_analysis.py not found. Skipping analysis.")
             print("To run analysis, create scripts/dataset_analysis.py and run this script again.")
+    
+    # Run alignment if requested
+    if not args.skip_alignment and df is not None:
+        try:
+            # Check if alignment CSV files exist
+            if not os.path.exists(train_csv):
+                print(f"Error: Train CSV file not found: {train_csv}")
+                print("Skipping alignment.")
+            elif not os.path.exists(test_csv):
+                print(f"Error: Test CSV file not found: {test_csv}")
+                print("Skipping alignment.")
+            else:
+                from dataset_alignment import align_dataset
+                aligned_output_path = os.path.join(dataset_output_dir, "dataset_aligned.csv")
+                
+                print(f"\nPerforming dataset alignment...")
+                aligned_df = align_dataset(df, train_csv, test_csv)
+                
+                # Save the aligned dataset
+                aligned_df.to_csv(aligned_output_path, index=False)
+                print(f"Aligned dataset saved to {aligned_output_path}")
+        except ImportError:
+            print("Warning: dataset_alignment.py not found. Skipping alignment.")
+            print("To run alignment, create scripts/dataset_alignment.py and run this script again.")
 
 if __name__ == "__main__":
     main() 
