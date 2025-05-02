@@ -206,7 +206,11 @@ def main():
             video_path=video_path,
             action_mapping_path=args.action_mapping_path,
             port=args.port,
-            debug=args.debug
+            debug=args.debug,
+            verb_idx_file=config.dataset.egtea.verb_idx_file,
+            noun_idx_file=config.dataset.egtea.noun_idx_file,
+            train_split_file=config.dataset.ego_topo.splits.train,
+            val_split_file=config.dataset.ego_topo.splits.val
         )
 
 if __name__ == "__main__":
