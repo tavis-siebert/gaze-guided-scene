@@ -65,7 +65,9 @@ class GraphBuilder:
                    else self.config.dataset.ego_topo.splits.val)
         self.vid_lengths = DataLoader.load_video_lengths(ann_file)
         self.records, self.records_by_vid = DataLoader.load_records(ann_file)
-        self.action_to_idx = DataLoader.create_action_index(self.records)
+
+        self.train_records, _ = DataLoader.load_records(self.config.dataset.ego_topo.splits.train)
+        self.action_to_idx = DataLoader.create_action_index(self.train_records)
         
         # Tracking state variables
         self.prev_gaze_point = None
