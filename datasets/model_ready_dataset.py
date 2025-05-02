@@ -1,6 +1,7 @@
 import random
 import torch
 from torch_geometric.data import Data
+from itertools import combinations
 
 ### Loading ###
 def load_datasets(path_to_data: str):
@@ -73,6 +74,36 @@ def tarjans(adj_lists: list[list[int]]):
 
     return {i for i, is_ap in enumerate(ap) if is_ap}
 
+def is_connected_after_dropping(adj_lists, num_nodes, dropped_nodes_set):
+    """Simple BFS to check connectivity after dropping nodes."""
+    visited = set()
+    all_nodes = set(range(num_nodes)) - dropped_nodes_set
+    if not all_nodes:
+        return False
+
+    start = next(iter(all_nodes))
+    queue = [start]
+    visited.add(start)
+
+    while queue:
+        u = queue.pop()
+        for v in adj_lists[u]:
+            if v in dropped_nodes_set:
+                continue
+            if v not in visited:
+                visited.add(v)
+                queue.append(v)
+
+    return visited == all_nodes
+
+def find_valid_dropped_nodes(adj_lists, drop_candidates, num_dropped):
+    combos = list(combinations(drop_candidates, num_dropped))
+    random.shuffle(combos)
+    for dropped_nodes in combos:
+        if is_connected_after_dropping(adj_lists, len(adj_lists), set(dropped_nodes)):
+            return dropped_nodes
+    return None
+
 def node_dropping(x, edge_index, edge_attr, max_droppable):
     # select random number of nodes to drop
     num_nodes = x.shape[0]
@@ -83,9 +114,13 @@ def node_dropping(x, edge_index, edge_attr, max_droppable):
     max_droppable = min(max_droppable, len(drop_candidates))
     if max_droppable == 0:
         return None
+    num_dropped = random.randint(1, max_droppable)
 
-    dropped_nodes = random.sample(drop_candidates, random.randint(1,max_droppable))
-
+    # Try to find a good sample of dropped nodes
+    dropped_nodes = find_valid_dropped_nodes(adj_lists, drop_candidates, num_dropped)
+    if dropped_nodes is None:
+        return None
+        
     # drop nodes
     node_mask = torch.ones(num_nodes, dtype=torch.bool)
     node_mask[dropped_nodes] = False
