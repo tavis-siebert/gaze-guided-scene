@@ -10,6 +10,11 @@ class FutureActionsTask(BaseTask):
         self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
     
     def compute_loss(self, output, y):
+        # Check if y is flattened and needs reshaping
+        batch_size, num_classes = output.shape
+        if len(y.shape) == 1 and y.shape[0] == batch_size * num_classes:
+            y = y.view(batch_size, num_classes)
+        
         return self.criterion(output, y.float())
     
     def calculate_epoch_metrics(self, epoch, epoch_loss, num_samples):
@@ -48,6 +53,11 @@ class FutureActionsTask(BaseTask):
                 output = self.model(x, edge_index, edge_attr, batch)
                 output_probs = torch.sigmoid(output)
                 pred = (output_probs > 0.5).float()
+                
+                # Ensure y has same shape as output/pred
+                batch_size, num_classes = pred.shape
+                if len(y.shape) == 1 and y.shape[0] == batch_size * num_classes:
+                    y = y.view(batch_size, num_classes)
                 
                 all_targets.append(y.detach().cpu().numpy())
                 all_predictions.append(pred.detach().cpu().numpy())
