@@ -32,6 +32,7 @@ dataset:
     gaze_data: ${directories.repo.egtea}/gaze_data/gaze_data
     action_annotations: ${directories.repo.egtea}/action_annotation
     noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
+    verb_idx_file: ${dataset.egtea.action_annotations}/verb_idx.txt
   
   # Ego-topo data paths
   ego_topo:
