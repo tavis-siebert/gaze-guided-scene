@@ -103,9 +103,8 @@ def extend_action_mapping(mapping_file, verb_idx_file, noun_idx_file, action_idx
         # Process rows
         for row_idx, row in enumerate(reader, 1):
             if len(row) >= 4:  # Ensure row has expected format
-                # The first column is noun_id, the second is verb_id
-                noun_id = int(row[0])
-                verb_id = int(row[1])
+                verb_id = int(row[0])
+                noun_id = int(row[1])
                 
                 # Look up names (with fallback for missing indices)
                 verb_name = verb_dict.get(verb_id, f"Unknown-{verb_id}")
