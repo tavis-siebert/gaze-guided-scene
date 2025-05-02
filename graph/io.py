@@ -185,6 +185,6 @@ class DataLoader:
         top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:num_classes]
 
         # Create mapping from action tuple to index
-        mapping = {action: idx for idx, (action, _) in enumerate(top_actions)} 
+        mapping = {action: idx for idx, (action, _) in enumerate(top_actions)}
 
         return mapping
