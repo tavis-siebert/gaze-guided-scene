@@ -20,7 +20,11 @@ class Dashboard:
         trace_file_path: str, 
         video_path: Optional[str] = None,
         play_interval_ms: int = DEFAULT_PLAY_INTERVAL_MS,
-        action_mapping_path: str = None
+        action_mapping_path: str = None,
+        verb_idx_file: Optional[str] = None,
+        noun_idx_file: Optional[str] = None,
+        train_split_file: Optional[str] = None,
+        val_split_file: Optional[str] = None
     ):
         """Initialize the dashboard.
         
@@ -29,9 +33,20 @@ class Dashboard:
             video_path: Optional path to the video file
             play_interval_ms: Interval between frame updates in milliseconds
             action_mapping_path: Path to the action mapping CSV file
+            verb_idx_file: Path to the verb index mapping file
+            noun_idx_file: Path to the noun index mapping file
+            train_split_file: Path to the training data split file
+            val_split_file: Path to the validation data split file
         """
         self.playback = Playback(trace_file_path)
-        self.video_display = VideoDisplay(video_path, playback=self.playback)
+        self.video_display = VideoDisplay(
+            video_path, 
+            playback=self.playback,
+            verb_idx_file=verb_idx_file,
+            noun_idx_file=noun_idx_file,
+            train_split_file=train_split_file,
+            val_split_file=val_split_file
+        )
         self.graph_display = GraphDisplay(playback=self.playback)
         self.playback_controls = PlaybackControls(
             min_frame=self.playback.min_frame,
