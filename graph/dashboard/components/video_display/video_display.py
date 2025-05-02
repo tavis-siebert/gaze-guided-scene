@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 import base64
 import dash_bootstrap_components as dbc
 from dash import dcc, html
+import os
+import pandas as pd
 
 from graph.dashboard.components.base import BaseComponent
 from graph.dashboard.playback import Playback
@@ -42,6 +44,10 @@ class VideoDisplay(BaseComponent):
         max_cache_size: int = 240, 
         batch_size: int = 96,
         playback = None,
+        verb_idx_file: Optional[str] = None,
+        noun_idx_file: Optional[str] = None,
+        train_split_file: Optional[str] = None,
+        val_split_file: Optional[str] = None,
         **kwargs
     ):
         """Initialize the video display component.
@@ -51,6 +57,10 @@ class VideoDisplay(BaseComponent):
             max_cache_size: Maximum number of frames to cache
             batch_size: Number of frames to read at once
             playback: Playback instance for event access
+            verb_idx_file: Path to the verb index mapping file
+            noun_idx_file: Path to the noun index mapping file
+            train_split_file: Path to the training data split file
+            val_split_file: Path to the validation data split file
             **kwargs: Additional arguments to pass to BaseComponent
         """
         self.video_path = video_path
@@ -66,7 +76,112 @@ class VideoDisplay(BaseComponent):
         self.empty_figure = self._create_empty_figure()
         self._setup_video_capture()
         
+        # Store file paths
+        self.verb_idx_file = verb_idx_file
+        self.noun_idx_file = noun_idx_file
+        self.train_split_file = train_split_file
+        self.val_split_file = val_split_file
+        
+        # Load action annotations and mappings
+        self.action_annotations = self._load_action_annotations()
+        self.verbs = self._load_mapping_file(self.verb_idx_file) if self.verb_idx_file else {}
+        self.nouns = self._load_mapping_file(self.noun_idx_file) if self.noun_idx_file else {}
+        
         super().__init__(component_id="video-display", **kwargs)
+    
+    def _load_mapping_file(self, file_path: str) -> Dict[int, str]:
+        """Load mapping from ID to label from file.
+        
+        Args:
+            file_path: Path to the mapping file
+            
+        Returns:
+            Dictionary mapping IDs to labels
+        """
+        mapping = {}
+        try:
+            with open(file_path, 'r') as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) >= 2:
+                        label = " ".join(parts[:-1])
+                        id_num = int(parts[-1]) - 1 # make zero-indexed
+                        mapping[id_num] = label
+        except Exception as e:
+            logger.error(f"Failed to load mapping file {file_path}: {e}")
+        return mapping
+    
+    def _load_action_annotations(self) -> Dict[str, List[Dict]]:
+        """Load action annotations from train and test splits.
+        
+        Returns:
+            Dictionary mapping video names to lists of annotation dictionaries
+        """
+        annotations = {}
+        
+        try:
+            # Process both training and validation split files
+            for file_path in [self.train_split_file, self.val_split_file]:
+                if file_path and os.path.exists(file_path):
+                    df = pd.read_csv(file_path, header=None, names=['name', 'start', 'end', 'label1', 'label2'], sep='\t')
+                    
+                    # Group by video name
+                    for name, group in df.groupby('name'):
+                        if name not in annotations:
+                            annotations[name] = []
+                            
+                        # Store each annotation as a dictionary
+                        for _, row in group.iterrows():
+                            annotations[name].append({
+                                'start': int(row['start']),
+                                'end': int(row['end']),
+                                'verb_id': int(row['label1']),
+                                'noun_id': int(row['label2'])
+                            })
+        except Exception as e:
+            logger.error(f"Failed to load action annotations: {e}")
+            
+        return annotations
+    
+    def _get_current_action(self, frame_number: int) -> Optional[Dict]:
+        """Get the current action for a specific frame number.
+        
+        Args:
+            frame_number: Current frame number
+            
+        Returns:
+            Dictionary with action information or None if no action
+        """
+        if not self.video_path:
+            return None
+            
+        # Extract video name from path
+        video_filename = os.path.basename(self.video_path)
+        video_name = os.path.splitext(video_filename)[0]
+        
+        # Find annotations for this video
+        video_annotations = self.action_annotations.get(video_name, [])
+        
+        # Find annotation that contains this frame
+        for annotation in video_annotations:
+            if annotation['start'] <= frame_number <= annotation['end']:
+                verb_id = annotation['verb_id']
+                noun_id = annotation['noun_id']
+                
+                # Get verb and noun labels
+                verb = self.verbs.get(verb_id, f"Unknown verb ({verb_id})")
+                noun = self.nouns.get(noun_id, f"Unknown noun ({noun_id})")
+                
+                return {
+                    'verb': verb,
+                    'noun': noun,
+                    'verb_id': verb_id,
+                    'noun_id': noun_id,
+                    'start': annotation['start'],
+                    'end': annotation['end']
+                }
+                
+        return None
     
     def create_layout(self) -> dbc.Card:
         """Create the component's layout.
@@ -615,8 +730,61 @@ class VideoDisplay(BaseComponent):
         self._get_detection_traces(self.playback, frame_number, traces) if self.playback else None
         self._get_yolo_detection_traces(self.playback, frame_number, traces) if self.playback else None
         
+        # Add current action overlay
+        self._add_action_overlay(frame_number, traces)
+        
         fig.add_traces(traces)
         return fig
+
+    def _add_action_overlay(self, frame_number: int, traces: List[go.Trace]) -> None:
+        """Add current action annotation overlay to the traces.
+        
+        Args:
+            frame_number: Current frame number
+            traces: List to append action overlay traces to
+        """
+        action = self._get_current_action(frame_number)
+        if not action:
+            return
+            
+        # Get action text
+        action_text = f"{action['verb']} {action['noun']}"
+        
+        # Set overlay position at the bottom center of the frame
+        overlay_y = self.frame_height - 30  # 30 pixels from bottom
+        
+        # Add background rectangle for action text
+        traces.append(go.Scatter(
+            x=[0, self.frame_width, self.frame_width, 0, 0],
+            y=[overlay_y - 15, overlay_y - 15, overlay_y + 15, overlay_y + 15, overlay_y - 15],
+            fill="toself",
+            fillcolor="rgba(0, 0, 0, 0.7)",
+            mode="lines",
+            line=dict(width=0),
+            hoverinfo="skip",
+            showlegend=False
+        ))
+        
+        # Add action text
+        traces.append(go.Scatter(
+            x=[self.frame_width / 2],
+            y=[overlay_y],
+            mode="text",
+            text=[action_text],
+            textposition="middle center",
+            textfont=dict(
+                size=16,
+                color="white",
+                family="Arial Bold"
+            ),
+            hoverinfo="text",
+            hovertext=(
+                f"Action: {action_text}<br>"
+                f"Verb ID: {action['verb_id']}, Noun ID: {action['noun_id']}<br>"
+                f"Frames: {action['start']} - {action['end']}"
+            ),
+            showlegend=False
+        ))
 
     def numpy_to_base64(self, frame: np.ndarray) -> str:
         """Convert a numpy frame to base64 encoded PNG."""
