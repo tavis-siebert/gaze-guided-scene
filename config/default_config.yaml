@@ -7,8 +7,9 @@ base:
 directories:
   # Repository directories
   repo:
-    egtea: ${base.repo_root}/egtea_gaze
+    egtea: ${base.repo_root}/datasets/egtea_gaze
     datasets: ${base.repo_root}/datasets
+    graphs: ${base.repo_root}/graph/graphs
     traces: ${base.repo_root}/traces
   
   # Scratch directories
@@ -36,11 +37,6 @@ dataset:
       train: ${dataset.ego_topo.data_dir}/split/train_S1.csv
       val: ${dataset.ego_topo.data_dir}/split/val_S1.csv
       train_test: ${dataset.ego_topo.data_dir}/train_test_splits.json
-
-  # Output paths
-  output:
-    dataset_file: ${directories.repo.datasets}/dataset.pth
-    subset_prefix: ${directories.repo.datasets}/data_subset_
 
 # Model settings and paths
 models:
@@ -81,6 +77,7 @@ external:
 # Processing settings
 processing:
   n_cores: 2
+  dataloader_workers: 4
 
 # Graph and fixation detection settings
 graph:

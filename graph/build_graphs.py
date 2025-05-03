@@ -2,7 +2,10 @@
 Graph building module for creating scene graphs from video data.
 """
 
+import os
+import json
 import torch
+import numpy as np
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional, NamedTuple
 from collections import defaultdict
@@ -18,8 +21,8 @@ from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 from graph.gaze import GazeProcessor, GazePoint, GazeType
 from graph.object_detection import ObjectDetector
 from models.sift import SIFT
-from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
-from egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE
+from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
+from datasets.egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE, ACTION_TUPLE_IDX, NUM_ACTION_CLASSES
 from config.config_utils import DotDict
 from logger import get_logger
 
