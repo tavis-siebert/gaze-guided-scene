@@ -28,7 +28,7 @@ from graph.io import DataLoader, VideoProcessor
 from graph.record import Record
 
 # Graph building
-from graph.build_graph import GraphBuilder, build_graph
+from graph.build_graphs import GraphBuilder, build_graph
 
 # Tracing
 from graph.graph_tracer import GraphTracer
