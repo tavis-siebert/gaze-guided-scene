@@ -39,7 +39,7 @@ def build_suffix_map(ann_df: pd.DataFrame, action_mapping: Dict[int, int]) -> Di
     Value: list of dicts with clip_name, frame_lower, frame_upper, time_lower, time_upper.
     """
     suffix_map: Dict[Tuple[int, ...], List[Dict[str, Any]]] = defaultdict(list)
-    ann_df = ann_df.sort_values(['clip_name', 'start_frame']).reset_index(drop=True)
+    ann_df = ann_df.sort_values(['clip_name', 'end_frame']).reset_index(drop=True)
     
     for clip_name, group in ann_df.groupby('clip_name', sort=False):
         actions = group['action_id'].tolist()
