@@ -20,11 +20,6 @@ directories:
 
 # Dataset paths and settings
 dataset:
-  # Timestamps for feature extraction
-  timestamps:
-    train: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-    val: [0.25, 0.5, 0.75]
-  
   # EGTEA Gaze+ dataset paths
   egtea:
     raw_videos: ${directories.scratch.egtea}/raw_videos
@@ -72,6 +67,8 @@ training:
   node_dropping: true
   node_drop_p: 0.5
   max_nodes_droppable: 4
+  # Validation set sampling timestamps (as ratios of video length)
+  val_timestamps: [0.25, 0.5, 0.75]
 
 # External resources
 external:

@@ -34,17 +34,19 @@ class StopProcessingException(Exception):
 class GraphBuilder:
     """Builds scene graphs from video data and gaze information."""
     
-    def __init__(self, config: DotDict, split: str, enable_tracing: bool = False):
+    def __init__(self, config: DotDict, split: str, enable_tracing: bool = False, output_dir: Optional[str] = None):
         """Initialize the graph builder.
         
         Args:
             config: Configuration dictionary
             split: Dataset split ('train' or 'val')
             enable_tracing: Whether to enable graph construction tracing
+            output_dir: Directory to save graph checkpoints to
         """
         self.config = config
         self.split = split
         self.enable_tracing = enable_tracing
+        self.output_dir = output_dir
         self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
         
         # Initialize object labels
@@ -85,7 +87,6 @@ class GraphBuilder:
         self.gaze_processor = None
         self.records_current = None
         self.vid_length = 0
-        self.timestamps = []
         
         # Frame range to process
         self.first_frame = 0
@@ -110,7 +111,7 @@ class GraphBuilder:
         
         return first_frame, last_frame
     
-    def process_video(self, video_name: str, print_graph: bool = False) -> Graph:
+    def process_video(self, video_name: str, print_graph: bool = False) -> Optional[str]:
         """Process a video to build its scene graph.
         
         Args:
@@ -118,7 +119,7 @@ class GraphBuilder:
             print_graph: Whether to print the final graph structure
             
         Returns:
-            Graph instance representing the scene graph
+            Path to saved checkpoint file or None if saving failed
         """
         logger.info(f"\nProcessing video: {video_name}")
         self.video_name = video_name
@@ -142,7 +143,6 @@ class GraphBuilder:
         video_processor = VideoProcessor(Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4")
         self.records_current = self.records_by_vid[video_name]
         self.vid_length = self.vid_lengths[video_name]
-        self.timestamps = [int(ratio * self.vid_length) for ratio in sorted(self.config.dataset.timestamps[self.split])]
         
         self.first_frame, self.last_frame = self._get_action_frame_range(video_name)
         logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
@@ -156,11 +156,11 @@ class GraphBuilder:
         
         self.checkpoint_manager = CheckpointManager(
             graph=self.scene_graph,
-            checkpoint_frames=self.timestamps,
-            timestamps=self.timestamps,
-            timestamp_ratios=self.config.dataset.timestamps[self.split],
             records=self.records_current,
-            gaze_data_length=len(self.raw_gaze_data)
+            gaze_data_length=len(self.raw_gaze_data),
+            video_name=video_name,
+            output_dir=self.output_dir,
+            split=self.split
         )
         
         self._reset_tracking_state()
@@ -182,7 +182,13 @@ class GraphBuilder:
             logger.info("\nFinal graph structure:")
             self.scene_graph.print_graph()
         
-        return self.scene_graph
+        # Save checkpoints to disk
+        saved_path = self.checkpoint_manager.save_checkpoints()
+        if saved_path:
+            logger.info(f"Saved {len(self.checkpoint_manager.checkpoints)} checkpoints to {saved_path}")
+            return saved_path
+        
+        return None
 
     def _reset_tracking_state(self):
         """Reset all tracking state variables."""
@@ -219,13 +225,11 @@ class GraphBuilder:
         if is_black_frame:
             return
 
+        # Create checkpoint for every frame
         self.checkpoint_manager.checkpoint_if_needed(
             frame_num=self.frame_num,
             non_black_frame_count=self.non_black_frame_count
         )
-        
-        if self.frame_num in self.timestamps and self.frame_num == self.timestamps[-1]:
-            raise StopProcessingException(reason="Reached final timestamp")
 
         if gaze_point.type == GazeType.FIXATION:
             self._handle_fixation(frame, gaze_point)
@@ -317,9 +321,10 @@ def build_graph(
     split: str, 
     print_graph: bool = False, 
     desc: Optional[str] = None, 
-    enable_tracing: bool = False
-) -> Dict:
-    """Build graph representations for a list of videos.
+    enable_tracing: bool = False,
+    output_dir: Optional[str] = None
+) -> List[str]:
+    """Build graph checkpoints for a list of videos.
     
     Args:
         video_list: List of video names to process
@@ -328,19 +333,23 @@ def build_graph(
         print_graph: Whether to print final graph structure
         desc: Description for progress bar
         enable_tracing: Whether to enable detailed tracing
+        output_dir: Directory to save graph checkpoints to
         
     Returns:
-        Dictionary with x, edge_index, edge_attr, and y keys for all videos
+        List of paths to saved checkpoint files
     """
-    logger.info(f"Building graph for {len(video_list)} videos in {split} split")
-    builder = GraphBuilder(config, split, enable_tracing=enable_tracing)
-    all_graphs = []
+    logger.info(f"Building graphs for {len(video_list)} videos in {split} split")
+    builder = GraphBuilder(config, split, enable_tracing=enable_tracing, output_dir=output_dir)
+    saved_paths = []
     progress_desc = desc or f"Processing {split} videos"
     
     for video_name in tqdm(video_list, desc=progress_desc):
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
-        graph = builder.process_video(video_name, print_graph)
-        all_graphs.append(graph)
+        
+        saved_path = builder.process_video(video_name, print_graph)
+        if saved_path:
+            saved_paths.append(saved_path)
     
-    return CheckpointManager.build_dataset_from_graphs(all_graphs)
+    logger.info(f"Created graph checkpoints for {len(saved_paths)} videos in {split} split")
+    return saved_paths

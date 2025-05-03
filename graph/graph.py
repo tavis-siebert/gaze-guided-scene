@@ -41,7 +41,6 @@ class Graph:
         self.edges: List[Edge] = []
         self.adjacency = defaultdict(list)
         self.tracer = None
-        self.checkpoints: List["GraphCheckpoint"] = []
         
         self.labels_to_int = labels_to_int or {}
         self.num_object_classes = num_object_classes
@@ -257,144 +256,6 @@ class Graph:
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees, self.edges, self)
     
-    def _get_node_features(
-        self,
-        current_frame: int,
-        non_black_frame_count: int,
-        timestamps: List[int],
-        timestamp_ratios: List[float],
-        gaze_data_length: int
-    ) -> torch.Tensor:
-        """Extract node features as a tensor.
-        
-        Args:
-            current_frame: Current frame number
-            non_black_frame_count: Number of non-black frames processed
-            timestamps: List of predefined checkpoint frame numbers
-            timestamp_ratios: Corresponding ratios for each timestamp
-            gaze_data_length: Length of gaze data
-            
-        Returns:
-            Tensor of node features
-        """
-        timestamp_fraction = self._calculate_timestamp_fraction(
-            current_frame, 
-            gaze_data_length, 
-            timestamps, 
-            timestamp_ratios, 
-            self.video_length
-        )
-        
-        nodes = []
-        for node in self.nodes.values():
-            if node.id >= 0:
-                features_tensor = node.get_feature_tensor(
-                    self.video_length,
-                    current_frame,
-                    non_black_frame_count,
-                    timestamp_fraction,
-                    self.labels_to_int,
-                    self.num_object_classes
-                )
-                nodes.append(features_tensor)
-        
-        if not nodes:
-            return torch.tensor([])
-        
-        node_features = torch.stack(nodes)
-        
-        node_features[:, 0] /= non_black_frame_count
-        
-        if node_features[:, 1].max() > 0:
-            node_features[:, 1] /= node_features[:, 1].max()
-            
-        return node_features
-    
-    def _get_edge_features(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Extract edge indices and attributes as tensors.
-        
-        Returns:
-            Tuple of (edge_indices, edge_attributes)
-        """
-        edge_index = [[], []]
-        edge_attrs = []
-        
-        for edge in self.edges:
-            if edge.source_id < 0 or edge.target_id < 0:
-                continue
-                
-            edge_index[0].append(edge.source_id)
-            edge_index[1].append(edge.target_id)
-            
-            edge_attrs.append(edge.get_feature_tensor())
-        
-        edge_index_tensor = torch.tensor(edge_index, dtype=torch.long) if edge_index[0] else torch.tensor([[],[]], dtype=torch.long)
-        edge_attr_tensor = torch.stack(edge_attrs) if edge_attrs else torch.tensor([])
-            
-        return edge_index_tensor, edge_attr_tensor
-    
-    def get_feature_tensor(
-        self,
-        video_length: int,
-        current_frame: int,
-        non_black_frame_count: int,
-        timestamps: List[int],
-        timestamp_ratios: List[float],
-        gaze_data_length: int,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Get graph features as tensors for model input.
-        
-        Args:
-            video_length: Total length of the video
-            current_frame: Current frame number
-            non_black_frame_count: Number of non-black frames processed
-            timestamps: List of predefined checkpoint frame numbers
-            timestamp_ratios: Corresponding ratios for each timestamp
-            gaze_data_length: Length of gaze data
-            labels_to_int: Mapping from object labels to class indices
-            num_object_classes: Number of object classes
-            
-        Returns:
-            Tuple of (node_features, edge_indices, edge_features)
-        """
-        node_features = self._get_node_features(
-            current_frame, 
-            non_black_frame_count,
-            timestamps,
-            timestamp_ratios,
-            gaze_data_length
-        )
-        edge_index, edge_attr = self._get_edge_features()
-            
-        return node_features, edge_index, edge_attr
-    
-    def _calculate_timestamp_fraction(
-        self, 
-        frame_num: int, 
-        gaze_data_length: int, 
-        timestamps: List[int], 
-        timestamp_ratios: List[float], 
-        video_length: int
-    ) -> float:
-        """Calculate the timestamp fraction for the current frame.
-        
-        Args:
-            frame_num: Current frame number
-            gaze_data_length: Length of gaze data
-            timestamps: List of predefined checkpoint frame numbers
-            timestamp_ratios: Corresponding ratios for each timestamp
-            video_length: Total video length
-            
-        Returns:
-            Fraction of video completed at current timestamp
-        """
-        if frame_num < gaze_data_length:
-            timestamp_idx = timestamps.index(frame_num) if frame_num in timestamps else -1
-            return timestamp_ratios[timestamp_idx] if timestamp_idx >= 0 else frame_num / video_length
-        return frame_num / video_length
-    
     def get_edge(self, source_id: NodeId, target_id: NodeId) -> Optional[Edge]:
         """Get an edge between two nodes if it exists.
         
@@ -409,11 +270,3 @@ class Graph:
             if edge.source_id == source_id and edge.target_id == target_id:
                 return edge
         return None
-        
-    def get_checkpoints(self) -> List["GraphCheckpoint"]:
-        """Get all saved checkpoints.
-        
-        Returns:
-            List of GraphCheckpoint objects
-        """
-        return self.checkpoints
