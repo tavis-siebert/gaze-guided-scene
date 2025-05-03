@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import json
 import numpy as np
 from collections import defaultdict
+import os
+from pathlib import Path
 
 from graph.graph import Graph
 from graph.graph_tracer import GraphTracer
@@ -15,10 +17,55 @@ logger = get_logger(__name__)
 @dataclass
 class GraphCheckpoint:
     """Encapsulates graph state at a specific timestamp."""
-    node_features: torch.Tensor
-    edge_index: torch.Tensor
-    edge_attr: torch.Tensor
+    # Graph structure
+    nodes: Dict[int, Dict]
+    edges: List[Dict]
+    adjacency: Dict[int, List[int]]
+    
+    # Metadata
+    video_name: str
+    frame_number: int
+    non_black_frame_count: int
+    
+    # Context information
+    labels_to_int: Dict[str, int]
+    num_object_classes: int
+    video_length: int
+    
+    # Action information
     action_labels: Dict[str, torch.Tensor]
+    
+    def to_dict(self) -> Dict:
+        """Convert checkpoint to serializable dictionary."""
+        return {
+            "nodes": self.nodes,
+            "edges": self.edges,
+            "adjacency": self.adjacency,
+            "video_name": self.video_name,
+            "frame_number": self.frame_number,
+            "non_black_frame_count": self.non_black_frame_count,
+            "labels_to_int": self.labels_to_int,
+            "num_object_classes": self.num_object_classes,
+            "video_length": self.video_length,
+            "action_labels": {k: v.tolist() for k, v in self.action_labels.items()}
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'GraphCheckpoint':
+        """Create checkpoint from dictionary."""
+        action_labels = {k: torch.tensor(v) for k, v in data["action_labels"].items()}
+        return cls(
+            nodes=data["nodes"],
+            edges=data["edges"],
+            adjacency=data["adjacency"],
+            video_name=data["video_name"],
+            frame_number=data["frame_number"],
+            non_black_frame_count=data["non_black_frame_count"],
+            labels_to_int=data["labels_to_int"],
+            num_object_classes=data["num_object_classes"],
+            video_length=data["video_length"],
+            action_labels=action_labels
+        )
 
 
 class CheckpointManager:
@@ -27,37 +74,36 @@ class CheckpointManager:
     def __init__(
         self, 
         graph: Graph,
-        checkpoint_frames: List[int] = None,
-        timestamps: List[int] = None,
-        timestamp_ratios: List[float] = None,
         records: List[Record] = None,
-        gaze_data_length: int = None
+        gaze_data_length: int = None,
+        video_name: str = "",
+        output_dir: Optional[str] = None,
+        split: str = "train"
     ):
         """Initialize the checkpoint manager.
         
         Args:
             graph: The graph to checkpoint
-            checkpoint_frames: Specific frames at which to create checkpoints
-            timestamps: List of predefined checkpoint frame numbers
-            timestamp_ratios: Corresponding ratios for each timestamp
             records: List of action records
             gaze_data_length: Length of gaze data
+            video_name: Name of the video being processed
+            output_dir: Directory to save checkpoints to
+            split: Dataset split ('train' or 'val')
         """
         self.graph = graph
-        self.checkpoint_frames = checkpoint_frames or []
-        self.timestamps = timestamps or []
-        self.timestamp_ratios = timestamp_ratios or []
         self.records = records or []
         self.gaze_data_length = gaze_data_length
         self.last_checkpoint_frame = -1
-    
-    def _should_checkpoint(self, frame_num: int) -> bool:
-        """Determine if a checkpoint should be created at the current frame."""
-        if self.gaze_data_length and frame_num >= self.gaze_data_length:
-            return True
-        if frame_num in self.checkpoint_frames:
-            return True
-        return False
+        self.video_name = video_name
+        self.split = split
+        self.checkpoints = []
+        
+        # Setup output directory if provided
+        if output_dir:
+            self.output_dir = Path(output_dir) / split
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            self.output_dir = None
     
     def create_checkpoint(
         self,
@@ -77,43 +123,54 @@ class CheckpointManager:
             logger.info(f"Skipping checkpoint - no edges in graph")
             return None
         
-        if frame_num == self.last_checkpoint_frame:
-            logger.info(f"Skipping checkpoint - already created at frame {frame_num}")
-            return None
-            
-        logger.info(f"\n[Frame {frame_num}] Creating graph checkpoint")
-        
         action_labels = Record.get_future_action_labels(self.records, frame_num)
             
         if action_labels is None:
             logger.info(f"Skipping checkpoint - insufficient action data")
             return None
+            
+        # Serialize node data
+        nodes_data = {}
+        for node_id, node in self.graph.nodes.items():
+            if node_id >= 0:  # Skip root node
+                nodes_data[node_id] = {
+                    "id": node.id,
+                    "object_label": node.object_label,
+                    "visits": node.visits
+                }
         
-        node_features, edge_index, edge_attr = self.graph.get_feature_tensor(
-            video_length=self.graph.video_length,
-            current_frame=frame_num,
-            non_black_frame_count=non_black_frame_count,
-            timestamps=self.timestamps,
-            timestamp_ratios=self.timestamp_ratios,
-            gaze_data_length=self.gaze_data_length,
-            labels_to_int=self.graph.labels_to_int,
-            num_object_classes=self.graph.num_object_classes
-        )
+        # Serialize edge data
+        edges_data = []
+        for edge in self.graph.edges:
+            if edge.source_id >= 0 and edge.target_id >= 0:  # Skip edges connected to root
+                edges_data.append({
+                    "source_id": edge.source_id,
+                    "target_id": edge.target_id,
+                    "angle": edge.angle,
+                    "prev_gaze_pos": edge.prev_gaze_pos,
+                    "curr_gaze_pos": edge.curr_gaze_pos
+                })
         
-        if node_features.numel() == 0:
-            logger.info(f"Skipping checkpoint - no valid node features")
-            return None
+        # Convert adjacency to serializable format
+        adjacency_data = {k: v for k, v in self.graph.adjacency.items()}
         
         checkpoint = GraphCheckpoint(
-            node_features=node_features,
-            edge_index=edge_index,
-            edge_attr=edge_attr,
+            nodes=nodes_data,
+            edges=edges_data,
+            adjacency=adjacency_data,
+            video_name=self.video_name,
+            frame_number=frame_num,
+            non_black_frame_count=non_black_frame_count,
+            labels_to_int=self.graph.labels_to_int,
+            num_object_classes=self.graph.num_object_classes,
+            video_length=self.graph.video_length,
             action_labels=action_labels
         )
         
-        self.graph.checkpoints.append(checkpoint)
+        self.checkpoints.append(checkpoint)
         self.last_checkpoint_frame = frame_num
         
+        # Log checkpoint creation
         action_labels_dict = {k: v.tolist() for k, v in action_labels.items()}
         self.graph.tracer.log_checkpoint_created(
             frame_num,
@@ -122,7 +179,7 @@ class CheckpointManager:
             action_labels_dict
         )
         
-        logger.info(f"Checkpoint created:")
+        logger.info(f"Checkpoint created at frame {frame_num}:")
         logger.info(f"- Nodes: {self.graph.num_nodes}")
         logger.info(f"- Edges: {len(self.graph.edges)}")
         
@@ -142,36 +199,35 @@ class CheckpointManager:
         Returns:
             Created checkpoint or None
         """
-        if not self._should_checkpoint(frame_num):
-            return None
-        
+        # Always create a checkpoint for every frame
         return self.create_checkpoint(
             frame_num,
             non_black_frame_count
         )
     
+    def save_checkpoints(self) -> Optional[str]:
+        """Save all checkpoints to disk.
+        
+        Returns:
+            Path to the saved file or None if saving failed
+        """
+        if not self.output_dir or not self.checkpoints:
+            return None
+        
+        output_file = self.output_dir / f"{self.video_name}_graph.pth"
+        logger.info(f"Saving {len(self.checkpoints)} checkpoints to {output_file}")
+        
+        torch.save(self.checkpoints, output_file)
+        return str(output_file)
+    
     @staticmethod
-    def build_dataset_from_graphs(graphs: List[Graph]) -> Dict:
-        """Convert a list of graphs to a dataset ready for model training.
+    def load_checkpoints(file_path: str) -> List[GraphCheckpoint]:
+        """Load checkpoints from disk.
         
         Args:
-            graphs: List of Graph objects with checkpoints
+            file_path: Path to the checkpoint file
             
         Returns:
-            Dictionary with x, edge_index, edge_attr, and y keys for all videos
+            List of GraphCheckpoint objects
         """
-        dataset = {
-            'x': [],
-            'edge_index': [],
-            'edge_attr': [],
-            'y': []
-        }
-        
-        for graph in graphs:
-            for checkpoint in graph.get_checkpoints():
-                dataset['x'].append(checkpoint.node_features)
-                dataset['edge_index'].append(checkpoint.edge_index)
-                dataset['edge_attr'].append(checkpoint.edge_attr)
-                dataset['y'].append(checkpoint.action_labels)
-        
-        return dataset 
+        return torch.load(file_path) 
