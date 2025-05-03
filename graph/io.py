@@ -91,6 +91,10 @@ class Record:
         """Number of frames in the action clip."""
         return self.end_frame - self.start_frame + 1
 
+    def __str__(self) -> str:
+        """String representation of the record."""
+        return f"Record(path={self.path}, start_frame={self.start_frame}, end_frame={self.end_frame}, verb_id={self.verb_id}, noun_id={self.noun_id})"
+
 
 class DataLoader:
     """
