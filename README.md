@@ -46,17 +46,27 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    python main.py setup-scratch
    ```
 
-4. **Build the dataset**:
+4. **Build scene graphs**:
    ```bash
-   python main.py build
+   python main.py build-graph
    ```
    
    To enable tracing for visualization:
    ```bash
-   python main.py build --videos VIDEO_NAME --enable-tracing
+   python main.py build-graph --videos VIDEO_NAME --enable-tracing
    ```
 
-5. **Visualize graph construction** (requires prior trace generation):
+5. **Train a model**:
+   ```bash
+   python main.py train --task future_actions
+   ```
+   
+   Or for next action prediction:
+   ```bash
+   python main.py train --task next_action
+   ```
+
+6. **Visualize graph construction** (requires prior trace generation):
    ```bash
    python main.py visualize --video-name VIDEO_NAME
    ```
@@ -123,11 +133,15 @@ python main.py [options] <command>
 
 **Commands**:
 - `setup-scratch`: Download and setup dataset
-- `build`: Build the scene graph dataset
+- `build-graph`: Build scene graphs from videos
   - Options:
     - `--device {gpu|cpu}`: Device to use (default: gpu)
     - `--videos VIDEO_NAME [VIDEO_NAME ...]`: Specific videos to process
     - `--enable-tracing`: Enable graph construction tracing for visualization
+- `train`: Train a GNN on a specified task
+  - Options:
+    - `--device {gpu|cpu}`: Device to use (default: gpu)
+    - `--task {future_actions|next_action}`: Task to train on
 - `visualize`: Visualize the graph construction process
   - Options:
     - `--video-name VIDEO_NAME`: Name of the video to visualize (used to locate trace file if trace-path not provided)
@@ -147,6 +161,51 @@ python main.py --help
 python main.py <command> --help
 ```
 
+## Dataset Creation Workflow
+
+The project follows a two-stage approach for dataset creation and model training:
+
+1. **Graph Building Stage** (`build-graph` command):
+   - Processes videos to extract objects from gaze fixations
+   - Constructs scene graphs based on object transitions
+   - Saves raw graph checkpoints for each video frame to `datasets/graphs/{split}/{video_name}_graph.pth`
+   - Each checkpoint contains raw graph data (nodes, edges, adjacency information)
+
+2. **Model Training Stage** (`train` command):  
+   - Loads raw graph checkpoints from disk
+   - Performs feature engineering during data loading
+   - Creates batched data for training and validation
+   - Applies optional augmentations (e.g., node dropping)
+
+This separation provides several benefits:
+- Feature engineering experiments without rebuilding scene graphs
+- Different sampling strategies for different tasks
+- Data augmentation at training time
+- More efficient training iterations
+
+Example dataset loading (see `datasets/example_dataloader.py`):
+```python
+# Create a data loader
+dataloader = create_dataloader(
+    root_dir="datasets/graphs",
+    split="train",
+    val_timestamps=config.training.val_timestamps,
+    task_mode="future_actions",
+    batch_size=64,
+    node_drop_p=0.1,  # Optional augmentation
+    max_droppable=2,
+    shuffle=True
+)
+
+# Use in training
+for batch in dataloader:
+    # batch.x: Node features
+    # batch.edge_index: Graph connectivity
+    # batch.edge_attr: Edge features
+    # batch.y: Labels
+    ...
+```
+
 ## Graph Tracing and Visualization
 
 The project includes a tracing and visualization system for recording and analyzing the graph construction process.
@@ -161,10 +220,10 @@ Trace files are stored in the `traces` directory (configurable via `trace_dir` i
 To generate traces for visualization:
 ```bash
 # For a single video
-python main.py build --videos VIDEO_NAME --enable-tracing
+python main.py build-graph --videos VIDEO_NAME --enable-tracing
 
 # For multiple videos (each gets its own trace file)
-python main.py build --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
+python main.py build-graph --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
 ```
 
 ### Visualization Dashboard

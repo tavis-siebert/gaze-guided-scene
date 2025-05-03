@@ -1,3 +1,7 @@
+"""
+Graph building module for creating scene graphs from video data.
+"""
+
 import json
 import os
 import multiprocessing as mp

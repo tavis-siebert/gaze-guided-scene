@@ -5,9 +5,10 @@ import os
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
-from datasets.model_ready_dataset import load_datasets, get_graph_dataset
+from datasets.model_ready_dataset import GraphDataset, create_dataloader
 from models.gat_conv import GATForClassification
 from logger import get_logger
+from pathlib import Path
 
 class BaseTask:
     def __init__(self, config, device, task_name):
@@ -45,29 +46,54 @@ class BaseTask:
     
     def _setup_data(self):
         """Setup datasets and data loaders"""
-        train_set, test_set = load_datasets(self.config.dataset.output.dataset_file)
+        # Get graphs directory path
+        graphs_dir = Path(self.config.directories.repo.datasets) / "graphs"
+        if not graphs_dir.exists():
+            self.logger.error(f"Graphs directory {graphs_dir} not found. Run 'python main.py build' first.")
+            raise FileNotFoundError(f"Graphs directory {graphs_dir} not found")
+            
+        # Get validation timestamps from config
+        val_timestamps = self.config.training.val_timestamps
         
-        train_data = get_graph_dataset(
-            train_set, 
-            self.task, 
-            self.num_classes, 
-            self.config.training.node_drop_p, 
-            self.config.training.max_nodes_droppable
+        # Create train loader
+        self.train_loader = create_dataloader(
+            root_dir=str(graphs_dir),
+            split="train",
+            val_timestamps=val_timestamps,
+            task_mode=self.task,
+            batch_size=self.config.training.batch_size,
+            node_drop_p=self.config.training.node_drop_p,
+            max_droppable=self.config.training.max_nodes_droppable,
+            shuffle=True,
+            num_workers=self.config.processing.dataloader_workers
         )
-        test_data = get_graph_dataset(test_set, self.task, self.num_classes)
         
-        self.train_loader = DataLoader(train_data, batch_size=self.config.training.batch_size, shuffle=True)
-        self.test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
+        # Create validation loader
+        self.test_loader = create_dataloader(
+            root_dir=str(graphs_dir),
+            split="val",
+            val_timestamps=val_timestamps,
+            task_mode=self.task,
+            batch_size=1,
+            node_drop_p=0.0,  # No augmentation for validation
+            max_droppable=0,
+            shuffle=False,
+            num_workers=self.config.processing.dataloader_workers
+        )
         
         # Extract dimensions from data
-        x_sample, edge_attr_sample = train_data[0].x, train_data[0].edge_attr
-        self.input_dim = x_sample.shape[1]
-        self.edge_dim = edge_attr_sample.shape[1]
+        train_dataset = self.train_loader.dataset
+        sample = train_dataset[0]
+        self.input_dim = sample.x.shape[1]
+        self.edge_dim = sample.edge_attr.shape[1]
         self.hidden_dim = self.config.training.hidden_dim
         self.num_heads = self.config.training.num_heads
         self.num_layers = self.config.training.num_layers
         self.res_connect = self.config.training.res_connect
-    
+        
+        self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")
+        self.logger.info(f"Loaded validation dataset with {len(self.test_loader.dataset)} samples")
+        
     def _transfer_batch_to_device(self, data):
         """Transfer batch data to device"""
         x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
