@@ -11,10 +11,10 @@ import itertools
 
 from graph.graph import Graph
 from graph.node import Node
-from graph.io import Record, DataLoader, VideoProcessor
+from graph.io import DataLoader, VideoProcessor
+from graph.record import Record
 from graph.graph_tracer import GraphTracer
 from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
-from graph.action_utils import ActionUtils
 from graph.gaze import GazeProcessor, GazePoint, GazeType
 from graph.object_detection import ObjectDetector
 from models.sift import SIFT
@@ -64,10 +64,11 @@ class GraphBuilder:
         ann_file = (self.config.dataset.ego_topo.splits.train if self.split == 'train' 
                    else self.config.dataset.ego_topo.splits.val)
         self.vid_lengths = DataLoader.load_video_lengths(ann_file)
-        self.records, self.records_by_vid = DataLoader.load_records(ann_file)
+        _, self.records_by_vid = DataLoader.load_records(ann_file)
 
-        self.train_records, _ = DataLoader.load_records(self.config.dataset.ego_topo.splits.train)
-        self.action_to_idx = DataLoader.create_action_index(self.train_records)
+        # Initialize action mapping using training records
+        train_records, _ = DataLoader.load_records(self.config.dataset.ego_topo.splits.train)
+        Record.set_action_mapping(train_records)
         
         # Tracking state variables
         self.prev_gaze_point = None
@@ -159,7 +160,6 @@ class GraphBuilder:
             timestamps=self.timestamps,
             timestamp_ratios=self.config.dataset.timestamps[self.split],
             records=self.records_current,
-            action_to_idx=self.action_to_idx,
             gaze_data_length=len(self.raw_gaze_data)
         )
         
