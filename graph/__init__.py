@@ -24,7 +24,8 @@ from graph.utils import get_roi, FeatureMatcher
 from graph.visualizer import visualize_graph_construction
 
 # Data handling
-from graph.io import Record, DataLoader, VideoProcessor
+from graph.io import DataLoader, VideoProcessor
+from graph.record import Record
 
 # Graph building
 from graph.build_graph import GraphBuilder, build_graph
@@ -32,55 +33,29 @@ from graph.build_graph import GraphBuilder, build_graph
 # Tracing
 from graph.graph_tracer import GraphTracer
 
-# Action utils
-from graph.action_utils import ActionUtils
-
 # Gaze processing
-from graph.gaze import GazeProcessor, GazePoint
+from graph.gaze import GazeProcessor, GazePoint, GazeType
 
 # Object detection
-from graph.object_detection import ObjectDetector, Detection
+from graph.object_detection import ObjectDetector
 
 __all__ = [
+    'Graph',
     'Node',
     'VisitRecord',
     'Edge',
-    'Graph',
-    'GraphCheckpoint',
     'AngleUtils',
     'GraphTraversal',
-    'GraphVisualizer',
-    
-    # Utility classes
-    'FeatureMatcher',
-    
-    # Data handling
     'Record',
     'DataLoader',
     'VideoProcessor',
-    
-    # Graph building
-    'GraphBuilder',
-    
-    # Tracing and visualization
+    'ObjectDetector',
     'GraphTracer',
-    'GraphEvent',
-    'Playback',
-    'visualize_graph_construction',
-    
-    # Functions
-    'get_roi',
-    'build_graph',
-    
-    # New modules
     'CheckpointManager',
-    'ActionUtils',
-    
-    # Gaze processing
+    'GraphCheckpoint',
+    'GraphBuilder',
+    'build_graph',
     'GazeProcessor',
     'GazePoint',
-    
-    # Object detection
-    'ObjectDetector',
-    'Detection'
+    'GazeType',
 ]

@@ -2,8 +2,9 @@ import torch
 import torchvision as tv
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional, Set, Iterator
-from collections import defaultdict, Counter
+from collections import defaultdict
 
+from graph.record import Record
 from egtea_gaze.constants import NUM_ACTION_CLASSES
 
 class VideoProcessor:
@@ -38,62 +39,6 @@ class VideoProcessor:
             return frame['data'], frame['pts'], is_black
         except StopIteration:
             raise StopIteration
-
-
-class Record:
-    """
-    Represents an action record from annotation files.
-    
-    Attributes:
-        _data: Raw data from the annotation file
-    """
-    def __init__(self, row: List[str]):
-        """
-        Initialize a record from a row in the annotation file.
-        
-        Args:
-            row: List of strings from a tab-separated line in the annotation file
-        """
-        self._data = row
-
-    @property
-    def path(self) -> str:
-        """Video path."""
-        return self._data[0]
-
-    @property
-    def start_frame(self) -> int:
-        """Start frame of the action."""
-        return int(self._data[1])
-
-    @property
-    def end_frame(self) -> int:
-        """End frame of the action."""
-        return int(self._data[2])
-
-    @property
-    def label(self) -> List[int]:
-        """Action label as a list of integers."""
-        return [int(x) for x in self._data[3:]]
-
-    @property
-    def verb_id(self) -> int:
-        """Verb ID."""
-        return self.label[0]
-
-    @property
-    def noun_id(self) -> int:
-        """Noun ID."""
-        return self.label[1]
-
-    @property
-    def num_frames(self) -> int:
-        """Number of frames in the action clip."""
-        return self.end_frame - self.start_frame + 1
-
-    def __str__(self) -> str:
-        """String representation of the record."""
-        return f"Record(path={self.path}, start_frame={self.start_frame}, end_frame={self.end_frame}, verb_id={self.verb_id}, noun_id={self.noun_id})"
 
 
 class DataLoader:
@@ -169,26 +114,3 @@ class DataLoader:
             records_by_vid[video].sort(key=lambda r: r.end_frame)
             
         return records, records_by_vid
-    
-    @staticmethod
-    def create_action_index(records: List[Record], num_classes: int = NUM_ACTION_CLASSES) -> Dict[Tuple[int, int], int]:
-        """
-        Create an index mapping action tuples to class indices.
-        
-        Args:
-            records: List of action records
-            num_classes: Number of action classes to include
-            
-        Returns:
-            Dictionary mapping (verb, noun) tuples to class indices
-        """
-        # Count occurrences of each action
-        action_counts = Counter([(r.verb_id, r.noun_id) for r in records])
-        
-        # Sort by frequency (descending) and take top N
-        top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:num_classes]
-
-        # Create mapping from action tuple to index
-        mapping = {action: idx for idx, (action, _) in enumerate(top_actions)}
-
-        return mapping

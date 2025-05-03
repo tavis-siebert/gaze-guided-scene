@@ -1,10 +1,13 @@
 from typing import Dict, List, Optional, Tuple, Any, Callable
 import torch
 from dataclasses import dataclass
+import json
+import numpy as np
+from collections import defaultdict
 
 from graph.graph import Graph
-from graph.action_utils import ActionUtils
 from graph.graph_tracer import GraphTracer
+from graph.record import Record
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,8 +30,7 @@ class CheckpointManager:
         checkpoint_frames: List[int] = None,
         timestamps: List[int] = None,
         timestamp_ratios: List[float] = None,
-        records: List[Any] = None,
-        action_to_idx: Dict[Any, int] = None,
+        records: List[Record] = None,
         gaze_data_length: int = None
     ):
         """Initialize the checkpoint manager.
@@ -39,7 +41,6 @@ class CheckpointManager:
             timestamps: List of predefined checkpoint frame numbers
             timestamp_ratios: Corresponding ratios for each timestamp
             records: List of action records
-            action_to_idx: Mapping from actions to indices
             gaze_data_length: Length of gaze data
         """
         self.graph = graph
@@ -47,7 +48,6 @@ class CheckpointManager:
         self.timestamps = timestamps or []
         self.timestamp_ratios = timestamp_ratios or []
         self.records = records or []
-        self.action_to_idx = action_to_idx or {}
         self.gaze_data_length = gaze_data_length
         self.last_checkpoint_frame = -1
     
@@ -83,11 +83,7 @@ class CheckpointManager:
             
         logger.info(f"\n[Frame {frame_num}] Creating graph checkpoint")
         
-        action_labels = ActionUtils.get_future_action_labels(
-            self.records, 
-            frame_num, 
-            self.action_to_idx
-        )
+        action_labels = Record.get_future_action_labels(self.records, frame_num)
             
         if action_labels is None:
             logger.info(f"Skipping checkpoint - insufficient action data")
