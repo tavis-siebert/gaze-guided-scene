@@ -48,7 +48,7 @@ def setup_parser() -> argparse.ArgumentParser:
     visualize_parser.add_argument("--video-path", type=str, help="Path to the video file")
     visualize_parser.add_argument("--trace-path", type=str, help="Path to the trace file")
     visualize_parser.add_argument("--action-mapping-path", type=str, 
-                               default="egtea_gaze/action_annotation/ego-topo-action-mapping.csv",
+                               default="datasets/egtea_gaze/action_annotation/ego-topo-action-mapping.csv",
                                help="Path to the action mapping CSV file")
     visualize_parser.add_argument("--port", type=int, default=8050, help="Port to run the server on")
     visualize_parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode")
@@ -121,7 +121,7 @@ def main():
         logger.info("Starting scratch setup process")
         setup_scratch(config, access_token=dropbox_token)
     elif args.command == "train":
-        from tasks import get_task
+        from training.tasks import get_task
         logger.info(f"Starting training for task: {args.task}")
         
         # Determine the device to use
@@ -147,7 +147,7 @@ def main():
                 task.close()
                 logger.info("TensorBoard writer closed")
     elif args.command == "build-graphs":
-        from datasets.build_graphs import build_graphs
+        from graph.graphs.build_graphs import build_graphs
         logger.info("Starting graph building process")
         
         # Check GPU availability if requested
