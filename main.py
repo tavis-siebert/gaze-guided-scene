@@ -26,8 +26,8 @@ def setup_parser() -> argparse.ArgumentParser:
     setup_parser.add_argument("--dropbox-token", type=str,
                           help="Dropbox access token (defaults to DROPBOX_TOKEN env var)")
     
-    # Dataset building command
-    build_parser = subparsers.add_parser("build", help="Build the dataset")
+    # Graph building command
+    build_parser = subparsers.add_parser("build-graph", help="Build scene graphs from videos")
     build_parser.add_argument("--device", type=str, choices=["gpu", "cpu"], default="gpu",
                             help="Device to use for processing (default: gpu)")
     build_parser.add_argument("--videos", type=str, nargs="+", 
@@ -146,14 +146,15 @@ def main():
             if task is not None:
                 task.close()
                 logger.info("TensorBoard writer closed")
-    elif args.command == "build":
-        from datasets.build_dataset import build_dataset
-        logger.info("Starting dataset building process")
+    elif args.command == "build-graph":
+        from datasets.build_graph import build_graphs
+        logger.info("Starting graph building process")
         
         # Check GPU availability if requested
         use_gpu = check_gpu_availability(args.device)
         
-        build_dataset(config, use_gpu=use_gpu, videos=args.videos, enable_tracing=args.enable_tracing)
+        # Build graphs
+        build_graphs(config, use_gpu=use_gpu, videos=args.videos, enable_tracing=args.enable_tracing)
     elif args.command == "visualize":
         from graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
@@ -172,7 +173,7 @@ def main():
             logger.error(f"No trace file found at: {trace_file}")
             if args.video_name:
                 logger.error("To generate a trace file, run:")
-                logger.error(f"    python main.py build --videos {args.video_name} --enable-tracing")
+                logger.error(f"    python main.py build-graph --videos {args.video_name} --enable-tracing")
             sys.exit(1)
         
         # Validate and resolve video path
