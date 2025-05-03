@@ -27,7 +27,7 @@ def setup_parser() -> argparse.ArgumentParser:
                           help="Dropbox access token (defaults to DROPBOX_TOKEN env var)")
     
     # Graph building command
-    build_parser = subparsers.add_parser("build-graph", help="Build scene graphs from videos")
+    build_parser = subparsers.add_parser("build-graphs", help="Build scene graphs from videos")
     build_parser.add_argument("--device", type=str, choices=["gpu", "cpu"], default="gpu",
                             help="Device to use for processing (default: gpu)")
     build_parser.add_argument("--videos", type=str, nargs="+", 
@@ -146,8 +146,8 @@ def main():
             if task is not None:
                 task.close()
                 logger.info("TensorBoard writer closed")
-    elif args.command == "build-graph":
-        from datasets.build_graph import build_graphs
+    elif args.command == "build-graphs":
+        from datasets.build_graphs import build_graphs
         logger.info("Starting graph building process")
         
         # Check GPU availability if requested
@@ -173,7 +173,7 @@ def main():
             logger.error(f"No trace file found at: {trace_file}")
             if args.video_name:
                 logger.error("To generate a trace file, run:")
-                logger.error(f"    python main.py build-graph --videos {args.video_name} --enable-tracing")
+                logger.error(f"    python main.py build-graphs --videos {args.video_name} --enable-tracing")
             sys.exit(1)
         
         # Validate and resolve video path

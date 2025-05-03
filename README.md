@@ -48,12 +48,12 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 
 4. **Build scene graphs**:
    ```bash
-   python main.py build-graph
+   python main.py build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   python main.py build-graph --videos VIDEO_NAME --enable-tracing
+   python main.py build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
 5. **Train a model**:
@@ -133,7 +133,7 @@ python main.py [options] <command>
 
 **Commands**:
 - `setup-scratch`: Download and setup dataset
-- `build-graph`: Build scene graphs from videos
+- `build-graphs`: Build scene graphs from videos
   - Options:
     - `--device {gpu|cpu}`: Device to use (default: gpu)
     - `--videos VIDEO_NAME [VIDEO_NAME ...]`: Specific videos to process
@@ -165,7 +165,7 @@ python main.py <command> --help
 
 The project follows a two-stage approach for dataset creation and model training:
 
-1. **Graph Building Stage** (`build-graph` command):
+1. **Graph Building Stage** (`build-graphs` command):
    - Processes videos to extract objects from gaze fixations
    - Constructs scene graphs based on object transitions
    - Saves raw graph checkpoints for each video frame to `datasets/graphs/{split}/{video_name}_graph.pth`
@@ -183,7 +183,6 @@ This separation provides several benefits:
 - Data augmentation at training time
 - More efficient training iterations
 
-Example dataset loading (see `datasets/example_dataloader.py`):
 ```python
 # Create a data loader
 dataloader = create_dataloader(
@@ -220,10 +219,10 @@ Trace files are stored in the `traces` directory (configurable via `trace_dir` i
 To generate traces for visualization:
 ```bash
 # For a single video
-python main.py build-graph --videos VIDEO_NAME --enable-tracing
+python main.py build-graphs --videos VIDEO_NAME --enable-tracing
 
 # For multiple videos (each gets its own trace file)
-python main.py build-graph --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
+python main.py build-graphs --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
 ```
 
 ### Visualization Dashboard
