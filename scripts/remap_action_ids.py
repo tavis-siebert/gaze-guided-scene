@@ -74,8 +74,9 @@ def remap_action_ids(dataset_path):
     remapped_count = 0
     total_count = 0
     next_action_stats = Counter()
-    future_actions_stats = Counter()
-    future_actions_ordered_stats = Counter()
+    
+    # Find the maximum action ID in the main mapping to determine vector size
+    max_main_id = max(main_id_to_action.keys()) if main_id_to_action else 0
     
     # Process each sample in validation set
     print(f"\nProcessing {len(y_list)} validation samples")
@@ -91,26 +92,32 @@ def remap_action_ids(dataset_path):
             else:
                 print(f"Warning: Action ID {old_id} not found in remapping")
         
-        # Remap future_actions
+        # Remap future_actions (multi-hot vector)
         if "future_actions" in y:
             future_actions = y["future_actions"]
-            new_future_actions = future_actions.clone()
-            for j in range(len(future_actions)):
-                old_id = future_actions[j].item()
-                future_actions_stats[old_id] += 1
-                if old_id in id_remapping:
-                    new_future_actions[j] = id_remapping[old_id]
+            # Create a new vector with zeros
+            new_future_actions = torch.zeros_like(future_actions)
+            
+            # Find indices where the original vector has 1s
+            for old_id in range(len(future_actions)):
+                if future_actions[old_id] == 1 and old_id in id_remapping:
+                    new_main_id = id_remapping[old_id]
+                    if new_main_id < len(new_future_actions):
+                        new_future_actions[new_main_id] = 1
+            
             y["future_actions"] = new_future_actions
         
-        # Remap future_actions_ordered
+        # Remap future_actions_ordered (sequence of action IDs)
         if "future_actions_ordered" in y:
             future_actions_ordered = y["future_actions_ordered"]
             new_future_actions_ordered = future_actions_ordered.clone()
+            
+            # Remap each action ID in the sequence
             for j in range(len(future_actions_ordered)):
                 old_id = future_actions_ordered[j].item()
-                future_actions_ordered_stats[old_id] += 1
                 if old_id in id_remapping:
                     new_future_actions_ordered[j] = id_remapping[old_id]
+            
             y["future_actions_ordered"] = new_future_actions_ordered
     
     # Save the remapped dataset
