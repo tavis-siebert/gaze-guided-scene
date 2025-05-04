@@ -65,7 +65,8 @@ class BaseTask:
             node_drop_p=self.config.training.node_drop_p,
             max_droppable=self.config.training.max_nodes_droppable,
             shuffle=True,
-            num_workers=self.config.processing.dataloader_workers
+            num_workers=self.config.processing.dataloader_workers,
+            config=self.config
         )
         
         # Create validation loader
@@ -78,7 +79,8 @@ class BaseTask:
             node_drop_p=0.0,  # No augmentation for validation
             max_droppable=0,
             shuffle=False,
-            num_workers=self.config.processing.dataloader_workers
+            num_workers=self.config.processing.dataloader_workers,
+            config=self.config
         )
         
         # Extract dimensions from data
