@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 from graph.graph import Graph
 from graph.node import Node
-from graph.io import DataLoader, VideoProcessor
 from graph.graph_tracer import GraphTracer
 from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 from graph.gaze import GazeProcessor, GazePoint, GazeType
@@ -21,7 +20,8 @@ from graph.object_detection import ObjectDetector
 from models.sift import SIFT
 from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from datasets.egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE, NUM_ACTION_CLASSES
-from datasets.egtea_gaze.action_record import ActionRecord
+from datasets.egtea_gaze.video_metadata import VideoMetadata
+from datasets.egtea_gaze.video_processor import VideoProcessor, VideoDataManager
 from config.config_utils import DotDict
 from logger import get_logger
 
@@ -51,28 +51,16 @@ class GraphBuilder:
         self.output_dir = output_dir
         self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
         
-        # Initialize object labels
-        noun_idx_path = Path(self.config.dataset.egtea.noun_idx_file)
-        self.obj_labels, self.labels_to_int = DataLoader.load_object_labels(noun_idx_path)
+        # Initialize metadata
+        self.metadata = VideoMetadata(self.config)
         
         # Initialize YOLO-World model path
         yolo_model_file = self.config.models.yolo_world.model_file
         yolo_model_dir = Path(self.config.models.yolo_world.model_dir)
-        yolo_model_path = yolo_model_dir / yolo_model_file
+        self.yolo_model_path = yolo_model_dir / yolo_model_file
         
         # Create object detector (will be re-initialized for each video with proper tracer)
         self.object_detector = None
-        self.yolo_model_path = yolo_model_path
-        
-        # Load video metadata
-        ann_file = (self.config.dataset.ego_topo.splits.train if self.split == 'train' 
-                   else self.config.dataset.ego_topo.splits.val)
-        self.vid_lengths = DataLoader.load_video_lengths(ann_file)
-        _, self.records_by_vid = DataLoader.load_records(ann_file)
-
-        # Initialize action mapping using training records
-        train_records, _ = DataLoader.load_records(self.config.dataset.ego_topo.splits.train)
-        ActionRecord.set_action_mapping(train_records)
         
         # Tracking state variables
         self.prev_gaze_point = None
@@ -87,31 +75,11 @@ class GraphBuilder:
         self.video_name = ""
         self.raw_gaze_data = None
         self.gaze_processor = None
-        self.records_current = None
-        self.vid_length = 0
+        self.vid_data_manager = None
         
         # Frame range to process
         self.first_frame = 0
         self.last_frame = 0
-    
-    def _get_action_frame_range(self, video_name: str) -> Tuple[int, int]:
-        """
-        Get the first and last frame from action annotations for a video.
-        
-        Args:
-            video_name: Name of the video
-            
-        Returns:
-            Tuple of (first_frame, last_frame)
-        """
-        if video_name not in self.records_by_vid or not self.records_by_vid[video_name]:
-            return 0, self.vid_lengths.get(video_name, 0)
-            
-        records = self.records_by_vid[video_name]
-        first_frame = min(r.start_frame for r in records)
-        last_frame = max(r.end_frame for r in records)
-        
-        return first_frame, last_frame
     
     def process_video(self, video_name: str, print_graph: bool = False) -> Optional[str]:
         """Process a video to build its scene graph.
@@ -129,54 +97,16 @@ class GraphBuilder:
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
         
-        # Initialize object detector with video-specific tracer
-        self.object_detector = ObjectDetector(
-            model_path=self.yolo_model_path,
-            obj_labels=self.obj_labels,
-            labels_to_int=self.labels_to_int,
-            config=self.config,
-            tracer=self.tracer
-        )
+        # Initialize video data manager
+        self.vid_data_manager = VideoDataManager(video_name, self.config)
         
-        # Load raw gaze data and initialize gaze processor
-        self.raw_gaze_data = parse_gtea_gaze(str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt"))
-        self.gaze_processor = GazeProcessor(self.config, self.raw_gaze_data)
+        # Create and initialize components
+        self._initialize_components()
         
-        video_processor = VideoProcessor(Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4")
-        self.records_current = self.records_by_vid[video_name]
-        self.vid_length = self.vid_lengths[video_name]
+        # Process video frames
+        self._process_video_frames()
         
-        self.first_frame, self.last_frame = self._get_action_frame_range(video_name)
-        logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
-        
-        self.scene_graph = Graph(
-            labels_to_int=self.labels_to_int,
-            num_object_classes=len(self.obj_labels),
-            video_length=self.vid_length
-        )
-        self.scene_graph.tracer = self.tracer
-        
-        self.checkpoint_manager = CheckpointManager(
-            graph=self.scene_graph,
-            video_name=video_name,
-            output_dir=self.output_dir,
-            split=self.split,
-            gaze_data_length=self.vid_length
-        )
-        
-        self._reset_tracking_state()
-        
-        try:
-            for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
-                self._process_frame(frame, gaze_point, is_black_frame)
-                if not is_black_frame:
-                    self.non_black_frame_count += 1
-                self.frame_num += 1
-        except StopProcessingException as e:
-            logger.info(f"[Frame {self.frame_num}] {e.reason}")
-        except StopIteration:
-            logger.info(f"[Frame {self.frame_num}] End of data reached")
-
+        # Finalize processing
         self._finish_final_fixation()
         
         if print_graph and self.scene_graph.num_nodes > 0:
@@ -190,6 +120,60 @@ class GraphBuilder:
             return saved_path
         
         return None
+    
+    def _initialize_components(self):
+        """Initialize all components needed for processing."""
+        # Initialize object detector with video-specific tracer
+        self.object_detector = ObjectDetector(
+            model_path=self.yolo_model_path,
+            obj_labels=self.metadata.obj_labels,
+            labels_to_int=self.metadata.labels_to_int,
+            config=self.config,
+            tracer=self.tracer
+        )
+        
+        # Initialize gaze processor
+        self.raw_gaze_data = self.vid_data_manager.raw_gaze_data
+        self.gaze_processor = GazeProcessor(self.config, self.raw_gaze_data)
+        
+        # Get frame range
+        self.first_frame, self.last_frame = self.vid_data_manager.first_frame, self.vid_data_manager.last_frame
+        logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
+        
+        # Create scene graph
+        self.scene_graph = Graph(
+            labels_to_int=self.metadata.labels_to_int,
+            num_object_classes=self.metadata.num_object_classes,
+            video_length=self.vid_data_manager.video_length
+        )
+        self.scene_graph.tracer = self.tracer
+        
+        # Create checkpoint manager
+        self.checkpoint_manager = CheckpointManager(
+            graph=self.scene_graph,
+            video_name=self.video_name,
+            output_dir=self.output_dir,
+            split=self.split,
+            gaze_data_length=len(self.raw_gaze_data)
+        )
+        
+        # Reset tracking state
+        self._reset_tracking_state()
+    
+    def _process_video_frames(self):
+        """Process all frames in the video."""
+        video_processor = self.vid_data_manager.create_video_processor()
+        
+        try:
+            for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
+                self._process_frame(frame, gaze_point, is_black_frame)
+                if not is_black_frame:
+                    self.non_black_frame_count += 1
+                self.frame_num += 1
+        except StopProcessingException as e:
+            logger.info(f"[Frame {self.frame_num}] {e.reason}")
+        except StopIteration:
+            logger.info(f"[Frame {self.frame_num}] End of data reached")
 
     def _reset_tracking_state(self):
         """Reset all tracking state variables."""

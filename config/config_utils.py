@@ -8,6 +8,9 @@ from dataclasses import dataclass
 # Get absolute path to repository root directory (parent of config directory)
 REPO_ROOT = str(Path(__file__).parent.parent.absolute())
 
+# Global cached config
+_GLOBAL_CONFIG = None
+
 class DotDict:
     """Dictionary subclass that enables dot notation access to nested dictionaries."""
     def __init__(self, dictionary: Dict[str, Any]):
@@ -192,3 +195,17 @@ def load_config(config_path: Optional[str] = None) -> DotDict:
             break
     
     return DotDict(config)
+
+def get_config(config_path: Optional[str] = None) -> DotDict:
+    """Retrieve a cached global config. If no config_path is provided, the default config will be loaded.
+    
+    Args:
+        config_path: Path to the config file to load. If None, loads default config.
+        
+    Returns:
+        DotDict: Configuration object that supports both dictionary and dot notation access
+    """
+    global _GLOBAL_CONFIG
+    if _GLOBAL_CONFIG is None:
+        _GLOBAL_CONFIG = load_config(config_path)
+    return _GLOBAL_CONFIG
