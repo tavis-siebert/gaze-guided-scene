@@ -1,8 +1,21 @@
-.env
-.vscode/
-venv/
+# Python-generated files
 __pycache__/
-out/
-run.sh
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE files
+.vscode/
+
+# Temporary files
 *.pth
 logs/
+out/
+
+# Environment variables
+.env
