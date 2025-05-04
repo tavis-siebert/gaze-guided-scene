@@ -26,7 +26,8 @@ class GraphDataset(Dataset):
         max_droppable: int = 0,
         transform=None,
         pre_transform=None,
-        pre_filter=None
+        pre_filter=None,
+        config=None
     ):
         """Initialize the dataset.
         
@@ -40,6 +41,7 @@ class GraphDataset(Dataset):
             transform: PyG transform to apply to each data object
             pre_transform: PyG pre-transform to apply to each data object
             pre_filter: PyG pre-filter to apply to each data object
+            config: Configuration object to pass to VideoMetadata
         """
         self.root_dir = Path(root_dir) / split
         self.split = split
@@ -49,7 +51,7 @@ class GraphDataset(Dataset):
         self.max_droppable = max_droppable
         
         # Initialize video metadata
-        self.metadata = VideoMetadata()
+        self.metadata = VideoMetadata(config)
         
         # Find all graph checkpoint files
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
@@ -417,7 +419,8 @@ def create_dataloader(
     node_drop_p: float = 0.0,
     max_droppable: int = 0,
     shuffle: bool = True,
-    num_workers: int = 4
+    num_workers: int = 4,
+    config=None
 ) -> DataLoader:
     """Create a PyG DataLoader for graph data.
     
@@ -431,6 +434,7 @@ def create_dataloader(
         max_droppable: Maximum number of nodes that can be dropped
         shuffle: Whether to shuffle the dataset
         num_workers: Number of workers for DataLoader
+        config: Configuration object to pass to VideoMetadata
         
     Returns:
         PyG DataLoader
@@ -441,7 +445,8 @@ def create_dataloader(
         val_timestamps=val_timestamps,
         task_mode=task_mode,
         node_drop_p=node_drop_p if split == "train" else 0.0,  # Only apply augmentations to training set
-        max_droppable=max_droppable
+        max_droppable=max_droppable,
+        config=config
     )
     
     return DataLoader(

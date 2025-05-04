@@ -24,7 +24,7 @@ class VideoMetadata:
     def __init__(self, config=None):
         """
         Args:
-            config: Optional configuration object.
+            config: Configuration object. If not provided, will use the default config.
         """
         self.config = config or get_config()
         self.obj_labels, self.labels_to_int = self._load_object_labels()
@@ -45,16 +45,23 @@ class VideoMetadata:
         path = Path(self.config.dataset.egtea.noun_idx_file)
         obj_labels: Dict[int, str] = {}
         labels_to_int: Dict[str, int] = {}
-        with open(path) as f:
-            for line in f:
-                parts = line.strip().split()
-                if len(parts) < 2:
-                    continue
-                label = " ".join(parts[:-1])
-                idx = int(parts[-1]) - 1
-                obj_labels[idx] = label
-                labels_to_int[label] = idx
-        logger.info(f"Loaded {len(obj_labels)} object labels")
+        try:
+            with open(path) as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) < 2:
+                        continue
+                    label = " ".join(parts[:-1])
+                    idx = int(parts[-1]) - 1
+                    obj_labels[idx] = label
+                    labels_to_int[label] = idx
+            logger.info(f"Loaded {len(obj_labels)} object labels")
+        except FileNotFoundError:
+            logger.error(f"Object labels file not found at {path}")
+            raise
+        except Exception as e:
+            logger.error(f"Error loading object labels: {e}")
+            raise
         return obj_labels, labels_to_int
 
     def _load_records(self) -> Tuple[Dict[str, List[ActionRecord]], List[ActionRecord]]:
@@ -69,16 +76,25 @@ class VideoMetadata:
         splits = self.config.dataset.ego_topo.splits
         for split_name in ("train", "val"):
             ann_file = getattr(splits, split_name)
-            with open(ann_file) as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    record = ActionRecord(line.strip().split("\t"))
-                    records_by_video[record.video_name].append(record)
-                    if split_name == "train":
-                        train_records.append(record)
+            try:
+                with open(ann_file) as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        record = ActionRecord(line.strip().split("\t"))
+                        records_by_video[record.video_name].append(record)
+                        if split_name == "train":
+                            train_records.append(record)
+            except FileNotFoundError:
+                logger.error(f"Action records file not found at {ann_file}")
+                raise
+            except Exception as e:
+                logger.error(f"Error loading action records for {split_name} split: {e}")
+                raise
+        
         for recs in records_by_video.values():
             recs.sort(key=lambda r: r.end_frame)
+        
         return records_by_video, train_records
 
     def _load_video_lengths(self) -> Dict[str, int]:
