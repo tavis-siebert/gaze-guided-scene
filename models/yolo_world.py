@@ -137,13 +137,30 @@ class YOLOWorldModel:
         )
         
         # Process outputs
-        predictions = np.squeeze(outputs[0]).T
+        # Normalize output shape to (num_preds, dims)
+        dims = 4 + self.num_classes
+        pred_arr = np.squeeze(outputs[0], axis=0)
+        # Flatten extra dimensions if necessary
+        if pred_arr.ndim > 2:
+            pred_arr = pred_arr.reshape(-1, pred_arr.shape[-1])
+        # Handle single detection as 1-row array
+        if pred_arr.ndim == 1:
+            pred_arr = pred_arr[np.newaxis, :]
+        # Abort if not 2D
+        if pred_arr.ndim != 2:
+            return []
+        # Transpose if dims axis is first
+        if pred_arr.shape[1] != dims and pred_arr.shape[0] == dims:
+            pred_arr = pred_arr.T
+        # Validate expected dims
+        if pred_arr.shape[1] != dims:
+            raise ValueError(f"Unexpected output shape: {pred_arr.shape}")
+        predictions = pred_arr
+        # Filter by confidence
         scores = np.max(predictions[:, 4:], axis=1)
         mask = scores >= self.conf_threshold
-        
         if not np.any(mask):
             return []
-            
         predictions = predictions[mask]
         scores = scores[mask]
         class_ids = np.argmax(predictions[:, 4:], axis=1)
@@ -153,25 +170,30 @@ class YOLOWorldModel:
         boxes[:, [0, 2]] = boxes[:, [0, 2]] / image_size * w
         boxes[:, [1, 3]] = boxes[:, [1, 3]] / image_size * h
         
-        # Apply NMS
-        detections = []
-        indices = cv2.dnn.NMSBoxes(
+        # Apply NMS and handle various index return types
+        raw_indices = cv2.dnn.NMSBoxes(
             boxes.tolist(),
             scores.tolist(),
             self.conf_threshold,
             self.iou_threshold
         )
-        
-        for idx in indices:
-            idx = idx if isinstance(idx, int) else idx[0]
-            box = boxes[idx]
-            x, y, width, height = box
-            
+        # Return empty list if no detections
+        if raw_indices is None or (hasattr(raw_indices, '__len__') and len(raw_indices) == 0):
+            return []
+        # Flatten to list of ints
+        if isinstance(raw_indices, (int, np.integer)):
+            flat_indices = [int(raw_indices)]
+        else:
+            flat_indices = np.array(raw_indices).reshape(-1).tolist()
+        # Build detections
+        detections = []
+        for idx in flat_indices:
+            idx = int(idx)
+            x, y, width, height = boxes[idx]
             detections.append({
-                "bbox": [x - width/2, y - height/2, width, height],  # Convert to top-left format
+                "bbox": [x - width/2, y - height/2, width, height],
                 "score": float(scores[idx]),
                 "class_id": int(class_ids[idx]),
                 "class_name": self.names[class_ids[idx]]
             })
-        
         return detections 
