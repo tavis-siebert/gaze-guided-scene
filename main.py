@@ -11,9 +11,15 @@ import logging
 logger = None
 
 def setup_parser() -> argparse.ArgumentParser:
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Get config path from environment variable or use default
+    default_config_path = os.environ.get("CONFIG_PATH", "config/student_cluster_config.yaml")
+    
     parser = argparse.ArgumentParser(description="Gaze-guided scene understanding toolkit")
-    parser.add_argument("--config", type=str, default="config/euler_cluster_config.yaml",
-                       help="Path to custom config file. Defaults to config/student_cluster_config.yaml")
+    parser.add_argument("--config", type=str, default=default_config_path,
+                       help="Path to custom config file. Defaults to path in CONFIG_PATH env var or config/student_cluster_config.yaml")
     parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                        help="Set the logging level", default="DEBUG")
     parser.add_argument("--log-file", type=str,
@@ -57,8 +63,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
 def get_dropbox_token(args: argparse.Namespace) -> str:
     """Get Dropbox token from command line args or environment variable."""
-    # Load environment variables from .env file
-    load_dotenv()
+    # Environment variables are already loaded in setup_parser
     
     if hasattr(args, "dropbox_token") and args.dropbox_token:
         return args.dropbox_token

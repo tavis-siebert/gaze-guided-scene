@@ -37,7 +37,14 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    - Create an app at [Dropbox App Console](https://www.dropbox.com/developers/apps/)
    - Enable `sharing.read` permission
    - Generate an OAuth 2.0 token
-   - Add to `.env` file: `DROPBOX_TOKEN=your_token_here`
+   - Add to `.env` file: 
+     ```
+     # Dropbox token for dataset downloads
+     DROPBOX_TOKEN=your_token_here
+     
+     # Optional: Custom config path
+     CONFIG_PATH=path/to/your/config.yaml
+     ```
    
    > **Note:** Dropbox tokens expire after a period of time. If you encounter authentication errors, you'll need to generate a new token following the steps above.
 
@@ -113,6 +120,29 @@ trace_dir:           # Directory for graph construction trace files
 - Path references: `${path.to.reference}`
 - Environment variables: `${USER}`, `${REPO_ROOT}`
 - Configuration files: `student_cluster_config.yaml`, `euler_cluster_config.yaml`
+- Environment variable `CONFIG_PATH` to specify configuration file path
+
+## Environment Variables
+
+The project supports configuration via environment variables in a `.env` file in the project root:
+
+1. **Create a `.env` file**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Available environment variables**:
+   ```
+   # Configuration file path
+   CONFIG_PATH=path/to/your/config.yaml
+   
+   # Dropbox token for dataset downloads
+   DROPBOX_TOKEN=your_token_here
+   ```
+
+Environment variables take precedence over defaults in the code. When specified, `CONFIG_PATH` 
+determines which configuration file is loaded by default, but can still be overridden with the
+`--config` command-line argument.
 
 ## TensorBoard Integration
 
@@ -156,7 +186,7 @@ python main.py [options] <command>
     - `--debug`: Run in debug mode
 
 **Global options**:
-- `--config`: Custom config file path (default: config/student_cluster_config.yaml)
+- `--config`: Custom config file path (default: path in CONFIG_PATH env var or config/student_cluster_config.yaml)
 - `--log-level`: Set logging level
 - `--log-file`: Specify log file
 
