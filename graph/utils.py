@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from typing import Tuple, List, Optional, Set, Any, Dict
 from collections import deque
+from itertools import islice
 
 from graph.node import Node
 
@@ -42,6 +43,45 @@ def get_roi(image: torch.Tensor, roi_center: Tuple[int, int], roi_size: int) -> 
     bbox = [roi_x1, roi_y1, width, height]
 
     return roi, bbox
+
+def split_list(lst: List[Any], n: int) -> List[List[Any]]:
+    """Splits a list into n roughly equal parts.
+    
+    Args:
+        lst: The list to split
+        n: Number of parts to split into
+        
+    Returns:
+        List of n sublists
+    """
+    avg = len(lst) // n
+    remainder = len(lst) % n
+    split_sizes = [avg + (1 if i < remainder else 0) for i in range(n)]
+    it = iter(lst)
+    return [list(islice(it, size)) for size in split_sizes]
+
+def filter_videos(video_list: List[str], filter_names: Optional[List[str]], logger) -> List[str]:
+    """Filter video list based on specified video names.
+    
+    Args:
+        video_list: List of all available videos
+        filter_names: List of video names to keep, or None to keep all
+        logger: Logger instance for logging messages
+        
+    Returns:
+        Filtered list of videos
+    """
+    if not filter_names:
+        return video_list
+    
+    filtered_videos = [vid for vid in video_list if any(name in vid for name in filter_names)]
+    
+    if not filtered_videos:
+        logger.warning(f"No videos matched the specified filters: {filter_names}")
+        return []
+    
+    logger.info(f"Filtered {len(video_list)} videos down to {len(filtered_videos)} based on specified names")
+    return filtered_videos
 
 
 class AngleUtils:
