@@ -11,7 +11,7 @@ from pathlib import Path
 from tqdm import tqdm
 from typing import List, Optional, Dict, Any
 
-from graph.build_graphs import build_graph
+from graph.graph_builder import build_graph
 from egtea_gaze.constants import NUM_ACTION_CLASSES
 from config.config_utils import DotDict
 from logger import get_logger

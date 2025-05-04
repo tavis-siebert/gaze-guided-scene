@@ -28,7 +28,7 @@ from graph.io import DataLoader, VideoProcessor
 from graph.record import Record
 
 # Graph building
-from graph.build_graphs import GraphBuilder, build_graph
+from graph.graph_builder import GraphBuilder, build_graph, build_graphs
 
 # Tracing
 from graph.graph_tracer import GraphTracer
@@ -55,6 +55,7 @@ __all__ = [
     'GraphCheckpoint',
     'GraphBuilder',
     'build_graph',
+    'build_graphs',
     'GazeProcessor',
     'GazePoint',
     'GazeType',
