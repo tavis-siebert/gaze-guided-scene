@@ -21,7 +21,7 @@ from models.sift import SIFT
 from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from datasets.egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE, NUM_ACTION_CLASSES
 from datasets.egtea_gaze.video_metadata import VideoMetadata
-from datasets.egtea_gaze.video_processor import VideoProcessor, VideoDataManager
+from datasets.egtea_gaze.video_processor import Video
 from config.config_utils import DotDict
 from logger import get_logger
 
@@ -75,7 +75,7 @@ class GraphBuilder:
         self.video_name = ""
         self.raw_gaze_data = None
         self.gaze_processor = None
-        self.vid_data_manager = None
+        self.video = None
         
         # Frame range to process
         self.first_frame = 0
@@ -97,8 +97,8 @@ class GraphBuilder:
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
         
-        # Initialize video data manager
-        self.vid_data_manager = VideoDataManager(video_name, self.config)
+        # Initialize video abstraction
+        self.video = Video(video_name, self.config)
         
         # Create and initialize components
         self._initialize_components()
@@ -132,19 +132,18 @@ class GraphBuilder:
             tracer=self.tracer
         )
         
-        # Initialize gaze processor
-        self.raw_gaze_data = self.vid_data_manager.raw_gaze_data
-        self.gaze_processor = GazeProcessor(self.config, self.raw_gaze_data)
+        # Initialize gaze processor from video
+        self.gaze_processor = GazeProcessor(self.config, self.video.gaze_data)
         
         # Get frame range
-        self.first_frame, self.last_frame = self.vid_data_manager.first_frame, self.vid_data_manager.last_frame
+        self.first_frame, self.last_frame = self.video.first_frame, self.video.last_frame
         logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
         
         # Create scene graph
         self.scene_graph = Graph(
             labels_to_int=self.metadata.labels_to_int,
             num_object_classes=self.metadata.num_object_classes,
-            video_length=self.vid_data_manager.video_length
+            video_length=self.video.length
         )
         self.scene_graph.tracer = self.tracer
         
@@ -162,10 +161,9 @@ class GraphBuilder:
     
     def _process_video_frames(self):
         """Process all frames in the video."""
-        video_processor = self.vid_data_manager.create_video_processor()
-        
         try:
-            for (frame, _, is_black_frame), gaze_point in zip(video_processor, self.gaze_processor):
+            for frame, _, is_black_frame, _ in self.video:
+                gaze_point = next(self.gaze_processor)
                 self._process_frame(frame, gaze_point, is_black_frame)
                 if not is_black_frame:
                     self.non_black_frame_count += 1
