@@ -148,15 +148,23 @@ def process_video_worker(
     if torch.cuda.is_available():
         torch.cuda.set_device(worker_id % torch.cuda.device_count())
     
-    saved_path = process_video(
-        video_name=video_name,
-        config=config,
-        split=split,
-        print_graph=print_graph,
-        enable_tracing=enable_tracing,
-        output_dir=output_dir,
-        overwrite=overwrite
-    )
+    try:
+        saved_path = process_video(
+            video_name=video_name,
+            config=config,
+            split=split,
+            print_graph=print_graph,
+            enable_tracing=enable_tracing,
+            output_dir=output_dir,
+            overwrite=overwrite
+        )
+    except AttributeError as e:
+        if "'NoneType' object has no attribute 'position'" in str(e):
+            logger.error(f"Error processing {video_name}: {str(e)}")
+            saved_path = None
+    except Exception as e:
+        logger.error(f"Error processing {video_name}: {str(e)}")
+        saved_path = None
     
     return video_name, saved_path, split
 
@@ -275,9 +283,12 @@ def build_graphs(
         
         with tqdm(total=len(futures), desc="Processing videos") as pbar:
             for future in as_completed(futures):
-                video_name, saved_path, split = future.result()
-                if saved_path:
-                    all_paths[split].append(saved_path)
+                try:
+                    video_name, saved_path, split = future.result()
+                    if saved_path:
+                        all_paths[split].append(saved_path)
+                except Exception as e:
+                    logger.error(f"Worker failed: {str(e)}")
                 pbar.update(1)
     
     # Log summary

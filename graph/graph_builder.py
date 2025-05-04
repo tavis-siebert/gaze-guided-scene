@@ -186,7 +186,12 @@ class GraphBuilder:
             raise StopProcessingException(reason=f"Reached end of annotated frames (frame {self.last_frame})")
         
         node_id = self.scene_graph.current_node.id if self.scene_graph.current_node.id >= 0 else None
-        self.tracer.log_frame(self.frame_num, gaze_point.position, int(gaze_point.type), node_id)
+        
+        if gaze_point is not None:
+            self.tracer.log_frame(self.frame_num, gaze_point.position, int(gaze_point.type), node_id)
+        else:
+            # Log frame with None values for gaze position and type
+            self.tracer.log_frame(self.frame_num, None, -1, node_id)
 
         if is_black_frame:
             return
