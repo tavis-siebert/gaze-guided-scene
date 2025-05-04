@@ -6,4 +6,4 @@
 
 source scripts/setup_student_cluster_env.sh
 
-python main.py build --device gpu --videos OP03-R02-TurkeySandwich OP01-R04-ContinentalBreakfast OP03-R01-PastaSalad  --enable-tracing
+python main.py build-graphs --device gpu --videos OP03-R02-TurkeySandwich OP01-R04-ContinentalBreakfast OP03-R01-PastaSalad  --enable-tracing
