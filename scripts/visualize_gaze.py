@@ -1,11 +1,10 @@
-
 import os
 import pickle
 import argparse
 
 import cv2
 
-from egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
+from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 
 
 if __name__ == '__main__':
@@ -37,7 +36,7 @@ if __name__ == '__main__':
 
     if dataset == 'egtea_gaze':
         gaze = parse_gtea_gaze(os.path.join(
-            'egtea_gaze/gaze_data/gaze_data/', 
+            'datasets/egtea_gaze/gaze_data/gaze_data/', 
             video_name + '.txt'
         ))
     gaze_each_frame = []
@@ -71,7 +70,4 @@ if __name__ == '__main__':
 
     save_dir = f'{dataset}/results/{video_name}/{clip_name}/gaze/'
     with open(save_dir + 'gaze_data.pkl', 'wb') as gaze_data_file:
-        pickle.dump(gaze_each_frame, gaze_data_file)
-
-
-
+        pickle.dump(gaze_each_frame, gaze_data_file) 
