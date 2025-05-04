@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import contextlib
 import os
+import time
+from datetime import datetime
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
@@ -40,9 +43,28 @@ class BaseTask:
         # Initialize empty metrics dictionary (to be populated by subclasses)
         self.metrics = {}
         
-        # Setup tensorboard writer
-        log_dir = os.path.join('logs', f'{self.task}')
+        # Setup tensorboard writer with unique run directory
+        self._setup_tensorboard_writer()
+    
+    def _setup_tensorboard_writer(self):
+        """Setup tensorboard writer with unique run directory"""
+        # Create base log directory for the task
+        base_log_dir = os.path.join('logs', f'{self.task}')
+        
+        # Find the next available run directory
+        run_dirs = [d for d in os.listdir(base_log_dir) if os.path.isdir(os.path.join(base_log_dir, d)) and d.startswith('run_')] if os.path.exists(base_log_dir) else []
+        run_numbers = [int(d.split('_')[1]) for d in run_dirs if d.split('_')[1].isdigit()]
+        next_run = max(run_numbers) + 1 if run_numbers else 1
+        
+        # Create the run directory with timestamp for uniqueness
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        run_dir = f"run_{next_run}_{timestamp}"
+        log_dir = os.path.join(base_log_dir, run_dir)
+        
+        # Create the writer
+        os.makedirs(log_dir, exist_ok=True)
         self.writer = SummaryWriter(log_dir=log_dir)
+        self.logger.info(f"Tensorboard logs will be written to {log_dir}")
     
     def _setup_data(self):
         """Setup datasets and data loaders"""
@@ -127,6 +149,72 @@ class BaseTask:
 
         # Log to tensorboard
         self.writer.add_scalar(metric_name, value, epoch)
+    
+    def log_per_class_metrics(self, metrics_dict, epoch, prefix=''):
+        """Log per-class metrics to tensorboard.
+        
+        Args:
+            metrics_dict: Dictionary with class indices as keys and metric values as values
+            epoch: Current epoch
+            prefix: Optional prefix for the metric name
+        """
+        for class_idx, value in metrics_dict.items():
+            metric_name = f"{prefix}_{class_idx}" if prefix else f"class_{class_idx}"
+            self.writer.add_scalar(metric_name, value, epoch)
+    
+    def log_confusion_matrix(self, conf_matrix, epoch, class_names=None):
+        """Log confusion matrix as an image to tensorboard.
+        
+        Args:
+            conf_matrix: Confusion matrix as numpy array
+            epoch: Current epoch
+            class_names: Optional list of class names for labeling
+        """
+        import matplotlib.pyplot as plt
+        import io
+        from PIL import Image
+        
+        fig, ax = plt.figure(figsize=(10, 10)), plt.axes()
+        im = ax.imshow(conf_matrix, cmap='Blues')
+        
+        # Set labels if provided
+        if class_names:
+            ax.set_xticks(np.arange(len(class_names)))
+            ax.set_yticks(np.arange(len(class_names)))
+            ax.set_xticklabels(class_names, rotation=45, ha='right')
+            ax.set_yticklabels(class_names)
+        
+        # Add colorbar
+        plt.colorbar(im)
+        
+        # Add text annotations
+        for i in range(conf_matrix.shape[0]):
+            for j in range(conf_matrix.shape[1]):
+                text_color = 'white' if conf_matrix[i, j] > conf_matrix.max() / 2 else 'black'
+                ax.text(j, i, str(conf_matrix[i, j]), ha='center', va='center', color=text_color)
+        
+        plt.tight_layout()
+        
+        # Convert plot to image
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        img = Image.open(buf)
+        img_tensor = torch.tensor(np.array(img).transpose((2, 0, 1)))
+        
+        # Log to tensorboard
+        self.writer.add_image('confusion_matrix', img_tensor, epoch)
+        plt.close(fig)
+    
+    def log_histogram(self, values, epoch, name):
+        """Log a histogram to tensorboard.
+        
+        Args:
+            values: Tensor or numpy array of values
+            epoch: Current epoch
+            name: Name of the histogram
+        """
+        self.writer.add_histogram(name, values, epoch)
     
     def train(self):
         for epoch in range(self.num_epochs):
