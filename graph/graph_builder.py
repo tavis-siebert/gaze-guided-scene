@@ -2,24 +2,15 @@
 Graph building module for creating scene graphs from video data.
 """
 
-import os
-import json
 import torch
-import numpy as np
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, Optional, NamedTuple
-from collections import defaultdict
-from tqdm import tqdm
+from typing import Dict, List, Tuple, Optional
 
 from graph.graph import Graph
-from graph.node import Node
 from graph.graph_tracer import GraphTracer
-from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
-from graph.gaze import GazeProcessor, GazePoint, GazeType
+from graph.checkpoint_manager import CheckpointManager
+from graph.gaze import GazePoint, GazeType
 from graph.object_detection import ObjectDetector
-from models.sift import SIFT
-from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
-from datasets.egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE, NUM_ACTION_CLASSES
 from datasets.egtea_gaze.video_metadata import VideoMetadata
 from datasets.egtea_gaze.video_processor import Video
 from config.config_utils import DotDict
@@ -51,7 +42,6 @@ class GraphBuilder:
         self.output_dir = output_dir
         self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
         
-        # Initialize metadata
         self.metadata = VideoMetadata(self.config)
         
         # Initialize YOLO-World model path
@@ -73,8 +63,6 @@ class GraphBuilder:
         self.scene_graph = None
         self.checkpoint_manager = None
         self.video_name = ""
-        self.raw_gaze_data = None
-        self.gaze_processor = None
         self.video = None
         
         # Frame range to process
@@ -131,10 +119,7 @@ class GraphBuilder:
             config=self.config,
             tracer=self.tracer
         )
-        
-        # Initialize gaze processor from video
-        self.gaze_processor = GazeProcessor(self.config, self.video.gaze_data)
-        
+
         # Get frame range
         self.first_frame, self.last_frame = self.video.first_frame, self.video.last_frame
         logger.info(f"Processing frames from {self.first_frame} to {self.last_frame} based on action annotations")
@@ -152,8 +137,7 @@ class GraphBuilder:
             graph=self.scene_graph,
             video_name=self.video_name,
             output_dir=self.output_dir,
-            split=self.split,
-            gaze_data_length=len(self.raw_gaze_data)
+            split=self.split
         )
         
         # Reset tracking state
@@ -162,8 +146,7 @@ class GraphBuilder:
     def _process_video_frames(self):
         """Process all frames in the video."""
         try:
-            for frame, _, is_black_frame, _ in self.video:
-                gaze_point = next(self.gaze_processor)
+            for frame, _, is_black_frame, gaze_point in self.video:
                 self._process_frame(frame, gaze_point, is_black_frame)
                 if not is_black_frame:
                     self.non_black_frame_count += 1
