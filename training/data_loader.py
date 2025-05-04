@@ -73,8 +73,9 @@ class GraphDataset(Dataset):
         Returns:
             List of filtered checkpoints with added action labels
         """
-        # Load all checkpoints for this video
-        all_checkpoints = torch.load(file_path)
+        # Load all checkpoints for this video with GraphCheckpoint explicitly marked as safe
+        with torch.serialization.safe_globals([GraphCheckpoint]):
+            all_checkpoints = torch.load(file_path, weights_only=False)
         
         # Extract video name for looking up records
         video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
