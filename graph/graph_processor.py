@@ -159,9 +159,30 @@ def build_graphs(
     train_videos = filter_videos(split['train_vids'], videos, logger)
     val_videos = filter_videos(split['val_vids'], videos, logger)
     
+    # Only show error if no videos matched across both splits
     if not train_videos and not val_videos:
-        logger.error("No videos to process after filtering. Aborting.")
+        logger.error(f"No videos matched the specified filters: {videos} in any split. Aborting.")
         return None
+    
+    # Summarize which videos will be processed
+    logger.info("-" * 50)
+    logger.info("Video processing summary:")
+    if train_videos:
+        if videos:
+            logger.info(f"Train split: Processing {len(train_videos)} matched videos")
+        else:
+            logger.info(f"Train split: Processing all {len(train_videos)} videos")
+    else:
+        logger.info("Train split: No matching videos")
+        
+    if val_videos:
+        if videos:
+            logger.info(f"Val split: Processing {len(val_videos)} matched videos")
+        else:
+            logger.info(f"Val split: Processing all {len(val_videos)} videos")
+    else:
+        logger.info("Val split: No matching videos")
+    logger.info("-" * 50)
     
     # Determine device configuration
     if use_gpu and torch.cuda.is_available():
@@ -173,7 +194,6 @@ def build_graphs(
         device_type = "CPU"
 
     logger.info(f"Using {num_devices} {device_type}(s) for graph building")
-    logger.info(f"Total videos to process - Train: {len(train_videos)}, Val: {len(val_videos)}")
     
     # Split videos across devices
     train_splits = split_list(train_videos, num_devices)

@@ -69,7 +69,7 @@ def filter_videos(video_list: List[str], filter_names: Optional[List[str]], logg
         logger: Logger instance for logging messages
         
     Returns:
-        Filtered list of videos
+        Filtered list of videos (maintains original order from video_list)
     """
     if not filter_names:
         return video_list
@@ -77,8 +77,21 @@ def filter_videos(video_list: List[str], filter_names: Optional[List[str]], logg
     filtered_videos = [vid for vid in video_list if any(name in vid for name in filter_names)]
     
     if not filtered_videos:
-        logger.warning(f"No videos matched the specified filters: {filter_names}")
+        logger.warning(f"No videos matched the specified filters: {filter_names} in this split")
         return []
+    
+    # Show which filters matched which videos for better debugging
+    matches_by_filter = {}
+    for filter_name in filter_names:
+        matches = [vid for vid in filtered_videos if filter_name in vid]
+        if matches:
+            matches_by_filter[filter_name] = matches
+    
+    for filter_name, matches in matches_by_filter.items():
+        match_count = len(matches)
+        logger.info(f"Filter '{filter_name}' matched {match_count} video(s) in this split")
+        if match_count <= 5:  # Show specific matches only if there aren't too many
+            logger.info(f"  Matched: {', '.join(matches)}")
     
     logger.info(f"Filtered {len(video_list)} videos down to {len(filtered_videos)} based on specified names")
     return filtered_videos
