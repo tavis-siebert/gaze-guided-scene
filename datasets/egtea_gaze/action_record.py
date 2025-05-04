@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from datasets.egtea_gaze.constants import NUM_ACTION_CLASSES
+from config.config_utils import get_config
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +31,9 @@ class ActionRecord:
     _verb_id_to_name = {}
     _noun_id_to_name = {}
     _action_id_to_name = {}
+    
+    # Config access
+    _config = None
     
     def __init__(self, row: List[str]):
         """
@@ -105,12 +109,25 @@ class ActionRecord:
         return self._action_to_idx.get(self.action_tuple)
     
     @classmethod
-    def load_name_mappings(cls, base_dir: str = "datasets/egtea_gaze/action_annotation") -> None:
+    def get_config(cls):
+        """Get or initialize config."""
+        if cls._config is None:
+            cls._config = get_config()
+        return cls._config
+    
+    @classmethod
+    def load_name_mappings(cls, base_dir: Optional[str] = None) -> None:
         """Load verb and noun name mappings from index files.
         
         Args:
-            base_dir: Base directory containing verb_idx.txt and noun_idx.txt
+            base_dir: Base directory containing verb_idx.txt and noun_idx.txt.
+                      If None, uses path from config.
         """
+        # Use config path if base_dir not provided
+        if base_dir is None:
+            config = cls.get_config()
+            base_dir = config.dataset.egtea.action_annotations
+        
         # Load verb mapping
         verb_path = os.path.join(base_dir, "verb_idx.txt")
         if os.path.exists(verb_path):
