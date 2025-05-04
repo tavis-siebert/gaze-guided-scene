@@ -261,7 +261,13 @@ class GraphDataset(Dataset):
             return None
             
         # Apply node dropping
-        return node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
+        augmented_data = node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
+        
+        # Make sure to preserve the label
+        if augmented_data is not None and hasattr(data, 'y'):
+            augmented_data.y = data.y
+            
+        return augmented_data
 
 
 def edge_idx_to_adj_list(edge_index, num_nodes=None):
@@ -355,7 +361,8 @@ def node_dropping(x, edge_index, edge_attr, max_droppable):
         keep_mask = torch.zeros(x.size(0), dtype=torch.bool)
         keep_indices = torch.randperm(x.size(0))[:keep_n]
         keep_mask[keep_indices] = True
-        return Data(x=x[keep_mask], edge_index=edge_index, edge_attr=edge_attr)
+        # Return a properly formed Data object with all required attributes
+        return Data(x=x[keep_mask], edge_index=edge_index, edge_attr=edge_attr, y=None)
     
     num_nodes = x.size(0)
     adj_list = edge_idx_to_adj_list(edge_index, num_nodes)
@@ -398,7 +405,7 @@ def node_dropping(x, edge_index, edge_attr, max_droppable):
         new_edge_index[0, i] = node_map[src]
         new_edge_index[1, i] = node_map[dst]
     
-    return Data(x=new_x, edge_index=new_edge_index, edge_attr=new_edge_attr)
+    return Data(x=new_x, edge_index=new_edge_index, edge_attr=new_edge_attr, y=None)
 
 
 def create_dataloader(
