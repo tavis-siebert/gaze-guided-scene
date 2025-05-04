@@ -9,7 +9,6 @@ from pathlib import Path
 
 from graph.graph import Graph
 from graph.graph_tracer import GraphTracer
-from graph.record import Record
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,9 +31,6 @@ class GraphCheckpoint:
     num_object_classes: int
     video_length: int
     
-    # Action information
-    action_labels: Dict[str, torch.Tensor]
-    
     def to_dict(self) -> Dict:
         """Convert checkpoint to serializable dictionary."""
         return {
@@ -46,14 +42,12 @@ class GraphCheckpoint:
             "non_black_frame_count": self.non_black_frame_count,
             "labels_to_int": self.labels_to_int,
             "num_object_classes": self.num_object_classes,
-            "video_length": self.video_length,
-            "action_labels": {k: v.tolist() for k, v in self.action_labels.items()}
+            "video_length": self.video_length
         }
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'GraphCheckpoint':
         """Create checkpoint from dictionary."""
-        action_labels = {k: torch.tensor(v) for k, v in data["action_labels"].items()}
         return cls(
             nodes=data["nodes"],
             edges=data["edges"],
@@ -63,8 +57,7 @@ class GraphCheckpoint:
             non_black_frame_count=data["non_black_frame_count"],
             labels_to_int=data["labels_to_int"],
             num_object_classes=data["num_object_classes"],
-            video_length=data["video_length"],
-            action_labels=action_labels
+            video_length=data["video_length"]
         )
 
 
@@ -74,7 +67,6 @@ class CheckpointManager:
     def __init__(
         self, 
         graph: Graph,
-        records: List[Record] = None,
         gaze_data_length: int = None,
         video_name: str = "",
         output_dir: Optional[str] = None,
@@ -84,14 +76,12 @@ class CheckpointManager:
         
         Args:
             graph: The graph to checkpoint
-            records: List of action records
             gaze_data_length: Length of gaze data
             video_name: Name of the video being processed
             output_dir: Directory to save checkpoints to
             split: Dataset split ('train' or 'val')
         """
         self.graph = graph
-        self.records = records or []
         self.gaze_data_length = gaze_data_length
         self.last_checkpoint_frame = -1
         self.video_name = video_name
@@ -121,12 +111,6 @@ class CheckpointManager:
         """
         if not self.graph.edges:
             logger.info(f"Skipping checkpoint - no edges in graph")
-            return None
-        
-        action_labels = Record.get_future_action_labels(self.records, frame_num)
-            
-        if action_labels is None:
-            logger.info(f"Skipping checkpoint - insufficient action data")
             return None
             
         # Serialize node data
@@ -163,20 +147,17 @@ class CheckpointManager:
             non_black_frame_count=non_black_frame_count,
             labels_to_int=self.graph.labels_to_int,
             num_object_classes=self.graph.num_object_classes,
-            video_length=self.graph.video_length,
-            action_labels=action_labels
+            video_length=self.graph.video_length
         )
         
         self.checkpoints.append(checkpoint)
         self.last_checkpoint_frame = frame_num
         
         # Log checkpoint creation
-        action_labels_dict = {k: v.tolist() for k, v in action_labels.items()}
         self.graph.tracer.log_checkpoint_created(
             frame_num,
             self.graph.num_nodes,
-            len(self.graph.edges),
-            action_labels_dict
+            len(self.graph.edges)
         )
         
         logger.info(f"Checkpoint created at frame {frame_num}:")

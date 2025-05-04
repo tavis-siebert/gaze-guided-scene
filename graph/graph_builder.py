@@ -14,7 +14,6 @@ from tqdm import tqdm
 from graph.graph import Graph
 from graph.node import Node
 from graph.io import DataLoader, VideoProcessor
-from graph.record import Record
 from graph.graph_tracer import GraphTracer
 from graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 from graph.gaze import GazeProcessor, GazePoint, GazeType
@@ -22,6 +21,7 @@ from graph.object_detection import ObjectDetector
 from models.sift import SIFT
 from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from datasets.egtea_gaze.constants import GAZE_TYPE_FIXATION, GAZE_TYPE_SACCADE, NUM_ACTION_CLASSES
+from datasets.egtea_gaze.action_record import ActionRecord
 from config.config_utils import DotDict
 from logger import get_logger
 
@@ -72,7 +72,7 @@ class GraphBuilder:
 
         # Initialize action mapping using training records
         train_records, _ = DataLoader.load_records(self.config.dataset.ego_topo.splits.train)
-        Record.set_action_mapping(train_records)
+        ActionRecord.set_action_mapping(train_records)
         
         # Tracking state variables
         self.prev_gaze_point = None
@@ -158,11 +158,10 @@ class GraphBuilder:
         
         self.checkpoint_manager = CheckpointManager(
             graph=self.scene_graph,
-            records=self.records_current,
-            gaze_data_length=len(self.raw_gaze_data),
             video_name=video_name,
             output_dir=self.output_dir,
-            split=self.split
+            split=self.split,
+            gaze_data_length=self.vid_length
         )
         
         self._reset_tracking_state()

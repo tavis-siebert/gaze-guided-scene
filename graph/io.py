@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional, Set, Iterator
 from collections import defaultdict
 
-from graph.record import Record
+from datasets.egtea_gaze.action_record import ActionRecord
 from datasets.egtea_gaze.constants import NUM_ACTION_CLASSES
 
 class VideoProcessor:
@@ -90,7 +90,7 @@ class DataLoader:
         return vid_lengths
     
     @staticmethod
-    def load_records(ann_file: str) -> Tuple[List[Record], Dict[str, List[Record]]]:
+    def load_records(ann_file: str) -> Tuple[List[ActionRecord], Dict[str, List[ActionRecord]]]:
         """
         Load action records from the annotation file.
         
@@ -105,7 +105,7 @@ class DataLoader:
         
         with open(ann_file) as f:
             for line in f:
-                record = Record(line.strip().split('\t'))
+                record = ActionRecord(line.strip().split('\t'))
                 records.append(record)
                 records_by_vid[record.path].append(record)
                 
