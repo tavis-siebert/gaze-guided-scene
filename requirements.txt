@@ -16,7 +16,11 @@ requests
 torch-geometric
 scikit-learn
 debugpy
-yolo-world-onnx
 tensorboard>=2.0.0
 standard-imghdr
 pandas
+onnxruntime-gpu
+clip-for-odlabel
+torch
+opencv-python
+numpy
