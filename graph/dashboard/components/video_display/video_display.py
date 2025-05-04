@@ -15,7 +15,7 @@ from graph.dashboard.components.base import BaseComponent
 from graph.dashboard.playback import Playback
 from graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 from graph.dashboard.utils import format_label
-from egtea_gaze.constants import RESOLUTION
+from datasets.egtea_gaze.constants import RESOLUTION
 
 logger = get_logger(__name__)
 

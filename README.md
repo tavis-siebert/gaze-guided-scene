@@ -76,7 +76,12 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 - **datasets/**: Dataset processing scripts and files
 - **egtea_gaze/**: Action and gaze annotations/processing
 - **graph/**: Scene graph construction and visualization
-  - **Core Components**: Graph, Node, GraphBuilder, GraphTracer, GraphVisualizer
+  - **Core Components**: 
+    - **Graph, Node**: Core data structures
+    - **GraphBuilder**: Processes a single video to build a scene graph
+    - **GraphProcessor**: Handles multi-video processing with parallel execution
+    - **GraphTracer**: Records trace data during graph construction
+    - **GraphVisualizer**: Visualizes the graph construction process
   - **dashboard/**: Interactive visualization dashboard
     - **components/**: UI components (VideoDisplay, GraphDisplay, PlaybackControls, MetaInfo)
     - **playback/**: Event handling and graph state management

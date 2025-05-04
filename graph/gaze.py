@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Union, Any, Iterator
 from enum import IntEnum
 import numpy as np
-from egtea_gaze.constants import (
+from datasets.egtea_gaze.constants import (
     GAZE_TYPE_FIXATION, 
     GAZE_TYPE_SACCADE, 
     GAZE_TYPE_UNTRACKED, 
