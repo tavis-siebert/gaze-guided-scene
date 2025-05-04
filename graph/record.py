@@ -6,7 +6,7 @@ import torch
 from typing import Dict, List, Tuple, Optional
 from collections import Counter
 
-from egtea_gaze.constants import NUM_ACTION_CLASSES
+from datasets.egtea_gaze.constants import NUM_ACTION_CLASSES
 from logger import get_logger
 
 logger = get_logger(__name__)

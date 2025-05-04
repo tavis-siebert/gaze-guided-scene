@@ -147,7 +147,7 @@ def main():
                 task.close()
                 logger.info("TensorBoard writer closed")
     elif args.command == "build-graphs":
-        from graph.graph_builder import build_graphs
+        from graph.graph_processor import build_graphs
         logger.info("Starting graph building process")
         
         # Check GPU availability if requested

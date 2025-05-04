@@ -1,7 +1,7 @@
 """Constants used in graph visualization."""
 from typing import Dict
 
-from egtea_gaze.constants import (
+from datasets.egtea_gaze.constants import (
     GAZE_TYPE_UNTRACKED,
     GAZE_TYPE_FIXATION,
     GAZE_TYPE_SACCADE,

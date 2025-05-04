@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 from graph.utils import AngleUtils
-from egtea_gaze.utils import resolution
+from datasets.egtea_gaze.utils import resolution
 
 GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor

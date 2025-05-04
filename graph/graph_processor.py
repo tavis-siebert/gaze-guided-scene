@@ -1,39 +1,59 @@
 """
-Graph building module for creating scene graphs from video data.
+Graph processing module for building multiple scene graphs with optional multiprocessing support.
 """
 
 import json
-import os
-import multiprocessing as mp
 import torch
-from itertools import islice
+import multiprocessing as mp
 from pathlib import Path
+from typing import Dict, List, Optional
 from tqdm import tqdm
-from typing import List, Optional, Dict, Any
 
-from graph.graph_builder import build_graph
-from egtea_gaze.constants import NUM_ACTION_CLASSES
+from graph.graph_builder import GraphBuilder
+from graph.utils import split_list, filter_videos
 from config.config_utils import DotDict
 from logger import get_logger
 
-# Initialize logger for this module
 logger = get_logger(__name__)
 
-def split_list(lst: List[Any], n: int) -> List[List[Any]]:
-    """Splits a list into n roughly equal parts.
+def build_graph(
+    video_list: List[str], 
+    config: DotDict, 
+    split: str, 
+    print_graph: bool = False, 
+    desc: Optional[str] = None, 
+    enable_tracing: bool = False,
+    output_dir: Optional[str] = None
+) -> List[str]:
+    """Build graph checkpoints for a list of videos.
     
     Args:
-        lst: The list to split
-        n: Number of parts to split into
+        video_list: List of video names to process
+        config: Configuration dictionary
+        split: Dataset split ('train' or 'val')
+        print_graph: Whether to print final graph structure
+        desc: Description for progress bar
+        enable_tracing: Whether to enable detailed tracing
+        output_dir: Directory to save graph checkpoints to
         
     Returns:
-        List of n sublists
+        List of paths to saved checkpoint files
     """
-    avg = len(lst) // n
-    remainder = len(lst) % n
-    split_sizes = [avg + (1 if i < remainder else 0) for i in range(n)]
-    it = iter(lst)
-    return [list(islice(it, size)) for size in split_sizes]
+    logger.info(f"Building graphs for {len(video_list)} videos in {split} split")
+    builder = GraphBuilder(config, split, enable_tracing=enable_tracing, output_dir=output_dir)
+    saved_paths = []
+    progress_desc = desc or f"Processing {split} videos"
+    
+    for video_name in tqdm(video_list, desc=progress_desc):
+        if enable_tracing:
+            logger.info(f"Building graph with tracing for {video_name}")
+        
+        saved_path = builder.process_video(video_name, print_graph)
+        if saved_path:
+            saved_paths.append(saved_path)
+    
+    logger.info(f"Created graph checkpoints for {len(saved_paths)} videos in {split} split")
+    return saved_paths 
 
 def build_graphs_subset(
     train_vids: List[str], 
@@ -65,7 +85,7 @@ def build_graphs_subset(
     subprocess_logger.info(f"Starting graph building on {device_name}")
     
     # Setup graphs output directory
-    graphs_dir = Path(config.directories.repo.datasets) / "graphs"
+    graphs_dir = Path(config.directories.repo.graphs)
     graphs_dir.mkdir(exist_ok=True)
     
     # Process each split
@@ -94,28 +114,6 @@ def build_graphs_subset(
     }
     
     result_queue.put(result)
-
-def filter_videos(video_list: List[str], filter_names: Optional[List[str]]) -> List[str]:
-    """Filter video list based on specified video names.
-    
-    Args:
-        video_list: List of all available videos
-        filter_names: List of video names to keep, or None to keep all
-        
-    Returns:
-        Filtered list of videos
-    """
-    if not filter_names:
-        return video_list
-    
-    filtered_videos = [vid for vid in video_list if any(name in vid for name in filter_names)]
-    
-    if not filtered_videos:
-        logger.warning(f"No videos matched the specified filters: {filter_names}")
-        return []
-    
-    logger.info(f"Filtered {len(video_list)} videos down to {len(filtered_videos)} based on specified names")
-    return filtered_videos
 
 def initialize_multiprocessing() -> None:
     """Set the multiprocessing start method to 'spawn'.
@@ -158,8 +156,8 @@ def build_graphs(
         split = json.load(f)
 
     # Filter videos if specific ones are requested
-    train_videos = filter_videos(split['train_vids'], videos)
-    val_videos = filter_videos(split['val_vids'], videos)
+    train_videos = filter_videos(split['train_vids'], videos, logger)
+    val_videos = filter_videos(split['val_vids'], videos, logger)
     
     if not train_videos and not val_videos:
         logger.error("No videos to process after filtering. Aborting.")
@@ -217,6 +215,6 @@ def build_graphs(
     # Log summary
     logger.info(f"Graph building completed successfully!")
     logger.info(f"Created {len(all_paths['train'])} train checkpoints and {len(all_paths['val'])} val checkpoints")
-    logger.info(f"Checkpoints saved under {Path(config.directories.repo.datasets) / 'graphs'}")
+    logger.info(f"Checkpoints saved under {Path(config.directories.repo.graphs)}")
     
     return all_paths 

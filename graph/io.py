@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Any, Optional, Set, Iterator
 from collections import defaultdict
 
 from graph.record import Record
-from egtea_gaze.constants import NUM_ACTION_CLASSES
+from datasets.egtea_gaze.constants import NUM_ACTION_CLASSES
 
 class VideoProcessor:
     """
