@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from evaluation.metrics import accuracy
+from training.evaluation.metrics import accuracy
 from training.tasks.base_task import BaseTask
 
 class NextActionTask(BaseTask):

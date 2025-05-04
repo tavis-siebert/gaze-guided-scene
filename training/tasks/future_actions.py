@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from training.tasks.base_task import BaseTask
-from evaluation.metrics import confusion_matrix, mAP
+from training.evaluation.metrics import confusion_matrix, mAP
 
 class FutureActionsTask(BaseTask):
     def __init__(self, config, device):
