@@ -4,10 +4,12 @@ Graph processing module for building multiple scene graphs with optional multipr
 
 import json
 import torch
+import os
 import multiprocessing as mp
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from graph.graph_builder import GraphBuilder
 from graph.utils import split_list, filter_videos
@@ -16,6 +18,47 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
+# Configure ONNX Runtime to avoid thread affinity issues
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["ONNXRUNTIME_INTRA_OP_NUM_THREADS"] = "1"
+os.environ["ONNXRUNTIME_INTER_OP_NUM_THREADS"] = "1"
+
+def process_video(
+    video_name: str, 
+    config: DotDict, 
+    split: str, 
+    print_graph: bool = False, 
+    enable_tracing: bool = False,
+    output_dir: Optional[str] = None,
+    overwrite: bool = False
+) -> Optional[str]:
+    """Process a single video to build its scene graph.
+    
+    Args:
+        video_name: Name of the video to process
+        config: Configuration dictionary
+        split: Dataset split ('train' or 'val')
+        print_graph: Whether to print final graph structure
+        enable_tracing: Whether to enable detailed tracing
+        output_dir: Directory to save graph checkpoints to
+        overwrite: Whether to overwrite existing checkpoints
+        
+    Returns:
+        Path to saved checkpoint file or None if processing was skipped or failed
+    """
+    # Skip if checkpoint exists and we're not overwriting
+    if not overwrite:
+        graphs_dir = Path(output_dir) / split
+        checkpoint_path = graphs_dir / f"{video_name}_graph.pth"
+        if checkpoint_path.exists():
+            logger.info(f"Skipping {video_name} - checkpoint already exists")
+            return str(checkpoint_path)
+    
+    # Process video
+    builder = GraphBuilder(config, split, enable_tracing=enable_tracing, output_dir=output_dir)
+    saved_path = builder.process_video(video_name, print_graph)
+    return saved_path
+
 def build_graph(
     video_list: List[str], 
     config: DotDict, 
@@ -23,7 +66,8 @@ def build_graph(
     print_graph: bool = False, 
     desc: Optional[str] = None, 
     enable_tracing: bool = False,
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
+    overwrite: bool = False
 ) -> List[str]:
     """Build graph checkpoints for a list of videos.
     
@@ -35,12 +79,12 @@ def build_graph(
         desc: Description for progress bar
         enable_tracing: Whether to enable detailed tracing
         output_dir: Directory to save graph checkpoints to
+        overwrite: Whether to overwrite existing checkpoints
         
     Returns:
         List of paths to saved checkpoint files
     """
     logger.info(f"Building graphs for {len(video_list)} videos in {split} split")
-    builder = GraphBuilder(config, split, enable_tracing=enable_tracing, output_dir=output_dir)
     saved_paths = []
     progress_desc = desc or f"Processing {split} videos"
     
@@ -48,72 +92,21 @@ def build_graph(
         if enable_tracing:
             logger.info(f"Building graph with tracing for {video_name}")
         
-        saved_path = builder.process_video(video_name, print_graph)
+        saved_path = process_video(
+            video_name=video_name,
+            config=config, 
+            split=split,
+            print_graph=print_graph,
+            enable_tracing=enable_tracing,
+            output_dir=output_dir,
+            overwrite=overwrite
+        )
+        
         if saved_path:
             saved_paths.append(saved_path)
     
     logger.info(f"Created graph checkpoints for {len(saved_paths)} videos in {split} split")
     return saved_paths 
-
-def build_graphs_subset(
-    train_vids: List[str], 
-    val_vids: List[str], 
-    device_id: int, 
-    config: DotDict, 
-    result_queue: mp.Queue, 
-    use_gpu: bool = False, 
-    enable_tracing: bool = False
-) -> None:
-    """Build graph checkpoints using specified device (GPU or CPU).
-    
-    Args:
-        train_vids: List of training videos to process
-        val_vids: List of validation videos to process
-        device_id: Device ID for processing
-        config: Configuration dictionary
-        result_queue: Queue for returning results
-        use_gpu: Whether to use GPU for processing
-        enable_tracing: Whether to enable graph construction tracing
-    """
-    # Get a logger for the subprocess
-    subprocess_logger = get_logger(f"{__name__}.device{device_id}")
-    
-    if use_gpu:
-        torch.cuda.set_device(device_id)
-    
-    device_name = f"GPU {device_id}" if use_gpu else f"CPU {device_id}"
-    subprocess_logger.info(f"Starting graph building on {device_name}")
-    
-    # Setup graphs output directory
-    graphs_dir = Path(config.directories.repo.graphs)
-    graphs_dir.mkdir(exist_ok=True)
-    
-    # Process each split
-    train_paths = build_graph(
-        video_list=train_vids,
-        config=config,
-        split='train',
-        desc=f"{device_name} - Training",
-        enable_tracing=enable_tracing,
-        output_dir=str(graphs_dir)
-    )
-    
-    val_paths = build_graph(
-        video_list=val_vids,
-        config=config,
-        split='val',
-        desc=f"{device_name} - Validation",
-        enable_tracing=enable_tracing,
-        output_dir=str(graphs_dir)
-    )
-    
-    # Return list of processed videos
-    result = {
-        'train': train_paths,
-        'val': val_paths
-    }
-    
-    result_queue.put(result)
 
 def initialize_multiprocessing() -> None:
     """Set the multiprocessing start method to 'spawn'.
@@ -121,22 +114,67 @@ def initialize_multiprocessing() -> None:
     This is required for using CUDA with multiprocessing to avoid issues with
     CUDA context initialization in forked processes.
     """
-    mp.set_start_method('spawn', force=True)
-    logger.info("Set multiprocessing start method to 'spawn' for CUDA compatibility")
+    try:
+        mp.set_start_method('spawn', force=True)
+        logger.info("Set multiprocessing start method to 'spawn' for CUDA compatibility")
+    except RuntimeError:
+        logger.warning("Multiprocessing start method already set, could not change to 'spawn'")
+
+def process_video_worker(
+    args: Tuple[str, DotDict, str, bool, bool, str, bool, int]
+) -> Tuple[str, Optional[str], str]:
+    """Worker function for processing a video in parallel.
+    
+    Args:
+        args: Tuple containing:
+            - video_name: Name of the video to process
+            - config: Configuration dictionary
+            - split: Dataset split ('train' or 'val')
+            - print_graph: Whether to print final graph structure
+            - enable_tracing: Whether to enable detailed tracing
+            - output_dir: Directory to save graph checkpoints to
+            - overwrite: Whether to overwrite existing checkpoints
+            - worker_id: Worker ID for device assignment
+    
+    Returns:
+        Tuple containing:
+            - video_name: Name of the processed video
+            - saved_path: Path to saved checkpoint file or None if processing failed
+            - split: Dataset split processed
+    """
+    video_name, config, split, print_graph, enable_tracing, output_dir, overwrite, worker_id = args
+    
+    # Set CUDA device if using GPU
+    if torch.cuda.is_available():
+        torch.cuda.set_device(worker_id % torch.cuda.device_count())
+    
+    saved_path = process_video(
+        video_name=video_name,
+        config=config,
+        split=split,
+        print_graph=print_graph,
+        enable_tracing=enable_tracing,
+        output_dir=output_dir,
+        overwrite=overwrite
+    )
+    
+    return video_name, saved_path, split
 
 def build_graphs(
     config: DotDict, 
     use_gpu: bool = True, 
     videos: Optional[List[str]] = None, 
-    enable_tracing: bool = False
+    enable_tracing: bool = False,
+    overwrite: bool = False
 ) -> Dict[str, List[str]]:
-    """Build graph checkpoints for videos using specified device type and optional filtering.
+    """Build graph checkpoints for videos using multiprocessing.
     
     Args:
         config: Configuration object
         use_gpu: Whether to use GPU for processing (if available)
         videos: Optional list of video names to process. If None, all videos will be processed.
         enable_tracing: Whether to enable graph construction tracing
+        overwrite: Whether to overwrite existing checkpoints
         
     Returns:
         Dictionary containing lists of saved checkpoint paths for each split
@@ -184,53 +222,63 @@ def build_graphs(
         logger.info("Val split: No matching videos")
     logger.info("-" * 50)
     
-    # Determine device configuration
+    # Determine number of workers
+    num_workers = config.processing.n_cores
     if use_gpu and torch.cuda.is_available():
-        num_devices = torch.cuda.device_count()
-        device_type = "GPU"
+        device_count = torch.cuda.device_count()
+        logger.info(f"Using {device_count} GPU(s) for processing")
+        if device_count < num_workers:
+            logger.info(f"Number of workers ({num_workers}) exceeds available GPUs ({device_count})")
+            logger.info(f"Multiple workers will share GPUs")
     else:
-        num_devices = config.processing.n_cores
         use_gpu = False
-        device_type = "CPU"
-
-    logger.info(f"Using {num_devices} {device_type}(s) for graph building")
+        logger.info(f"Using {num_workers} CPU workers for processing")
     
-    # Split videos across devices
-    train_splits = split_list(train_videos, num_devices)
-    val_splits = split_list(val_videos, num_devices)
-
-    # Create and start processes
-    processes, result_queue = [], mp.Queue()
+    # Setup graphs output directory
+    graphs_dir = Path(config.directories.repo.graphs)
+    graphs_dir.mkdir(exist_ok=True)
     
-    with tqdm(total=num_devices, desc="Launching processes") as pbar:
-        for device_id in range(num_devices):
-            train_subset = train_splits[device_id]
-            val_subset = val_splits[device_id]
-            
-            p = mp.Process(
-                target=build_graphs_subset, 
-                args=(train_subset, val_subset, device_id, config, result_queue, use_gpu, enable_tracing)
-            )
-            p.start()
-            processes.append(p)
-            pbar.update(1)
-
-    # Collect results from all processes
+    # Prepare work items
+    work_items = []
+    for i, video_name in enumerate(train_videos):
+        work_items.append((
+            video_name, 
+            config, 
+            'train', 
+            False, 
+            enable_tracing, 
+            str(graphs_dir),
+            overwrite,
+            i % num_workers
+        ))
+    
+    for i, video_name in enumerate(val_videos):
+        work_items.append((
+            video_name, 
+            config, 
+            'val', 
+            False, 
+            enable_tracing, 
+            str(graphs_dir),
+            overwrite,
+            i % num_workers
+        ))
+    
+    # Process videos in parallel
     all_paths = {
         'train': [],
         'val': []
     }
     
-    with tqdm(total=num_devices, desc="Collecting results") as pbar:
-        for _ in range(num_devices):
-            result = result_queue.get()
-            all_paths['train'].extend(result['train'])
-            all_paths['val'].extend(result['val'])
-            pbar.update(1)
-
-    # Wait for all processes to finish
-    for p in processes:
-        p.join()
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(process_video_worker, item) for item in work_items]
+        
+        with tqdm(total=len(futures), desc="Processing videos") as pbar:
+            for future in as_completed(futures):
+                video_name, saved_path, split = future.result()
+                if saved_path:
+                    all_paths[split].append(saved_path)
+                pbar.update(1)
     
     # Log summary
     logger.info(f"Graph building completed successfully!")
