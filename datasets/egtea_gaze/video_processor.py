@@ -13,13 +13,14 @@ from datasets.egtea_gaze.video_metadata import VideoMetadata
 from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from config.config_utils import get_config
 from logger import get_logger
+from graph.gaze import GazeProcessor, GazePoint
 
 logger = get_logger(__name__)
 
 class Video:
     """
     Unified interface for an EGTEA Gaze+ video, including frame streaming,
-    gaze points, metadata, and action labels.
+    processed gaze points, and metadata.
     """
 
     def __init__(self, video_name: str, config=None):
@@ -38,7 +39,8 @@ class Video:
 
         # Load data
         self.stream = tv.io.VideoReader(str(self.video_path), 'video')
-        self.gaze_data = parse_gtea_gaze(str(self.gaze_path))
+        raw_gaze = parse_gtea_gaze(str(self.gaze_path))
+        self.gaze_processor = GazeProcessor(self.config, raw_gaze)
 
         # Metadata
         self.length = self.metadata.get_video_length(video_name)
@@ -47,24 +49,23 @@ class Video:
 
         logger.info(f"Loaded video '{video_name}' ({self.length} frames), records: {len(self.records)}")
 
-    def __iter__(self) -> Iterator[Tuple[torch.Tensor, int, bool, Optional[any]]]:
-        """Iterate over frames with gaze points.
+    def __iter__(self):
+        """Prepare iterators for frames and gaze."""
+        self._frame_iter = iter(self.stream)
+        self._gaze_iter = iter(self.gaze_processor)
+        return self
 
-        Yields:
-            Tuple of (frame_tensor, frame_number, is_black_frame, gaze_point).
-        """
-        for frame, pts in ((f['data'], f['pts']) for f in self.stream):
-            is_black = frame.count_nonzero().item() == 0
-            gp = self._next_gaze_point(pts)
-            yield frame, pts, is_black, gp
-
-    def _next_gaze_point(self, pts: int):
-        """Retrieve gaze point matching a frame timestamp."""
-        # Assuming gaze_data entries include frame or timestamp
-        for entry in self.gaze_data:
-            if entry.frame == pts:
-                return entry
-        return None
+    def __next__(self) -> Tuple[torch.Tensor, int, bool, Optional[GazePoint]]:
+        """Get next frame and corresponding processed gaze."""
+        frame_dict = next(self._frame_iter)
+        frame = frame_dict['data']
+        pts = frame_dict['pts']
+        is_black = frame.count_nonzero().item() == 0
+        try:
+            gaze_point = next(self._gaze_iter)
+        except StopIteration:
+            gaze_point = None
+        return frame, pts, is_black, gaze_point
 
     def get_future_actions(self, frame_number: int) -> Optional[Dict[str, torch.Tensor]]:
         """Get future action labels at a given frame."""
