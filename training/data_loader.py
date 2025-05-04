@@ -10,6 +10,7 @@ from tqdm import tqdm
 import numpy as np
 
 from graph.checkpoint_manager import GraphCheckpoint
+from datasets.egtea_gaze.action_record import ActionRecord
 
 class GraphDataset(Dataset):
     """Dataset for loading graph checkpoints and creating PyG data objects."""
@@ -17,6 +18,7 @@ class GraphDataset(Dataset):
     def __init__(
         self,
         root_dir: str,
+        records_dir: str = "datasets/egtea_gaze/action_annotation",
         split: str = "train",
         val_timestamps: List[float] = [0.25, 0.5, 0.75],
         task_mode: str = "future_actions",
@@ -30,6 +32,7 @@ class GraphDataset(Dataset):
         
         Args:
             root_dir: Root directory containing graph checkpoints
+            records_dir: Directory containing action annotation files
             split: Dataset split ("train" or "val")
             val_timestamps: Timestamps to sample for validation set (as fractions of video length)
             task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
@@ -40,11 +43,15 @@ class GraphDataset(Dataset):
             pre_filter: PyG pre-filter to apply to each data object
         """
         self.root_dir = Path(root_dir) / split
+        self.records_dir = Path(records_dir)
         self.split = split
         self.val_timestamps = val_timestamps
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p
         self.max_droppable = max_droppable
+        
+        # Load action records and setup mappings
+        self._load_action_data()
         
         # Find all graph checkpoint files
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
@@ -59,6 +66,30 @@ class GraphDataset(Dataset):
         super().__init__(root=str(self.root_dir), transform=transform, 
                          pre_transform=pre_transform, pre_filter=pre_filter)
     
+    def _load_action_data(self):
+        """Load action records and set up action mapping."""
+        # Load name mappings
+        ActionRecord.load_name_mappings()
+        
+        # Load records from appropriate split file
+        split_file = self.records_dir / f"{self.split}_split1.txt"  # Adjust based on your needs
+        if not split_file.exists():
+            raise FileNotFoundError(f"Action annotation file not found: {split_file}")
+            
+        self.all_records = ActionRecord.load_records_from_file(str(split_file))
+        
+        # Set action mapping if not already set
+        if not ActionRecord.get_action_mapping():
+            ActionRecord.set_action_mapping(self.all_records)
+            
+        # Group records by video name for quick access
+        self.video_records = {}
+        for record in self.all_records:
+            video_name = Path(record.path).stem.split('-')[0]  # Extract base video name
+            if video_name not in self.video_records:
+                self.video_records[video_name] = []
+            self.video_records[video_name].append(record)
+    
     def _load_and_filter_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
         """Load checkpoints from file and filter based on split.
         
@@ -66,24 +97,46 @@ class GraphDataset(Dataset):
             file_path: Path to checkpoint file
             
         Returns:
-            List of filtered checkpoints
+            List of filtered checkpoints with added action labels
         """
         # Load all checkpoints for this video
         all_checkpoints = torch.load(file_path)
         
+        # Extract video name for looking up records
+        video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
+        
+        # Get records for this video
+        records = self.video_records.get(video_name, [])
+        
+        # Filter and add action labels
+        processed_checkpoints = []
+        for checkpoint in all_checkpoints:
+            # Add action labels to checkpoint
+            action_labels = ActionRecord.create_future_action_labels(
+                records, checkpoint.frame_number
+            )
+            
+            # Skip if no action labels available
+            if action_labels is None:
+                continue
+                
+            # Add action labels to checkpoint
+            setattr(checkpoint, 'action_labels', action_labels)
+            processed_checkpoints.append(checkpoint)
+        
         # In train mode, keep all checkpoints
         if self.split == "train":
-            return all_checkpoints
+            return processed_checkpoints
         
         # In val mode, sample checkpoints at specific timestamps
         elif self.split == "val":
             # Group by video
-            if not all_checkpoints:
+            if not processed_checkpoints:
                 return []
                 
             # Get video info from first checkpoint
-            video_name = all_checkpoints[0].video_name
-            video_length = all_checkpoints[0].video_length
+            video_name = processed_checkpoints[0].video_name
+            video_length = processed_checkpoints[0].video_length
             
             # Calculate frame numbers from timestamp ratios
             timestamp_frames = [int(ratio * video_length) for ratio in self.val_timestamps]
@@ -91,7 +144,7 @@ class GraphDataset(Dataset):
             # Find the closest checkpoint to each target frame
             selected_checkpoints = []
             for target_frame in timestamp_frames:
-                closest = min(all_checkpoints, 
+                closest = min(processed_checkpoints, 
                               key=lambda cp: abs(cp.frame_number - target_frame))
                 selected_checkpoints.append(closest)
                 
@@ -379,6 +432,7 @@ def node_dropping(x, edge_index, edge_attr, max_droppable):
 
 def create_dataloader(
     root_dir: str,
+    records_dir: str = "datasets/egtea_gaze/action_annotation",
     split: str = "train",
     val_timestamps: List[float] = [0.25, 0.5, 0.75],
     task_mode: str = "future_actions",
@@ -392,6 +446,7 @@ def create_dataloader(
     
     Args:
         root_dir: Root directory containing graph checkpoints
+        records_dir: Directory containing action annotation files
         split: Dataset split ("train" or "val")
         val_timestamps: Timestamps to sample for validation set (as fractions of video length)
         task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
@@ -406,6 +461,7 @@ def create_dataloader(
     """
     dataset = GraphDataset(
         root_dir=root_dir,
+        records_dir=records_dir,
         split=split,
         val_timestamps=val_timestamps,
         task_mode=task_mode,
