@@ -62,10 +62,8 @@ class VideoMetadata:
         train_file = self.config.dataset.ego_topo.splits.train
         self._load_video_data(train_file, is_training=True)
         
-        # Load validation split if needed
         val_file = self.config.dataset.ego_topo.splits.val
-        if val_file != train_file:  # Only load val if different from train
-            self._load_video_data(val_file, is_training=False)
+        self._load_video_data(val_file, is_training=False)
         
         # Initialize action id mapping using training records
         if not ActionRecord.get_action_mapping():
