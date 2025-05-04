@@ -40,6 +40,8 @@ def setup_parser() -> argparse.ArgumentParser:
                             help="Specific video names to process (e.g., OP01-R04-ContinentalBreakfast). If not specified, all videos will be processed.")
     build_parser.add_argument("--enable-tracing", action="store_true",
                             help="Enable graph construction tracing for visualization")
+    build_parser.add_argument("--overwrite", action="store_true",
+                            help="Overwrite existing graph checkpoints")
 
     # Training command
     train_parser = subparsers.add_parser("train", help="Train a GNN on a specified task")
@@ -158,8 +160,14 @@ def main():
         # Check GPU availability if requested
         use_gpu = check_gpu_availability(args.device)
         
-        # Build graphs
-        build_graphs(config, use_gpu=use_gpu, videos=args.videos, enable_tracing=args.enable_tracing)
+        # Build graphs with overwrite flag
+        build_graphs(
+            config, 
+            use_gpu=use_gpu, 
+            videos=args.videos, 
+            enable_tracing=args.enable_tracing,
+            overwrite=args.overwrite
+        )
     elif args.command == "visualize":
         from graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
