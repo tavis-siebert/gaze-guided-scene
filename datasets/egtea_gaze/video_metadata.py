@@ -121,19 +121,27 @@ class VideoMetadata:
         
         # Load action records
         records = self._get_records_from_file(ann_file)
+        logger.info(f"Processing {len(records)} records from {ann_file}")
+        
+        # Track videos found
+        found_videos = set()
         
         # Add these records to our collections
         for record in records:
-            video_name = self._extract_video_name(record.path)
+            found_videos.add(record.video_name)
+            
             if video_name not in VideoMetadata._records_by_video:
                 VideoMetadata._records_by_video[video_name] = []
             VideoMetadata._records_by_video[video_name].append(record)
             if record not in VideoMetadata._all_records:
                 VideoMetadata._all_records.append(record)
         
+        # Log the number of videos found
+        logger.info(f"Found records for {len(found_videos)} unique videos in {ann_file}")
+        
         # Sort records by start frame for each video
         for video in VideoMetadata._records_by_video:
-            VideoMetadata._records_by_video[video].sort(key=lambda r: r.start_frame)
+            VideoMetadata._records_by_video[video].sort(key=lambda r: r.end_frame)
     
     def _load_video_lengths(self, ann_file: str):
         """
@@ -196,6 +204,7 @@ class VideoMetadata:
         records = self.get_records_for_video(video_name)
         
         if not records:
+            logger.warning(f"No action records found for video {video_name}, using full video length")
             return 0, self.get_video_length(video_name)
             
         first_frame = min(r.start_frame for r in records)
