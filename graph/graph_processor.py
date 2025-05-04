@@ -159,9 +159,8 @@ def process_video_worker(
             overwrite=overwrite
         )
     except AttributeError as e:
-        if "'NoneType' object has no attribute 'position'" in str(e):
-            logger.error(f"Error processing {video_name}: {str(e)}")
-            saved_path = None
+        logger.error(f"Error processing {video_name}: {str(e)}")
+        saved_path = None
     except Exception as e:
         logger.error(f"Error processing {video_name}: {str(e)}")
         saved_path = None
