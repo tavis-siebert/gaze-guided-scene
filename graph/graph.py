@@ -9,7 +9,6 @@ from graph.node import Node, VisitRecord
 from graph.edge import Edge
 from graph.utils import AngleUtils, GraphTraversal
 from graph.visualizer import GraphVisualizer
-from datasets.egtea_gaze.utils import resolution
 from logger import get_logger
 
 if TYPE_CHECKING:
