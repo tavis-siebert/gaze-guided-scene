@@ -45,8 +45,8 @@ class ActionRecord:
         self._data = row
 
     @property
-    def path(self) -> str:
-        """Video path."""
+    def video_name(self) -> str:
+        """Video name."""
         return self._data[0]
 
     @property
@@ -288,4 +288,4 @@ class ActionRecord:
     def __str__(self) -> str:
         """String representation of the record."""
         action = f"{self.verb_name} {self.noun_name}" if self.verb_name and self.noun_name else f"({self.verb_id}, {self.noun_id})"
-        return f"ActionRecord(path={self.path}, start={self.start_frame}, end={self.end_frame}, action={action})" 
+        return f"ActionRecord(video_name={self.video_name}, start={self.start_frame}, end={self.end_frame}, action={action})" 
