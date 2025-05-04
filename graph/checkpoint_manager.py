@@ -211,4 +211,5 @@ class CheckpointManager:
         Returns:
             List of GraphCheckpoint objects
         """
-        return torch.load(file_path) 
+        with torch.serialization.safe_globals([GraphCheckpoint]):
+            return torch.load(file_path, weights_only=False) 
