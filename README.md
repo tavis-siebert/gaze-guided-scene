@@ -15,8 +15,9 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12+
 - Access to a Dropbox token for downloading the EGTEA Gaze+ dataset
+- [uv package manager](https://astral.sh/uv) (setup scripts will install if not present)
 
 ### Quick Start
 
@@ -32,6 +33,11 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    ```bash
    source scripts/setup_euler_cluster_env.sh
    ```
+
+   These scripts will:
+   - Check if uv is installed, and install it if necessary
+   - Ensure the proper Python version is available
+   - Synchronize project dependencies using the lockfile (`uv sync`)
 
 2. **Create a Dropbox token**:
    - Create an app at [Dropbox App Console](https://www.dropbox.com/developers/apps/)
@@ -50,32 +56,32 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 
 3. **Download dataset**:
    ```bash
-   python main.py setup-scratch
+   uv run main.py setup-scratch
    ```
 
 4. **Build scene graphs**:
    ```bash
-   python main.py build-graphs
+   uv run main.py build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   python main.py build-graphs --videos VIDEO_NAME --enable-tracing
+   uv run main.py build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
 5. **Train a model**:
    ```bash
-   python main.py train --task future_actions
+   uv run main.py train --task future_actions
    ```
    
    Or for next action prediction:
    ```bash
-   python main.py train --task next_action
+   uv run main.py train --task next_action
    ```
 
 6. **Visualize graph construction** (requires prior trace generation):
    ```bash
-   python main.py visualize --video-name VIDEO_NAME
+   uv run main.py visualize --video-name VIDEO_NAME
    ```
 
 ## Project Structure
@@ -97,6 +103,80 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 - **models/**: Feature extraction (SIFT) and object detection (CLIP)
 - **config/**: Configuration files and utilities
 - **logger.py**: Centralized logging
+
+## Package Management with uv
+
+This project uses [uv](https://astral.sh/uv) for managing Python packages and environments. Key files for the package management system:
+
+- **pyproject.toml**: Contains project metadata and dependencies
+- **uv.lock**: Lockfile that ensures reproducible environments
+- **.python-version**: Defines the required Python version
+
+**Key features**:
+- Fast, reliable dependency resolution
+- Consistent environments across machines
+- Improved performance for package installation
+
+To manually manage dependencies:
+```bash
+# Add a dependency
+uv add package_name
+
+# Add a dependency with a version constraint
+uv add 'package_name==1.2.3'
+
+# Remove a dependency
+uv remove package_name
+
+# Update the lockfile and environment
+uv sync
+
+# Upgrade a specific package
+uv lock --upgrade-package package_name
+```
+
+## Project Initialization and Migration
+
+If you need to set up a new project (or migrate an existing one), follow these steps:
+
+1. **Initialize a uv project**:
+   ```bash
+   mkdir new-project
+   cd new-project
+   uv init
+   ```
+
+2. **Migrate from requirements.txt (if applicable)**:
+   ```bash
+   # Add dependencies from requirements.txt
+   uv add -r requirements.txt
+   ```
+
+3. **Manual dependency management**:
+   ```bash
+   # Add specific packages with version constraints
+   uv add 'torch>=2.7.0' 'torchvision>=0.22.0'
+   
+   # Add packages for development only
+   uv add --dev pytest black
+   ```
+
+4. **Generate a lockfile**:
+   ```bash
+   uv lock
+   ```
+
+5. **Synchronize the environment**:
+   ```bash
+   uv sync
+   ```
+
+6. **Run commands in the managed environment**:
+   ```bash
+   uv run main.py
+   # Or with arguments
+   uv run main.py build-graphs --device gpu
+   ```
 
 ## Configuration System
 
@@ -150,20 +230,20 @@ The project includes TensorBoard integration for visualizing training metrics an
 
 ```bash
 # Run training with TensorBoard logging
-python main.py train --task next_action --device gpu
+uv run main.py train --task next_action --device gpu
 
 # Run training with TensorBoard logging
-python main.py train --task future_actions --device gpu
+uv run main.py train --task future_actions --device gpu
 
 # Launch TensorBoard to view metrics
-tensorboard --logdir logs
+uv run -- tensorboard --logdir logs
 ```
 
 
 ## Command-Line Interface
 
 ```bash
-python main.py [options] <command>
+uv run main.py [options] <command>
 ```
 
 **Commands**:
@@ -192,8 +272,8 @@ python main.py [options] <command>
 
 For help:
 ```bash
-python main.py --help
-python main.py <command> --help
+uv run main.py --help
+uv run main.py <command> --help
 ```
 
 ## Dataset Creation Workflow
@@ -254,10 +334,10 @@ Trace files are stored in the `traces` directory (configurable via `trace_dir` i
 To generate traces for visualization:
 ```bash
 # For a single video
-python main.py build-graphs --videos VIDEO_NAME --enable-tracing
+uv run main.py build-graphs --videos VIDEO_NAME --enable-tracing
 
 # For multiple videos (each gets its own trace file)
-python main.py build-graphs --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
+uv run main.py build-graphs --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
 ```
 
 ### Visualization Dashboard
@@ -266,10 +346,10 @@ The interactive dashboard displays the graph construction process:
 
 ```bash
 # Using video name (video and trace files are located using config paths)
-python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
+uv run main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
 
 # Using full paths
-python main.py visualize --trace-path /path/to/trace_file.jsonl --video-path /path/to/video.mp4 [--port PORT]
+uv run main.py visualize --trace-path /path/to/trace_file.jsonl --video-path /path/to/video.mp4 [--port PORT]
 ```
 
 **Dashboard Components**:
