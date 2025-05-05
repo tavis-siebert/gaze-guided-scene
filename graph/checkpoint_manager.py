@@ -23,7 +23,6 @@ class GraphCheckpoint:
     video_name: Optional[str] = None
     labels_to_int: Optional[Dict[str, int]] = None
     num_object_classes: Optional[int] = None
-    video_length: Optional[int] = None
     
     def to_dict(self) -> Dict:
         """Convert checkpoint to serializable dictionary without shared context."""
@@ -52,8 +51,7 @@ class GraphCheckpoint:
             non_black_frame_count=data["non_black_frame_count"],
             video_name=context.get("video_name"),
             labels_to_int=context.get("labels_to_int"),
-            num_object_classes=context.get("num_object_classes"),
-            video_length=context.get("video_length")
+            num_object_classes=context.get("num_object_classes")
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -61,6 +59,31 @@ class GraphCheckpoint:
         if not isinstance(other, GraphCheckpoint):
             return NotImplemented
         return self.nodes == other.nodes and self.edges == other.edges and self.adjacency == other.adjacency
+    
+    def get_future_action_labels(self, frame_number: Optional[int] = None, metadata=None) -> Optional[Dict[str, torch.Tensor]]:
+        """Get future action labels for this checkpoint or a specific frame.
+        
+        Args:
+            frame_number: Optional frame number to use instead of the checkpoint's frame number
+            metadata: VideoMetadata object to use for obtaining action labels
+            
+        Returns:
+            Dictionary containing action labels, or None if labels cannot be obtained
+            
+        Raises:
+            ValueError: If metadata is not provided or video_name is not set
+        """
+        if metadata is None:
+            raise ValueError("VideoMetadata object must be provided")
+        
+        if self.video_name is None:
+            raise ValueError("Checkpoint must have video_name set")
+        
+        # Use provided frame number or default to checkpoint's frame number
+        frame = self.frame_number if frame_number is None else frame_number
+        
+        # Get action labels from metadata
+        return metadata.get_future_action_labels(self.video_name, frame)
 
 class CheckpointManager:
     """Manages the creation and storage of graph checkpoints."""
@@ -213,8 +236,7 @@ class CheckpointManager:
             context = {
                 "video_name": self.video_name,
                 "labels_to_int": first_checkpoint.labels_to_int,
-                "num_object_classes": first_checkpoint.num_object_classes,
-                "video_length": first_checkpoint.video_length
+                "num_object_classes": first_checkpoint.num_object_classes
             }
         else:
             context = {}
@@ -238,12 +260,11 @@ class CheckpointManager:
         Returns:
             List of GraphCheckpoint objects
         """
-        with torch.serialization.safe_globals([GraphCheckpoint]):
-            data = torch.load(file_path, weights_only=False)
-            
-            if isinstance(data, dict) and "checkpoints" in data:
-                context = data.get("context", {})
-                return [GraphCheckpoint.from_dict(cp, context) for cp in data["checkpoints"]]
-            else:
-                logger.error(f"Unsupported checkpoint format in {file_path}. Use the conversion script.")
-                return [] 
+        data = torch.load(file_path, weights_only=False)
+        
+        if isinstance(data, dict) and "checkpoints" in data:
+            context = data.get("context", {})
+            return [GraphCheckpoint.from_dict(cp, context) for cp in data["checkpoints"]]
+        else:
+            logger.error(f"Unsupported checkpoint format in {file_path}. Use the conversion script.")
+            return [] 

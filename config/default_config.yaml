@@ -36,6 +36,7 @@ dataset:
     samples_per_video: 0  # number of checkpoints per video; 0 = use all
     allow_duplicates: true  # whether sampling can include the same checkpoint multiple times
     random_seed: 42  # seed for reproducible sampling; null for no fixed seed
+    oversampling: true  # whether to sample all frames (not just checkpoint frames)
 
   # Ego-topo data paths
   ego_topo:
