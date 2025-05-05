@@ -58,10 +58,51 @@ class GraphDataset(Dataset):
         
         # Load each video's checkpoints and select only the frames we want
         self.processed_checkpoints = []
-        for file_path in tqdm(self.checkpoint_files, desc=f"Loading {split} checkpoints"):
+        for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
             checkpoints = self._load_and_filter_checkpoints(file_path)
             self.processed_checkpoints.extend(checkpoints)
             
+        # Apply sampling based on configuration
+        if config and getattr(config.dataset, 'sampling', None) and self.split == 'train':
+            sampling_cfg = config.dataset.sampling
+            strategy = sampling_cfg.strategy
+            k = sampling_cfg.samples_per_video
+            allow_dup = sampling_cfg.allow_duplicates
+            seed = sampling_cfg.random_seed
+            # Set seed for reproducibility if provided
+            if seed is not None:
+                random.seed(seed)
+                np.random.seed(seed)
+            from collections import defaultdict
+            grouped = defaultdict(list)
+            for cp in self.processed_checkpoints:
+                grouped[cp.video_name].append(cp)
+            sampled = []
+            # 'all' strategy or no sampling requested
+            if strategy == 'all' or k <= 0:
+                sampled = self.processed_checkpoints
+            # 'uniform' or 'random' sampling
+            elif strategy in ('uniform', 'random'):
+                for cps in grouped.values():
+                    cps_sorted = sorted(cps, key=lambda x: x.frame_number)
+                    n = len(cps_sorted)
+                    # Uniform sampling: pick evenly spaced frames
+                    if strategy == 'uniform':
+                        if k >= n:
+                            sampled.extend(random.choices(cps_sorted, k=k) if allow_dup else cps_sorted)
+                        else:
+                            indices = np.linspace(0, n - 1, k, dtype=int).tolist()
+                            sampled.extend([cps_sorted[i] for i in indices])
+                    # Random sampling: pick random frames
+                    else:  # strategy == 'random'
+                        if k >= n:
+                            sampled.extend(random.choices(cps_sorted, k=k) if allow_dup else random.sample(cps_sorted, n))
+                        else:
+                            sampled.extend(random.choices(cps_sorted, k=k) if allow_dup else random.sample(cps_sorted, k))
+            else:
+                raise ValueError(f"Unknown sampling strategy: {strategy}")
+            self.processed_checkpoints = sampled
+        
         # Initialize PyG Dataset
         super().__init__(root=str(self.root_dir), transform=transform, 
                          pre_transform=pre_transform, pre_filter=pre_filter)
