@@ -12,10 +12,11 @@ wheels/
 # IDE files
 .vscode/
 
-# Temporary files
+# Local/temporary files
 *.pth
 logs/
 out/
+config/local_config.yaml
 
 # Environment variables
 .env
