@@ -6,6 +6,7 @@ import onnxruntime as ort
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from logger import get_logger
+from models.onnx_utils import make_session_options
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -37,6 +38,7 @@ class YOLOWorldModel:
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
         self.device = "0" if (device is None and torch.cuda.is_available()) else (device or "cpu")
+        self.text_embedding_device = self.device
         
         # Will be initialized when loading model
         self.session = None
@@ -47,8 +49,14 @@ class YOLOWorldModel:
         self.output_names = None
         self.num_classes = None
     
-    def load_model(self, model_path: Path) -> None:
-        """Load the YOLO-World ONNX model."""
+    def load_model(self, model_path: Path, num_workers: Optional[int] = None) -> None:
+        """Load the YOLO-World ONNX model.
+        
+        Args:
+            model_path: Path to the ONNX model file
+            num_workers: Number of parallel workers that will use ONNX Runtime.
+                         Used to properly allocate CPU threads.
+        """
         try:
             logger.info(f"Loading YOLO-World model from: {model_path}")
             
@@ -59,9 +67,16 @@ class YOLOWorldModel:
                     logger.error(f"Available ONNX models: {[m.name for m in available_models]}")
                 raise FileNotFoundError(f"Model file not found: {model_path}")
             
+            # Configure session options to avoid thread affinity issues
+            sess_options = make_session_options(num_workers)
+            
             providers = ["CUDAExecutionProvider"] if self.device == "0" else ["CPUExecutionProvider"]
-            self.session = ort.InferenceSession(str(model_path), providers=providers)
-            self.text_embedder = TextEmbedder(device=self.device)
+            self.session = ort.InferenceSession(
+                str(model_path),
+                sess_options=sess_options,
+                providers=providers
+            )
+            self.text_embedder = TextEmbedder(device=self.text_embedding_device)
             
             # Get model details
             model_inputs = self.session.get_inputs()
