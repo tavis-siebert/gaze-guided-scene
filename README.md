@@ -298,28 +298,6 @@ This separation provides several benefits:
 - Data augmentation at training time
 - More efficient training iterations
 
-```python
-# Create a data loader
-dataloader = create_dataloader(
-    root_dir="datasets/graphs",
-    split="train",
-    val_timestamps=config.training.val_timestamps,
-    task_mode="future_actions",
-    batch_size=64,
-    node_drop_p=0.1,  # Optional augmentation
-    max_droppable=2,
-    shuffle=True
-)
-
-# Use in training
-for batch in dataloader:
-    # batch.x: Node features
-    # batch.edge_index: Graph connectivity
-    # batch.edge_attr: Edge features
-    # batch.y: Labels
-    ...
-```
-
 ## Graph Tracing and Visualization
 
 The project includes a tracing and visualization system for recording and analyzing the graph construction process.
