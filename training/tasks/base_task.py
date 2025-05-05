@@ -79,11 +79,6 @@ class BaseTask:
             root_dir=str(graphs_dir),
             split="train",
             task_mode=self.task,
-            batch_size=self.config.training.batch_size,
-            node_drop_p=self.config.training.node_drop_p,
-            max_droppable=self.config.training.max_nodes_droppable,
-            shuffle=True,
-            num_workers=self.config.processing.dataloader_workers,
             config=self.config
         )
         
@@ -91,13 +86,7 @@ class BaseTask:
         self.test_loader = create_dataloader(
             root_dir=str(graphs_dir),
             split="val",
-            val_timestamps=val_timestamps,
             task_mode=self.task,
-            batch_size=1,
-            node_drop_p=0.0,  # No augmentation for validation
-            max_droppable=0,
-            shuffle=False,
-            num_workers=self.config.processing.dataloader_workers,
             config=self.config
         )
         
@@ -113,7 +102,7 @@ class BaseTask:
         
         self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")
         self.logger.info(f"Loaded validation dataset with {len(self.test_loader.dataset)} samples")
-        
+    
     def _transfer_batch_to_device(self, data):
         """Transfer batch data to device"""
         x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
