@@ -9,12 +9,22 @@ import torchvision as tv
 from pathlib import Path
 from typing import Iterator, List, Optional, Dict, Tuple
 
-from datasets.egtea_gaze.video_metadata import VideoMetadata
-from datasets.egtea_gaze.action_record import ActionRecord
-from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
-from config.config_utils import get_config
-from logger import get_logger
-from graph.gaze import GazeProcessor, GazePoint
+from gaze_guided_scene.datasets.egtea_gaze.video_metadata import VideoMetadata
+from gaze_guided_scene.datasets.egtea_gaze.action_record import ActionRecord
+from gaze_guided_scene.datasets.egtea_gaze.gaze_io_sample import parse_gtea_gaze
+from gaze_guided_scene.config.config_utils import get_config
+from gaze_guided_scene.logger import get_logger
+from gaze_guided_scene.graph.gaze import GazeProcessor, GazePoint
+
+# Import parse_gtea_gaze from the correct location
+import sys
+import os
+from pathlib import Path
+
+# Add data directory to path if needed
+data_dir = Path(os.environ.get('DATA_DIR', 'data'))
+gaze_data_path = data_dir / 'egtea_gaze' / 'gaze_data'
+sys.path.append(str(gaze_data_path))
 
 logger = get_logger(__name__)
 

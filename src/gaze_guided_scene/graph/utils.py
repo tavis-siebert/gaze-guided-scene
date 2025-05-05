@@ -5,7 +5,7 @@ from typing import Tuple, List, Optional, Set, Any, Dict
 from collections import deque
 from itertools import islice
 
-from graph.node import Node
+from gaze_guided_scene.graph.node import Node
 
 # Type aliases for better readability
 Position = Tuple[int, int]
