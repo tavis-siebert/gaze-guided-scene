@@ -256,6 +256,26 @@ class ActionRecord:
         return result
     
     @classmethod
+    def get_noun_label_mappings(cls) -> Tuple[Dict[int, str], Dict[str, int]]:
+        """Get noun label mappings.
+        
+        Returns:
+            Tuple containing:
+            - Dictionary mapping noun IDs to names
+            - Dictionary mapping noun names to IDs
+            
+        Raises:
+            RuntimeError: If name mappings haven't been loaded
+        """
+        if not cls._verb_id_to_name or not cls._noun_id_to_name:
+            raise RuntimeError("Name mappings must be loaded before accessing noun labels")
+            
+        # Return copies to prevent modification of internal state
+        id_to_name = dict(cls._noun_id_to_name)
+        name_to_id = {name: id for id, name in id_to_name.items()}
+        return id_to_name, name_to_id
+    
+    @classmethod
     def create_future_action_labels(cls, 
                                     records: List["ActionRecord"], 
                                     current_frame: int,

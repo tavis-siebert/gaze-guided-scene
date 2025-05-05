@@ -32,9 +32,7 @@ class VideoMetadata:
         self.records_by_video, train_records = self._load_records()
         ActionRecord.initialize_action_mapping(train_records)
         
-        # Use noun labels from ActionRecord instead of loading separate object labels
-        self.obj_labels = list(ActionRecord._noun_id_to_name.values())
-        self.labels_to_int = {label: i for i, label in enumerate(self.obj_labels)}
+        self.obj_labels, self.labels_to_int = ActionRecord.get_noun_label_mappings()
         self.num_object_classes = len(self.obj_labels)
         
         # Load video lengths for both train and val splits
