@@ -44,8 +44,9 @@ class Video:
         self.gaze_processor = GazeProcessor(self.config, raw_gaze)
         self.records = self.metadata.get_records_for_video(video_name)
         self.first_frame, self.last_frame = self.metadata.get_action_frame_range(video_name)
+        self.length = self.metadata.get_video_length(video_name)
 
-        logger.info(f"Loaded video '{video_name}' with {len(self.records)} records, action frames: {self.first_frame} to {self.last_frame}")
+        logger.info(f"Loaded video '{video_name}' with {len(self.records)} records, action frames: {self.first_frame} to {self.last_frame}, length: {self.length}")
 
     def __iter__(self):
         """Prepare iterators for frames and gaze."""
