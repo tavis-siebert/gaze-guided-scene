@@ -7,9 +7,15 @@ to the new format (dictionary with context and checkpoints).
 import torch
 import os
 import argparse
+import sys
 from pathlib import Path
 from typing import Tuple, Dict
 from tqdm import tqdm
+
+# Add project root to Python path
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent
+sys.path.insert(0, str(project_root))
 
 from graph.checkpoint_manager import GraphCheckpoint
 from logger import get_logger
