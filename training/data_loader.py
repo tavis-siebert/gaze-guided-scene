@@ -303,7 +303,7 @@ class GraphDataset(Dataset):
             return None
             
         # Apply node dropping
-        augmented_data = self._apply_node_dropping(data)
+        augmented_data = node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
         
         # Make sure to preserve the label
         if augmented_data is not None and hasattr(data, 'y'):
