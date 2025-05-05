@@ -139,7 +139,10 @@ class ObjectDetector:
             conf_threshold=self.conf_threshold,
             iou_threshold=self.iou_threshold
         )
-        self.model.load_model(model_path)
+        
+        # Get number of processing workers from config
+        num_workers = getattr(config.processing, "n_cores", None)
+        self.model.load_model(model_path, num_workers=num_workers)
         self.model.set_classes(list(self.obj_labels.values()))
         
         # State tracking

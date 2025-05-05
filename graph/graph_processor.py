@@ -18,11 +18,6 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
-# Configure ONNX Runtime to avoid thread affinity issues
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["ONNXRUNTIME_INTRA_OP_NUM_THREADS"] = "1"
-os.environ["ONNXRUNTIME_INTER_OP_NUM_THREADS"] = "1"
-
 def process_video(
     video_name: str, 
     config: DotDict, 
