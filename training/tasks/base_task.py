@@ -8,7 +8,7 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
-from training.data_loader import GraphDataset, create_dataloader
+from training.dataset import GraphDataset, create_dataloader
 from models.gat_conv import GATForClassification
 from logger import get_logger
 from pathlib import Path
