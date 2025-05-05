@@ -184,11 +184,62 @@ class CheckpointManager:
         Returns:
             Created checkpoint or None
         """
-        # Always create a checkpoint for every frame
-        return self.create_checkpoint(
-            frame_num,
-            non_black_frame_count
-        )
+        # Skip if no edges in the graph
+        if not self.graph.edges:
+            return None
+            
+        # Serialize current graph state
+        current_nodes = {}
+        for node_id, node in self.graph.nodes.items():
+            if node_id >= 0:  # Skip root node
+                current_nodes[node_id] = {
+                    "id": node.id,
+                    "object_label": node.object_label,
+                    "visits": node.visits
+                }
+                
+        current_edges = []
+        for edge in self.graph.edges:
+            if edge.source_id >= 0 and edge.target_id >= 0:  # Skip edges connected to root
+                current_edges.append({
+                    "source_id": edge.source_id,
+                    "target_id": edge.target_id,
+                    "angle": edge.angle,
+                    "prev_gaze_pos": edge.prev_gaze_pos,
+                    "curr_gaze_pos": edge.curr_gaze_pos
+                })
+                
+        current_adjacency = {k: v for k, v in self.graph.adjacency.items()}
+        
+        # Current serialized state
+        current_state = {
+            "nodes": current_nodes,
+            "edges": current_edges,
+            "adjacency": current_adjacency
+        }
+        
+        # Always create the first checkpoint
+        if not self.checkpoints:
+            return self.create_checkpoint(frame_num, non_black_frame_count)
+        
+        # Get the last checkpoint for comparison
+        last_checkpoint = self.checkpoints[-1]
+        
+        # Last checkpoint serialized state
+        last_state = {
+            "nodes": last_checkpoint.nodes,
+            "edges": last_checkpoint.edges,
+            "adjacency": last_checkpoint.adjacency
+        }
+        
+        # Directly compare serialized representations
+        if current_state == last_state:
+            # No changes detected, skip creating a checkpoint
+            logger.debug(f"[Frame {frame_num}] No graph changes, skipping checkpoint")
+            return None
+        else:
+            # Graph changed, create a new checkpoint
+            return self.create_checkpoint(frame_num, non_black_frame_count)
     
     def save_checkpoints(self) -> Optional[str]:
         """Save all checkpoints to disk using a more portable format.
