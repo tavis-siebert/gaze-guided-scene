@@ -2,7 +2,7 @@
 Video metadata module for EGTEA Gaze+ dataset.
 
 Simplified abstraction for video metadata, loading action records,
-and video lengths, using noun labels from ActionRecord.
+and using noun labels from ActionRecord.
 """
 
 from pathlib import Path
@@ -31,7 +31,6 @@ class VideoMetadata:
         ActionRecord.load_name_mappings(self.config.dataset.egtea.action_annotations)
         self.records_by_video, train_records = self._load_records()
         ActionRecord.initialize_action_mapping(train_records)
-        self.video_lengths = self._load_video_lengths()
         
         # Use noun labels from ActionRecord instead of loading separate object labels
         self.obj_labels = list(ActionRecord._noun_id_to_name.values())
@@ -73,44 +72,15 @@ class VideoMetadata:
         
         return records_by_video, train_records
 
-    def _load_video_lengths(self) -> Dict[str, int]:
-        """
-        Load video lengths from file.
-
-        Returns:
-            Dictionary mapping video names to frame counts
-        """
-        try:
-            lengths_file = self.config.dataset.ego_topo.video_lengths
-            video_lengths = {}
-            with open(lengths_file) as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    video_name, length = line.strip().split(" ")
-                    video_lengths[video_name] = int(length)
-            logger.info(f"Loaded lengths for {len(video_lengths)} videos")
-            return video_lengths
-        except FileNotFoundError:
-            logger.error(f"Video lengths file not found at {lengths_file}")
-            raise
-        except Exception as e:
-            logger.error(f"Error loading video lengths: {e}")
-            raise
-
     def get_records_for_video(self, video_name: str) -> List[ActionRecord]:
         """Get action records for a video."""
         return self.records_by_video.get(video_name, [])
-
-    def get_video_length(self, video_name: str) -> int:
-        """Get the total number of frames in a video."""
-        return self.video_lengths.get(video_name, 0)
 
     def get_action_frame_range(self, video_name: str) -> Tuple[int, int]:
         """Get the start and end frame of actions for a video."""
         recs = self.get_records_for_video(video_name)
         if not recs:
-            return 0, self.get_video_length(video_name)
+            raise ValueError(f"No action records found for video {video_name}")
         start = min(r.start_frame for r in recs)
         end = max(r.end_frame for r in recs)
         return start, end
