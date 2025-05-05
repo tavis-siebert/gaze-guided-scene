@@ -8,6 +8,7 @@ from torch_geometric.data import Data, Dataset
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 import numpy as np
+from itertools import combinations
 
 from graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
 from datasets.egtea_gaze.action_record import ActionRecord
@@ -302,7 +303,7 @@ class GraphDataset(Dataset):
             return None
             
         # Apply node dropping
-        augmented_data = node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
+        augmented_data = self._apply_node_dropping(data)
         
         # Make sure to preserve the label
         if augmented_data is not None and hasattr(data, 'y'):
@@ -384,69 +385,145 @@ def tarjans(adj_lists: list[list[int]]):
     return artPoints
 
 
-def node_dropping(x, edge_index, edge_attr, max_droppable):
+def is_connected_after_dropping(adj_lists: List[List[int]], num_nodes: int, dropped_nodes: Set[int]) -> bool:
+    """Check if graph remains connected after dropping specified nodes using BFS.
+    
+    Args:
+        adj_lists: Adjacency list representation of graph
+        num_nodes: Total number of nodes in graph
+        dropped_nodes: Set of node indices to be dropped
+        
+    Returns:
+        bool: True if graph remains connected after dropping nodes
+    """
+    if num_nodes <= len(dropped_nodes):
+        return False
+        
+    # Get remaining nodes
+    remaining_nodes = set(range(num_nodes)) - dropped_nodes
+    if not remaining_nodes:
+        return False
+        
+    # Start BFS from first remaining node
+    start = next(iter(remaining_nodes))
+    visited = {start}
+    queue = [start]
+    
+    while queue:
+        node = queue.pop(0)
+        for neighbor in adj_lists[node]:
+            if neighbor not in dropped_nodes and neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+                
+    # Graph is connected if we visited all remaining nodes
+    return visited == remaining_nodes
+
+def find_valid_dropped_nodes(
+    adj_lists: List[List[int]], 
+    drop_candidates: List[int], 
+    num_to_drop: int,
+    max_attempts: int = 100
+) -> Optional[List[int]]:
+    """Find a valid set of nodes that can be dropped while maintaining connectivity.
+    
+    Args:
+        adj_lists: Adjacency list representation of graph
+        drop_candidates: List of candidate nodes that can be dropped
+        num_to_drop: Number of nodes to drop
+        max_attempts: Maximum number of random combinations to try
+        
+    Returns:
+        List of nodes to drop or None if no valid combination found
+    """
+    if not drop_candidates or num_to_drop <= 0 or num_to_drop > len(drop_candidates):
+        return None
+        
+    # Get all possible combinations and shuffle
+    combos = list(combinations(drop_candidates, num_to_drop))
+    if not combos:
+        return None
+        
+    # Try random combinations up to max_attempts
+    attempts = min(max_attempts, len(combos))
+    indices = random.sample(range(len(combos)), attempts)
+    
+    for idx in indices:
+        dropped_nodes = set(combos[idx])
+        if is_connected_after_dropping(adj_lists, len(adj_lists), dropped_nodes):
+            return list(dropped_nodes)
+            
+    return None
+
+def node_dropping(x: torch.Tensor, edge_index: torch.Tensor, edge_attr: torch.Tensor, max_droppable: int) -> Optional[Data]:
     """Apply node dropping augmentation while preserving graph connectivity.
     
     Args:
-        x: Node features
-        edge_index: Edge indices
-        edge_attr: Edge attributes
-        max_droppable: Maximum number of nodes to drop
+        x: Node features tensor
+        edge_index: Edge indices tensor
+        edge_attr: Edge attributes tensor
+        max_droppable: Maximum number of nodes that can be dropped
         
     Returns:
-        Tuple of (new_x, new_edge_index, new_edge_attr)
+        Augmented PyG Data object or None if augmentation not possible
     """
-    if edge_index.numel() == 0:
-        # No edges, simply return a subset of nodes
-        keep_n = max(1, x.size(0) - 1)  # Keep at least one node
-        keep_mask = torch.zeros(x.size(0), dtype=torch.bool)
-        keep_indices = torch.randperm(x.size(0))[:keep_n]
-        keep_mask[keep_indices] = True
-        # Return a properly formed Data object with all required attributes
-        return Data(x=x[keep_mask], edge_index=edge_index, edge_attr=edge_attr, y=None)
-    
     num_nodes = x.size(0)
-    adj_list = edge_idx_to_adj_list(edge_index, num_nodes)
     
-    # Find articulation points
-    articulation_points = tarjans(adj_list)
+    # Handle edge cases
+    if num_nodes <= 2 or max_droppable <= 0:
+        return None
+        
+    # Special case: no edges
+    if edge_index.numel() == 0:
+        # Keep at least 1 node
+        keep_n = max(1, num_nodes - min(max_droppable, num_nodes - 1))
+        keep_indices = torch.randperm(num_nodes)[:keep_n]
+        keep_mask = torch.zeros(num_nodes, dtype=torch.bool)
+        keep_mask[keep_indices] = True
+        return Data(x=x[keep_mask], edge_index=edge_index, edge_attr=edge_attr)
+        
+    # Build adjacency list and find articulation points
+    adj_lists = edge_idx_to_adj_list(edge_index, num_nodes)
+    articulation_points = tarjans(adj_lists)
     
-    # All nodes except articulation points are candidates for dropping
-    droppable_nodes = set(range(num_nodes)) - articulation_points
+    # Get droppable nodes (excluding articulation points)
+    drop_candidates = [i for i in range(num_nodes) if i not in articulation_points]
     
-    # Limit by max_droppable parameter
-    num_to_drop = min(len(droppable_nodes), max_droppable)
-    if num_to_drop == 0:
-        return None  # No nodes can be dropped
+    # Determine number of nodes to drop
+    max_possible = min(max_droppable, len(drop_candidates))
+    if max_possible == 0:
+        return None
+        
+    num_to_drop = random.randint(1, max_possible)
     
-    # Randomly select nodes to drop
-    drop_nodes = random.sample(list(droppable_nodes), num_to_drop)
-    keep_nodes = list(set(range(num_nodes)) - set(drop_nodes))
-    
-    # Create node mapping for new indices
+    # Find valid nodes to drop
+    dropped_nodes = find_valid_dropped_nodes(adj_lists, drop_candidates, num_to_drop)
+    if dropped_nodes is None:
+        return None
+        
+    # Create node mapping and masks
+    keep_nodes = list(set(range(num_nodes)) - set(dropped_nodes))
     node_map = {old_idx: new_idx for new_idx, old_idx in enumerate(keep_nodes)}
     
     # Filter nodes
     new_x = x[keep_nodes]
     
-    # Filter edges
+    # Filter and remap edges
     edge_mask = torch.ones(edge_index.size(1), dtype=torch.bool)
     for i in range(edge_index.size(1)):
         src, dst = edge_index[0, i].item(), edge_index[1, i].item()
-        if src in drop_nodes or dst in drop_nodes:
+        if src in dropped_nodes or dst in dropped_nodes:
             edge_mask[i] = False
-    
-    # Apply edge mask
-    new_edge_index = edge_index[:, edge_mask]
+            
+    new_edge_index = edge_index[:, edge_mask].clone()  # Clone to avoid modifying original
     new_edge_attr = edge_attr[edge_mask] if edge_attr is not None else None
     
     # Remap node indices
     for i in range(new_edge_index.size(1)):
-        src, dst = new_edge_index[0, i].item(), new_edge_index[1, i].item()
-        new_edge_index[0, i] = node_map[src]
-        new_edge_index[1, i] = node_map[dst]
-    
-    return Data(x=new_x, edge_index=new_edge_index, edge_attr=new_edge_attr, y=None)
+        new_edge_index[0, i] = node_map[new_edge_index[0, i].item()]
+        new_edge_index[1, i] = node_map[new_edge_index[1, i].item()]
+        
+    return Data(x=new_x, edge_index=new_edge_index, edge_attr=new_edge_attr)
 
 
 def create_dataloader(
