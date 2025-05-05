@@ -42,13 +42,10 @@ class Video:
         self.stream = tv.io.VideoReader(str(self.video_path), 'video')
         raw_gaze = parse_gtea_gaze(str(self.gaze_path))
         self.gaze_processor = GazeProcessor(self.config, raw_gaze)
-
-        # Metadata
-        self.length = self.metadata.get_video_length(video_name)
         self.records = self.metadata.get_records_for_video(video_name)
         self.first_frame, self.last_frame = self.metadata.get_action_frame_range(video_name)
 
-        logger.info(f"Loaded video '{video_name}' ({self.length} frames), records: {len(self.records)}")
+        logger.info(f"Loaded video '{video_name}' with {len(self.records)} records, action frames: {self.first_frame} to {self.last_frame}")
 
     def __iter__(self):
         """Prepare iterators for frames and gaze."""
