@@ -632,8 +632,8 @@ class ObjectDetector:
         fixated_object, score = max(self.fixation_scores.items(), key=lambda x: x[1])
         
         # Log all scores for comparison (at INFO level as this is final output)
-        logger.info("Final fixation scores:")
+        logger.debug("Final fixation scores:")
         for obj, s in sorted(self.fixation_scores.items(), key=lambda x: x[1], reverse=True):
-            logger.info(f"  - {obj}: {s:.4f}")
+            logger.debug(f"  - {obj}: {s:.4f}")
             
         return fixated_object, score
