@@ -11,6 +11,30 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 3. Extracts features at specified timestamps for downstream tasks
 4. Provides interactive visualization of the graph construction process
 
+## Project Structure
+
+```
+src/gaze_guided_scene/   # Main package code
+├── config/              # Configuration files and utilities
+├── datasets/            # Dataset loaders and processors
+│   └── egtea_gaze/      # EGTEA Gaze+ dataset specific code
+├── graph/               # Scene graph construction and processing
+├── models/              # Neural network models
+├── scripts/             # Utility scripts
+├── training/            # Training infrastructure
+├── logger.py            # Logging utilities
+└── main.py              # Main entry point
+
+data/                    # Data storage
+├── egtea_gaze/          # EGTEA Gaze+ dataset
+│   ├── action_annotation/
+│   └── gaze_data/
+├── graphs/              # Generated scene graphs
+└── traces/              # Execution traces for visualization
+
+logs/                    # Training and execution logs
+```
+
 ## Setup
 
 ### Prerequisites
@@ -54,40 +78,44 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    
    > **Note:** Dropbox tokens expire after a period of time. If you encounter authentication errors, you'll need to generate a new token following the steps above.
 
-3. **Download dataset**:
+3. **Install the package**:
    ```bash
-   uv run main.py setup-scratch
+   cd src/
+   uv pip install -e .
    ```
 
-4. **Build scene graphs**:
+4. **Download dataset**:
    ```bash
-   uv run main.py build-graphs
+   python src/gaze_guided_scene/main.py setup-scratch
+   ```
+
+5. **Build scene graphs**:
+   ```bash
+   python src/gaze_guided_scene/main.py build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   uv run main.py build-graphs --videos VIDEO_NAME --enable-tracing
+   python src/gaze_guided_scene/main.py build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
-5. **Train a model**:
+6. **Train a model**:
    ```bash
-   uv run main.py train --task future_actions
+   python src/gaze_guided_scene/main.py train --task future_actions
    ```
    
    Or for next action prediction:
    ```bash
-   uv run main.py train --task next_action
+   python src/gaze_guided_scene/main.py train --task next_action
    ```
 
-6. **Visualize graph construction** (requires prior trace generation):
+7. **Visualize graph construction** (requires prior trace generation):
    ```bash
-   uv run main.py visualize --video-name VIDEO_NAME
+   python src/gaze_guided_scene/main.py visualize --video-name VIDEO_NAME
    ```
 
-## Project Structure
+## Component Descriptions
 
-- **datasets/**: Dataset processing scripts and files
-- **egtea_gaze/**: Action and gaze annotations/processing
 - **graph/**: Scene graph construction and visualization
   - **Core Components**: 
     - **Graph, Node**: Core data structures
@@ -103,80 +131,6 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 - **models/**: Feature extraction (SIFT) and object detection (CLIP)
 - **config/**: Configuration files and utilities
 - **logger.py**: Centralized logging
-
-## Package Management with uv
-
-This project uses [uv](https://astral.sh/uv) for managing Python packages and environments. Key files for the package management system:
-
-- **pyproject.toml**: Contains project metadata and dependencies
-- **uv.lock**: Lockfile that ensures reproducible environments
-- **.python-version**: Defines the required Python version
-
-**Key features**:
-- Fast, reliable dependency resolution
-- Consistent environments across machines
-- Improved performance for package installation
-
-To manually manage dependencies:
-```bash
-# Add a dependency
-uv add package_name
-
-# Add a dependency with a version constraint
-uv add 'package_name==1.2.3'
-
-# Remove a dependency
-uv remove package_name
-
-# Update the lockfile and environment
-uv sync
-
-# Upgrade a specific package
-uv lock --upgrade-package package_name
-```
-
-## Project Initialization and Migration
-
-If you need to set up a new project (or migrate an existing one), follow these steps:
-
-1. **Initialize a uv project**:
-   ```bash
-   mkdir new-project
-   cd new-project
-   uv init
-   ```
-
-2. **Migrate from requirements.txt (if applicable)**:
-   ```bash
-   # Add dependencies from requirements.txt
-   uv add -r requirements.txt
-   ```
-
-3. **Manual dependency management**:
-   ```bash
-   # Add specific packages with version constraints
-   uv add 'torch>=2.7.0' 'torchvision>=0.22.0'
-   
-   # Add packages for development only
-   uv add --dev pytest black
-   ```
-
-4. **Generate a lockfile**:
-   ```bash
-   uv lock
-   ```
-
-5. **Synchronize the environment**:
-   ```bash
-   uv sync
-   ```
-
-6. **Run commands in the managed environment**:
-   ```bash
-   uv run main.py
-   # Or with arguments
-   uv run main.py build-graphs --device gpu
-   ```
 
 ## Configuration System
 
@@ -230,119 +184,28 @@ The project includes TensorBoard integration for visualizing training metrics an
 
 ```bash
 # Run training with TensorBoard logging
-uv run main.py train --task next_action --device gpu
+python src/gaze_guided_scene/main.py train --task next_action --device gpu
 
 # Run training with TensorBoard logging
-uv run main.py train --task future_actions --device gpu
+python src/gaze_guided_scene/main.py train --task future_actions --device gpu
 
 # Launch TensorBoard to view metrics
-uv run -- tensorboard --logdir logs
+tensorboard --logdir logs
 ```
-
 
 ## Command-Line Interface
 
 ```bash
-uv run main.py [options] <command>
+python src/gaze_guided_scene/main.py [options] <command>
 ```
 
 **Commands**:
 - `setup-scratch`: Download and setup dataset
 - `build-graphs`: Build scene graphs from videos
-  - Options:
-    - `--device {gpu|cpu}`: Device to use (default: gpu)
-    - `--videos VIDEO_NAME [VIDEO_NAME ...]`: Specific videos to process
-    - `--enable-tracing`: Enable graph construction tracing for visualization
 - `train`: Train a GNN on a specified task
-  - Options:
-    - `--device {gpu|cpu}`: Device to use (default: gpu)
-    - `--task {future_actions|next_action}`: Task to train on
-- `visualize`: Visualize the graph construction process
-  - Options:
-    - `--video-name VIDEO_NAME`: Name of the video to visualize (used to locate trace file if trace-path not provided)
-    - `--video-path PATH`: Path to the video file (optional when using --video-name, required with --trace-path)
-    - `--trace-path PATH`: Path to the trace file (alternative to --video-name)
-    - `--port PORT`: Server port (default: 8050)
-    - `--debug`: Run in debug mode
+- `visualize`: Visualize graph construction process
 
-**Global options**:
-- `--config`: Custom config file path (default: path in CONFIG_PATH env var or config/student_cluster_config.yaml)
-- `--log-level`: Set logging level
-- `--log-file`: Specify log file
-
-For help:
-```bash
-uv run main.py --help
-uv run main.py <command> --help
-```
-
-## Dataset Creation Workflow
-
-The project follows a two-stage approach for dataset creation and model training:
-
-1. **Graph Building Stage** (`build-graphs` command):
-   - Processes videos to extract objects from gaze fixations
-   - Constructs scene graphs based on object transitions
-   - Saves raw graph checkpoints for each video frame to `datasets/graphs/{split}/{video_name}_graph.pth`
-   - Each checkpoint contains raw graph data (nodes, edges, adjacency information)
-
-2. **Model Training Stage** (`train` command):  
-   - Loads raw graph checkpoints from disk
-   - Performs feature engineering during data loading
-   - Creates batched data for training and validation
-   - Applies optional augmentations (e.g., node dropping)
-
-This separation provides several benefits:
-- Feature engineering experiments without rebuilding scene graphs
-- Different sampling strategies for different tasks
-- Data augmentation at training time
-- More efficient training iterations
-
-## Graph Tracing and Visualization
-
-The project includes a tracing and visualization system for recording and analyzing the graph construction process.
-
-### Tracing System
-
-Trace files are stored in the `traces` directory (configurable via `trace_dir` in config):
-- Each video gets its own trace file named `{video_name}_trace.jsonl`
-- Each file contains events like fixations, saccades, node/edge creation
-- Rerunning a trace for the same video overwrites its previous trace file
-
-To generate traces for visualization:
-```bash
-# For a single video
-uv run main.py build-graphs --videos VIDEO_NAME --enable-tracing
-
-# For multiple videos (each gets its own trace file)
-uv run main.py build-graphs --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
-```
-
-### Visualization Dashboard
-
-The interactive dashboard displays the graph construction process:
-
-```bash
-# Using video name (video and trace files are located using config paths)
-uv run main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
-
-# Using full paths
-uv run main.py visualize --trace-path /path/to/trace_file.jsonl --video-path /path/to/video.mp4 [--port PORT]
-```
-
-**Dashboard Components**:
-- **Dashboard** - Main component that integrates all visualization components
-- **Playback** - Handles trace file loading and graph state management
-- **VideoDisplay** - Manages video frames and overlay visualization
-- **GraphDisplay** - Handles graph visualization and interaction
-- **PlaybackControls** - Playback navigation controls
-- **MetaInfo** - Displays information about the video and trace files
-
-**Key Features**:
-- **Interactive Graph Visualization**: Angle-based node positioning with stable layout, directional edges with symbolic notation, node highlight animations, gaze transition arrows, interactive hover details, timeline markers, and improved empty state visualization.
-
-- **Video Playback**: Frame-by-frame playback with gaze overlays, fixation/saccade visualization, object detection highlighting, and synchronized graph display.
-
-- **Intuitive Controls**: Play/pause with emoji buttons, real-time speed control, timeline slider with event markers, navigation buttons, and MM:SS time display.
-
-- **Performance Optimizations**: Figure caching, optimized layout initialization, FIFO frame caching, precomputed SVG paths, edge hover thresholds, reduced framerate, static background rendering, and batch frame processing.
+**Global Options**:
+- `--config`: Path to custom config file
+- `--log-level`: Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `--log-file`: Path to log file

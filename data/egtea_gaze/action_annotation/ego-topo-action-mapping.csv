@@ -1,0 +1,107 @@
+verb_id,noun_id,verb_name,noun_name,action_description,egtea_action_id,ego_topo_action_id,count
+0,0,Inspect/Read,recipe,Inspect/Read recipe,0,0,592
+1,1,Open,fridge,Open fridge,1,1,372
+2,2,Take,eating_utensil,Take eating_utensil,2,2,267
+1,5,Open,cabinet,Open cabinet,6,3,227
+5,2,Put,eating_utensil,Put eating_utensil,5,4,203
+4,4,Turn on,faucet,Turn on faucet,4,5,199
+3,3,Cut,tomato,Cut tomato,3,6,197
+3,7,Cut,cucumber,Cut cucumber,8,7,175
+6,8,Operate,stove,Operate stove,9,8,164
+2,6,Take,condiment_container,Take condiment_container,7,9,162
+3,9,Cut,carrot,Cut carrot,11,10,156
+7,1,Close,fridge,Close fridge,10,11,153
+1,11,Open,drawer,Open drawer,14,12,146
+3,10,Cut,onion,Cut onion,13,13,136
+5,6,Put,condiment_container,Put condiment_container,12,14,132
+5,13,Put,bowl,Put bowl,17,15,125
+2,13,Take,bowl,Take bowl,16,16,123
+5,14,Put,trash,Put trash,18,17,115
+5,17,Put,cooking_utensil,Put cooking_utensil,21,18,112
+2,12,Take,plate,Take plate,15,19,107
+8,19,Move Around,bacon,Move Around bacon,23,20,107
+2,18,Take,paper_towel,Take paper_towel,22,21,107
+9,2,Wash,eating_utensil,Wash eating_utensil,25,22,104
+5,12,Put,plate,Put plate,19,23,100
+5,22,Put,pan,Put pan,28,24,94
+7,5,Close,cabinet,Close cabinet,33,25,93
+3,16,Cut,bell_pepper,Cut bell_pepper,20,26,92
+1,6,Open,condiment_container,Open condiment_container,24,27,91
+2,17,Take,cooking_utensil,Take cooking_utensil,29,28,86
+11,4,Turn off,faucet,Turn off faucet,27,29,85
+10,20,Spread,condiment,Spread condiment,26,30,81
+2,21,Take,bread,Take bread,35,31,80
+5,25,Put,pot,Put pot,32,32,79
+5,21,Put,bread,Put bread,34,33,78
+8,24,Move Around,patty,Move Around patty,31,34,77
+1,26,Open,fridge_drawer,Open fridge_drawer,37,35,75
+7,6,Close,condiment_container,Close condiment_container,36,36,73
+2,28,Take,seasoning_container,Take seasoning_container,40,37,72
+5,23,Put,lettuce,Put lettuce,30,38,70
+9,27,Wash,hand,Wash hand,38,39,68
+13,30,Clean/Wipe,counter,Clean/Wipe counter,45,40,68
+8,22,Move Around,pan,Move Around pan,49,41,66
+12,23,Divide/Pull Apart,lettuce,Divide/Pull Apart lettuce,42,42,65
+2,22,Take,pan,Take pan,48,43,65
+2,29,Take,cup,Take cup,41,44,62
+5,3,Put,tomato,Put tomato,39,45,61
+2,25,Take,pot,Take pot,44,46,61
+9,32,Wash,cutting_board,Wash cutting_board,50,47,60
+2,3,Take,tomato,Take tomato,47,48,59
+5,29,Put,cup,Put cup,43,49,59
+2,31,Take,bread_container,Take bread_container,46,50,55
+2,33,Take,sponge,Take sponge,52,51,51
+5,31,Put,bread_container,Put bread_container,51,52,49
+5,33,Put,sponge,Put sponge,55,53,49
+2,10,Take,onion,Take onion,54,54,47
+5,28,Put,seasoning_container,Put seasoning_container,60,55,47
+9,22,Wash,pan,Wash pan,62,56,46
+2,23,Take,lettuce,Take lettuce,53,57,45
+2,36,Take,oil_container,Take oil_container,59,58,45
+12,18,Divide/Pull Apart,paper_towel,Divide/Pull Apart paper_towel,56,59,45
+5,32,Put,cutting_board,Put cutting_board,65,60,45
+2,7,Take,cucumber,Take cucumber,61,61,44
+3,42,Cut,olive,Cut olive,76,62,44
+12,10,Divide/Pull Apart,onion,Divide/Pull Apart onion,64,63,43
+1,34,Open,dishwasher,Open dishwasher,57,64,43
+9,13,Wash,bowl,Wash bowl,75,65,43
+2,35,Take,cheese_container,Take cheese_container,58,66,42
+2,16,Take,bell_pepper,Take bell_pepper,63,67,40
+2,38,Take,tomato_container,Take tomato_container,67,68,40
+8,2,Move Around,eating_utensil,Move Around eating_utensil,69,69,40
+9,25,Wash,pot,Wash pot,79,70,40
+7,11,Close,drawer,Close drawer,77,71,39
+5,38,Put,tomato_container,Put tomato_container,74,72,39
+15,40,Pour,oil,Pour oil,71,73,37
+2,41,Take,pasta_container,Take pasta_container,72,74,36
+5,16,Put,bell_pepper,Put bell_pepper,70,75,36
+14,37,Mix,mixture,Mix mixture,66,76,36
+2,39,Take,cheese,Take cheese,83,77,36
+14,47,Mix,egg,Mix egg,85,78,36
+14,44,Mix,pasta,Mix pasta,80,79,35
+1,31,Open,bread_container,Open bread_container,81,80,34
+16,49,Compress,sandwich,Compress sandwich,89,81,34
+3,23,Cut,lettuce,Cut lettuce,73,82,34
+2,32,Take,cutting_board,Take cutting_board,93,83,34
+15,48,Pour,water,Pour water,86,84,33
+5,7,Put,cucumber,Put cucumber,88,85,33
+2,45,Take,grocery_bag,Take grocery_bag,82,86,33
+5,18,Put,paper_towel,Put paper_towel,87,87,33
+15,46,Pour,seasoning,Pour seasoning,84,88,33
+8,13,Move Around,bowl,Move Around bowl,99,89,32
+17,47,Crack,egg,Crack egg,92,90,32
+7,26,Close,fridge_drawer,Close fridge_drawer,97,91,31
+15,20,Pour,condiment,Pour condiment,78,92,31
+5,39,Put,cheese,Put cheese,68,93,31
+5,35,Put,cheese_container,Put cheese_container,90,94,31
+8,25,Move Around,pot,Move Around pot,100,95,30
+5,10,Put,onion,Put onion,91,96,30
+2,47,Take,egg,Take egg,102,97,30
+9,52,Wash,strainer,Wash strainer,98,98,30
+6,51,Operate,microwave,Operate microwave,96,99,29
+18,50,Squeeze,washing_liquid,Squeeze washing_liquid,95,100,29
+1,36,Open,oil_container,Open oil_container,94,101,28
+1,35,Open,cheese_container,Open cheese_container,103,102,27
+5,45,Put,grocery_bag,Put grocery_bag,101,103,26
+7,36,Close,oil_container,Close oil_container,104,104,26
+5,36,Put,oil_container,Put oil_container,105,105,25

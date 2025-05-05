@@ -13,4 +13,7 @@ wheels/
 *.pth
 logs/
 out/
-config/local_config.yaml
+src/config/local_config.yaml
+
+# Ignore all files in traces directory
+data/traces/

@@ -1,6 +1,10 @@
 [project]
 name = "gaze-guided-scene"
 version = "0.1.0"
+authors = [
+    {name = "Timon Fercho", email = "ferchoti@gmail.com"},
+    {name = "Tavis Siebert", email = "tavisiebert2002@gmail.com"}
+]
 description = "Gaze-Guided Scene Graphs for Egocentric Action Prediction"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -32,3 +36,10 @@ dependencies = [
     "tqdm>=4.67.1",
     "transformers>=4.51.3",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+"Github" = "https://github.com/tavis-siebert/gaze-guided-scene"

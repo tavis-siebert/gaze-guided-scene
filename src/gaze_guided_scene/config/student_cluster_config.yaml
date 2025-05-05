@@ -1,0 +1,5 @@
+extends: default_config.yaml
+
+# Base directories
+base:
+  scratch_dir: /work/courses/3dv/36
