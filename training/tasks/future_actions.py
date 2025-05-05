@@ -4,14 +4,14 @@ import numpy as np
 from training.tasks.base_task import BaseTask
 from training.evaluation.metrics import confusion_matrix, mAP
 from datasets.egtea_gaze.action_record import ActionRecord
+from datasets.egtea_gaze.video_metadata import VideoMetadata
 
 class FutureActionsTask(BaseTask):
     def __init__(self, config, device):
         super().__init__(config, device, "future_actions")
         self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
         
-        # Load action name mappings for human-readable labels
-        ActionRecord.load_name_mappings()
+        self.metadata = VideoMetadata(config)
         self.action_names = ActionRecord.get_action_names()
         self.logger.info(f"Loaded {len(self.action_names)} action names for metrics visualization")
     
