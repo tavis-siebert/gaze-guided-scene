@@ -6,15 +6,15 @@ import torch
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
-from graph.graph import Graph
-from graph.graph_tracer import GraphTracer
-from graph.checkpoint_manager import CheckpointManager
-from graph.gaze import GazePoint, GazeType
-from graph.object_detection import ObjectDetector
-from datasets.egtea_gaze.video_metadata import VideoMetadata
-from datasets.egtea_gaze.video_processor import Video
-from config.config_utils import DotDict
-from logger import get_logger
+from gaze_guided_scene.graph.graph import Graph
+from gaze_guided_scene.graph.graph_tracer import GraphTracer
+from gaze_guided_scene.graph.checkpoint_manager import CheckpointManager
+from gaze_guided_scene.graph.gaze import GazePoint, GazeType
+from gaze_guided_scene.graph.object_detection import ObjectDetector
+from gaze_guided_scene.datasets.egtea_gaze.video_metadata import VideoMetadata
+from gaze_guided_scene.datasets.egtea_gaze.video_processor import Video
+from gaze_guided_scene.config.config_utils import DotDict
+from gaze_guided_scene.logger import get_logger
 
 logger = get_logger(__name__)
 
