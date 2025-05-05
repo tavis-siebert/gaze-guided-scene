@@ -7,13 +7,7 @@ from training.dataset.graph_dataset import GraphDataset
 def create_dataloader(
     root_dir: str,
     split: str = "train",
-    val_timestamps: List[float] = None,
     task_mode: str = "future_actions",
-    batch_size: int = 64,
-    node_drop_p: float = 0.0,
-    max_droppable: int = 0,
-    shuffle: bool = True,
-    num_workers: int = 4,
     config=None
 ) -> DataLoader:
     """Create a PyG DataLoader for graph data.
@@ -21,25 +15,23 @@ def create_dataloader(
     Args:
         root_dir: Root directory containing graph checkpoints
         split: Dataset split ("train" or "val")
-        val_timestamps: Timestamps to sample for validation set (as fractions of video length)
-                        If None, will use config.training.val_timestamps
         task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
-        batch_size: Batch size for DataLoader
-        node_drop_p: Probability of node dropping augmentation
-        max_droppable: Maximum number of nodes that can be dropped
-        shuffle: Whether to shuffle the dataset
-        num_workers: Number of workers for DataLoader
-        config: Configuration object to pass to VideoMetadata
+        config: Configuration object containing dataset and training parameters
         
     Returns:
         PyG DataLoader
     """
+    batch_size = config.training.batch_size if split == "train" else 1
+    shuffle = True if split == "train" else False
+    num_workers = config.processing.dataloader_workers
+    node_drop_p = config.training.node_drop_p if split == "train" else 0.0
+    max_droppable = config.training.max_nodes_droppable if split == "train" else 0
+    
     dataset = GraphDataset(
         root_dir=root_dir,
         split=split,
-        val_timestamps=val_timestamps,  # Will default to config if None
         task_mode=task_mode,
-        node_drop_p=node_drop_p if split == "train" else 0.0,  # Only apply augmentations to training set
+        node_drop_p=node_drop_p,
         max_droppable=max_droppable,
         config=config
     )

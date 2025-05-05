@@ -53,7 +53,7 @@ class GraphDataset(Dataset):
         self.metadata = VideoMetadata(config)
         
         if self.config and hasattr(self.config.training, 'val_timestamps'):
-        self.val_timestamps = self.config.training.val_timestamps
+            self.val_timestamps = self.config.training.val_timestamps
         else:
             raise ValueError("No validation timestamps provided")
             
