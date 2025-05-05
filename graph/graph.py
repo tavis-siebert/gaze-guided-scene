@@ -188,7 +188,10 @@ class Graph:
                 next_node.get_features(),
                 visit
             )
+            total_visits = len(next_node.visits)
+            total_frames = sum(end - start + 1 for start, end in next_node.visits)
             logger.info(f"Node {next_node.id} updated with new visit at frames {visit}")
+            logger.debug(f"- Updated node features: visits={total_visits}, total_frames={total_frames}")
         else:
             # Create new node
             next_node = self.add_node(fixated_object, visit)
@@ -221,7 +224,9 @@ class Graph:
                     "saccade", 
                     forward_edge.get_features()
                 )
+                
                 logger.info(f"Edge added from node {prev_node_id} to node {next_node.id}")
+                logger.debug(f"- Edge angle: {math.degrees(forward_edge.angle):.1f}°")
         
         # Update current node reference
         self.current_node = next_node
@@ -251,19 +256,19 @@ class Graph:
         if self.num_nodes == 0:
             logger.info("Graph is empty.")
             return
-            
+        
         logger.info(f"Graph with {self.num_nodes} nodes:")
         GraphVisualizer.print_levels(self.root, use_degrees, self.edges, self)
     
     def get_edge(self, source_id: NodeId, target_id: NodeId) -> Optional[Edge]:
-        """Get an edge between two nodes if it exists.
+        """Get the edge between two nodes.
         
         Args:
             source_id: ID of the source node
             target_id: ID of the target node
             
         Returns:
-            The edge if found, None otherwise
+            The edge or None if not found
         """
         for edge in self.edges:
             if edge.source_id == source_id and edge.target_id == target_id:

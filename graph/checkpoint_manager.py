@@ -160,9 +160,10 @@ class CheckpointManager:
             len(self.graph.edges)
         )
         
-        logger.info(f"Checkpoint created at frame {frame_num}:")
-        logger.info(f"- Nodes: {self.graph.num_nodes}")
-        logger.info(f"- Edges: {len(self.graph.edges)}")
+        logger.info(f"\n[Frame {frame_num}] Created graph checkpoint")
+        logger.debug(f"Checkpoint created:")
+        logger.debug(f"- Nodes: {self.graph.num_nodes}")
+        logger.debug(f"- Edges: {len(self.graph.edges)}")
         
         return checkpoint
     
