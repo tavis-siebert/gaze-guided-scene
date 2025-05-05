@@ -84,7 +84,7 @@ external:
 # Processing settings
 processing:
   n_cores: 2
-  dataloader_workers: 4
+  dataloader_workers: 2
 
 # Graph and fixation detection settings
 graph:
