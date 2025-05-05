@@ -21,43 +21,45 @@ class GraphCheckpoint:
     edges: List[Dict]
     adjacency: Dict[int, List[int]]
     
-    # Metadata
-    video_name: str
+    # Metadata per checkpoint
     frame_number: int
     non_black_frame_count: int
     
-    # Context information
-    labels_to_int: Dict[str, int]
-    num_object_classes: int
-    video_length: int
+    # Shared video context - only needed for deserialization
+    video_name: Optional[str] = None
+    labels_to_int: Optional[Dict[str, int]] = None
+    num_object_classes: Optional[int] = None
+    video_length: Optional[int] = None
     
     def to_dict(self) -> Dict:
-        """Convert checkpoint to serializable dictionary."""
+        """Convert checkpoint to serializable dictionary without shared context."""
         return {
             "nodes": self.nodes,
             "edges": self.edges,
             "adjacency": self.adjacency,
-            "video_name": self.video_name,
             "frame_number": self.frame_number,
-            "non_black_frame_count": self.non_black_frame_count,
-            "labels_to_int": self.labels_to_int,
-            "num_object_classes": self.num_object_classes,
-            "video_length": self.video_length
+            "non_black_frame_count": self.non_black_frame_count
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'GraphCheckpoint':
-        """Create checkpoint from dictionary."""
+    def from_dict(cls, data: Dict, context: Dict = None) -> 'GraphCheckpoint':
+        """Create checkpoint from dictionary with optional shared context.
+        
+        Args:
+            data: Dictionary with checkpoint data
+            context: Optional shared context data (video_name, labels_to_int, etc.)
+        """
+        context = context or {}
         return cls(
             nodes=data["nodes"],
             edges=data["edges"],
             adjacency=data["adjacency"],
-            video_name=data["video_name"],
             frame_number=data["frame_number"],
             non_black_frame_count=data["non_black_frame_count"],
-            labels_to_int=data["labels_to_int"],
-            num_object_classes=data["num_object_classes"],
-            video_length=data["video_length"]
+            video_name=context.get("video_name"),
+            labels_to_int=context.get("labels_to_int"),
+            num_object_classes=context.get("num_object_classes"),
+            video_length=context.get("video_length")
         )
 
 
@@ -142,9 +144,10 @@ class CheckpointManager:
             nodes=nodes_data,
             edges=edges_data,
             adjacency=adjacency_data,
-            video_name=self.video_name,
             frame_number=frame_num,
             non_black_frame_count=non_black_frame_count,
+            # Include context for the full checkpoint object
+            video_name=self.video_name,
             labels_to_int=self.graph.labels_to_int,
             num_object_classes=self.graph.num_object_classes,
             video_length=self.graph.video_length
@@ -188,7 +191,7 @@ class CheckpointManager:
         )
     
     def save_checkpoints(self) -> Optional[str]:
-        """Save all checkpoints to disk.
+        """Save all checkpoints to disk using a more portable format.
         
         Returns:
             Path to the saved file or None if saving failed
@@ -199,7 +202,25 @@ class CheckpointManager:
         output_file = self.output_dir / f"{self.video_name}_graph.pth"
         logger.info(f"Saving {len(self.checkpoints)} checkpoints to {output_file}")
         
-        torch.save(self.checkpoints, output_file)
+        # Extract shared context data
+        if self.checkpoints:
+            first_checkpoint = self.checkpoints[0]
+            context = {
+                "video_name": self.video_name,
+                "labels_to_int": first_checkpoint.labels_to_int,
+                "num_object_classes": first_checkpoint.num_object_classes,
+                "video_length": first_checkpoint.video_length
+            }
+        else:
+            context = {}
+        
+        # Create the portable dictionary format
+        checkpoint_data = {
+            "context": context,
+            "checkpoints": [cp.to_dict() for cp in self.checkpoints]
+        }
+        
+        torch.save(checkpoint_data, output_file)
         return str(output_file)
     
     @staticmethod
@@ -213,4 +234,11 @@ class CheckpointManager:
             List of GraphCheckpoint objects
         """
         with torch.serialization.safe_globals([GraphCheckpoint]):
-            return torch.load(file_path, weights_only=False) 
+            data = torch.load(file_path, weights_only=False)
+            
+            if isinstance(data, dict) and "checkpoints" in data:
+                context = data.get("context", {})
+                return [GraphCheckpoint.from_dict(cp, context) for cp in data["checkpoints"]]
+            else:
+                logger.error(f"Unsupported checkpoint format in {file_path}. Use the conversion script.")
+                return [] 

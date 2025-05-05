@@ -9,7 +9,7 @@ from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 import numpy as np
 
-from graph.checkpoint_manager import GraphCheckpoint
+from graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
 from datasets.egtea_gaze.action_record import ActionRecord
 from datasets.egtea_gaze.video_metadata import VideoMetadata
 
@@ -75,12 +75,11 @@ class GraphDataset(Dataset):
         Returns:
             List of filtered checkpoints with added action labels
         """
-        # Load all checkpoints for this video with GraphCheckpoint explicitly marked as safe
-        with torch.serialization.safe_globals([GraphCheckpoint]):
-            all_checkpoints = torch.load(file_path, weights_only=False)
-        
         # Extract video name for looking up records
         video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
+        
+        # Use the CheckpointManager to load checkpoints
+        all_checkpoints = CheckpointManager.load_checkpoints(str(file_path))
         
         # Filter and add action labels
         processed_checkpoints = []
@@ -109,7 +108,6 @@ class GraphDataset(Dataset):
                 return []
                 
             # Get video info from first checkpoint
-            video_name = processed_checkpoints[0].video_name
             video_length = processed_checkpoints[0].video_length
             
             # Calculate frame numbers from timestamp ratios
