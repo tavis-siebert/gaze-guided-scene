@@ -22,7 +22,7 @@ def create_dataloader(
         root_dir: Root directory containing graph checkpoints
         split: Dataset split ("train" or "val")
         val_timestamps: Timestamps to sample for validation set (as fractions of video length)
-                        If None, will use config.dataset.timestamps[split]
+                        If None, will use config.training.val_timestamps
         task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
         batch_size: Batch size for DataLoader
         node_drop_p: Probability of node dropping augmentation

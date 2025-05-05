@@ -37,7 +37,7 @@ class GraphDataset(Dataset):
             root_dir: Root directory containing graph checkpoints
             split: Dataset split ("train" or "val")
             val_timestamps: Timestamps to sample for validation set (as fractions of video length)
-                            If None, will use config.dataset.timestamps[split]
+                            If None, will use config.training.val_timestamps
             task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
             node_drop_p: Probability of node dropping augmentation
             max_droppable: Maximum number of nodes to drop
@@ -50,17 +50,12 @@ class GraphDataset(Dataset):
         self.split = split
         self.config = config
         
-        # Initialize video metadata
         self.metadata = VideoMetadata(config)
         
-        # Get timestamps based on split
-        if val_timestamps is not None:
-            self.val_timestamps = val_timestamps
-        elif self.config and hasattr(self.config.dataset, 'timestamps'):
-            self.val_timestamps = self.config.dataset.timestamps[self.split]
+        if self.config and hasattr(self.config.training, 'val_timestamps'):
+        self.val_timestamps = self.config.training.val_timestamps
         else:
-            # Default timestamps if not specified
-            self.val_timestamps = [0.25, 0.5, 0.75]
+            raise ValueError("No validation timestamps provided")
             
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p

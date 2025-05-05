@@ -74,14 +74,10 @@ class BaseTask:
             self.logger.error(f"Graphs directory {graphs_dir} not found. Run 'python main.py build' first.")
             raise FileNotFoundError(f"Graphs directory {graphs_dir} not found")
             
-        # Get validation timestamps from config
-        val_timestamps = self.config.training.val_timestamps
-        
         # Create train loader
         self.train_loader = create_dataloader(
             root_dir=str(graphs_dir),
             split="train",
-            val_timestamps=val_timestamps,
             task_mode=self.task,
             batch_size=self.config.training.batch_size,
             node_drop_p=self.config.training.node_drop_p,
