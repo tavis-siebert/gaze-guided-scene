@@ -7,7 +7,7 @@ from training.dataset.graph_dataset import GraphDataset
 def create_dataloader(
     root_dir: str,
     split: str = "train",
-    val_timestamps: List[float] = [0.25, 0.5, 0.75],
+    val_timestamps: List[float] = None,
     task_mode: str = "future_actions",
     batch_size: int = 64,
     node_drop_p: float = 0.0,
@@ -22,6 +22,7 @@ def create_dataloader(
         root_dir: Root directory containing graph checkpoints
         split: Dataset split ("train" or "val")
         val_timestamps: Timestamps to sample for validation set (as fractions of video length)
+                        If None, will use config.dataset.timestamps[split]
         task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
         batch_size: Batch size for DataLoader
         node_drop_p: Probability of node dropping augmentation
@@ -36,7 +37,7 @@ def create_dataloader(
     dataset = GraphDataset(
         root_dir=root_dir,
         split=split,
-        val_timestamps=val_timestamps,
+        val_timestamps=val_timestamps,  # Will default to config if None
         task_mode=task_mode,
         node_drop_p=node_drop_p if split == "train" else 0.0,  # Only apply augmentations to training set
         max_droppable=max_droppable,

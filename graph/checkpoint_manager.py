@@ -23,6 +23,7 @@ class GraphCheckpoint:
     video_name: Optional[str] = None
     labels_to_int: Optional[Dict[str, int]] = None
     num_object_classes: Optional[int] = None
+    video_length: Optional[int] = None
     
     def to_dict(self) -> Dict:
         """Convert checkpoint to serializable dictionary without shared context."""
@@ -51,7 +52,8 @@ class GraphCheckpoint:
             non_black_frame_count=data["non_black_frame_count"],
             video_name=context.get("video_name"),
             labels_to_int=context.get("labels_to_int"),
-            num_object_classes=context.get("num_object_classes")
+            num_object_classes=context.get("num_object_classes"),
+            video_length=context.get("video_length")
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -236,7 +238,8 @@ class CheckpointManager:
             context = {
                 "video_name": self.video_name,
                 "labels_to_int": first_checkpoint.labels_to_int,
-                "num_object_classes": first_checkpoint.num_object_classes
+                "num_object_classes": first_checkpoint.num_object_classes,
+                "video_length": first_checkpoint.video_length
             }
         else:
             context = {}

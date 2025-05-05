@@ -22,7 +22,7 @@ class GraphDataset(Dataset):
         self,
         root_dir: str,
         split: str = "train",
-        val_timestamps: List[float] = [0.25, 0.5, 0.75],
+        val_timestamps: List[float] = None,
         task_mode: str = "future_actions",
         node_drop_p: float = 0.0,
         max_droppable: int = 0,
@@ -37,6 +37,7 @@ class GraphDataset(Dataset):
             root_dir: Root directory containing graph checkpoints
             split: Dataset split ("train" or "val")
             val_timestamps: Timestamps to sample for validation set (as fractions of video length)
+                            If None, will use config.dataset.timestamps[split]
             task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
             node_drop_p: Probability of node dropping augmentation
             max_droppable: Maximum number of nodes to drop
@@ -47,14 +48,23 @@ class GraphDataset(Dataset):
         """
         self.root_dir = Path(root_dir) / split
         self.split = split
-        self.val_timestamps = val_timestamps
-        self.task_mode = task_mode
-        self.node_drop_p = node_drop_p
-        self.max_droppable = max_droppable
         self.config = config
         
         # Initialize video metadata
         self.metadata = VideoMetadata(config)
+        
+        # Get timestamps based on split
+        if val_timestamps is not None:
+            self.val_timestamps = val_timestamps
+        elif self.config and hasattr(self.config.dataset, 'timestamps'):
+            self.val_timestamps = self.config.dataset.timestamps[self.split]
+        else:
+            # Default timestamps if not specified
+            self.val_timestamps = [0.25, 0.5, 0.75]
+            
+        self.task_mode = task_mode
+        self.node_drop_p = node_drop_p
+        self.max_droppable = max_droppable
         
         # Find all graph checkpoint files
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
@@ -133,8 +143,22 @@ class GraphDataset(Dataset):
         Returns:
             List of all checkpoints
         """
+        # Extract video name for looking up records
+        video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
+        
         # Use the CheckpointManager to load checkpoints
-        return CheckpointManager.load_checkpoints(str(file_path))
+        checkpoints = CheckpointManager.load_checkpoints(str(file_path))
+        
+        # Add video_length if not present
+        for checkpoint in checkpoints:
+            if not hasattr(checkpoint, 'video_length') or checkpoint.video_length is None:
+                checkpoint.video_length = self.metadata.get_video_length(video_name)
+                
+            # Ensure video_name is set
+            if not hasattr(checkpoint, 'video_name') or checkpoint.video_name is None:
+                checkpoint.video_name = video_name
+                
+        return checkpoints
     
     def _load_and_filter_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
         """Load checkpoints from file and filter based on split.
@@ -150,6 +174,15 @@ class GraphDataset(Dataset):
         
         # Use the CheckpointManager to load checkpoints
         all_checkpoints = CheckpointManager.load_checkpoints(str(file_path))
+        
+        # Add video_length if not present
+        for checkpoint in all_checkpoints:
+            if not hasattr(checkpoint, 'video_length') or checkpoint.video_length is None:
+                checkpoint.video_length = self.metadata.get_video_length(video_name)
+                
+            # Ensure video_name is set
+            if not hasattr(checkpoint, 'video_name') or checkpoint.video_name is None:
+                checkpoint.video_name = video_name
         
         # In train mode, keep all checkpoints
         if self.split == "train":
