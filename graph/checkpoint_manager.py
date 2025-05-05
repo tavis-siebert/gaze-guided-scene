@@ -1,14 +1,8 @@
-from typing import Dict, List, Optional, Tuple, Any, Callable
+from typing import Dict, List, Optional, Any, Tuple
 import torch
 from dataclasses import dataclass
-import json
-import numpy as np
-from collections import defaultdict
-import os
 from pathlib import Path
-
 from graph.graph import Graph
-from graph.graph_tracer import GraphTracer
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -62,6 +56,11 @@ class GraphCheckpoint:
             video_length=context.get("video_length")
         )
 
+    def __eq__(self, other: Any) -> bool:
+        """Compare checkpoints based on serialized graph state."""
+        if not isinstance(other, GraphCheckpoint):
+            return NotImplemented
+        return self.nodes == other.nodes and self.edges == other.edges and self.adjacency == other.adjacency
 
 class CheckpointManager:
     """Manages the creation and storage of graph checkpoints."""
@@ -97,6 +96,16 @@ class CheckpointManager:
         else:
             self.output_dir = None
     
+    def _serialize_state(self) -> Tuple[Dict[int, Dict], List[Dict], Dict[int, List[int]]]:
+        """Serialize graph state for checkpoint comparison and creation."""
+        nodes = {nid: {"id": node.id, "object_label": node.object_label, "visits": node.visits}
+                 for nid, node in self.graph.nodes.items() if nid >= 0}
+        edges = [{"source_id": e.source_id, "target_id": e.target_id,
+                  "angle": e.angle, "prev_gaze_pos": e.prev_gaze_pos, "curr_gaze_pos": e.curr_gaze_pos}
+                 for e in self.graph.edges if e.source_id >= 0 and e.target_id >= 0]
+        adjacency = {k: v for k, v in self.graph.adjacency.items()}
+        return nodes, edges, adjacency
+    
     def create_checkpoint(
         self,
         frame_num: int,
@@ -115,38 +124,14 @@ class CheckpointManager:
             logger.info(f"Skipping checkpoint - no edges in graph")
             return None
             
-        # Serialize node data
-        nodes_data = {}
-        for node_id, node in self.graph.nodes.items():
-            if node_id >= 0:  # Skip root node
-                nodes_data[node_id] = {
-                    "id": node.id,
-                    "object_label": node.object_label,
-                    "visits": node.visits
-                }
-        
-        # Serialize edge data
-        edges_data = []
-        for edge in self.graph.edges:
-            if edge.source_id >= 0 and edge.target_id >= 0:  # Skip edges connected to root
-                edges_data.append({
-                    "source_id": edge.source_id,
-                    "target_id": edge.target_id,
-                    "angle": edge.angle,
-                    "prev_gaze_pos": edge.prev_gaze_pos,
-                    "curr_gaze_pos": edge.curr_gaze_pos
-                })
-        
-        # Convert adjacency to serializable format
-        adjacency_data = {k: v for k, v in self.graph.adjacency.items()}
-        
+        # Serialize current state for checkpoint
+        nodes_data, edges_data, adjacency_data = self._serialize_state()
         checkpoint = GraphCheckpoint(
             nodes=nodes_data,
             edges=edges_data,
             adjacency=adjacency_data,
             frame_number=frame_num,
             non_black_frame_count=non_black_frame_count,
-            # Include context for the full checkpoint object
             video_name=self.video_name,
             labels_to_int=self.graph.labels_to_int,
             num_object_classes=self.graph.num_object_classes,
@@ -187,59 +172,28 @@ class CheckpointManager:
         # Skip if no edges in the graph
         if not self.graph.edges:
             return None
-            
-        # Serialize current graph state
-        current_nodes = {}
-        for node_id, node in self.graph.nodes.items():
-            if node_id >= 0:  # Skip root node
-                current_nodes[node_id] = {
-                    "id": node.id,
-                    "object_label": node.object_label,
-                    "visits": node.visits
-                }
-                
-        current_edges = []
-        for edge in self.graph.edges:
-            if edge.source_id >= 0 and edge.target_id >= 0:  # Skip edges connected to root
-                current_edges.append({
-                    "source_id": edge.source_id,
-                    "target_id": edge.target_id,
-                    "angle": edge.angle,
-                    "prev_gaze_pos": edge.prev_gaze_pos,
-                    "curr_gaze_pos": edge.curr_gaze_pos
-                })
-                
-        current_adjacency = {k: v for k, v in self.graph.adjacency.items()}
-        
-        # Current serialized state
-        current_state = {
-            "nodes": current_nodes,
-            "edges": current_edges,
-            "adjacency": current_adjacency
-        }
-        
-        # Always create the first checkpoint
+        # Always create first checkpoint
         if not self.checkpoints:
             return self.create_checkpoint(frame_num, non_black_frame_count)
-        
-        # Get the last checkpoint for comparison
-        last_checkpoint = self.checkpoints[-1]
-        
-        # Last checkpoint serialized state
-        last_state = {
-            "nodes": last_checkpoint.nodes,
-            "edges": last_checkpoint.edges,
-            "adjacency": last_checkpoint.adjacency
-        }
-        
-        # Directly compare serialized representations
-        if current_state == last_state:
-            # No changes detected, skip creating a checkpoint
+        # Build temporary checkpoint for comparison
+        nodes_data, edges_data, adjacency_data = self._serialize_state()
+        temp_checkpoint = GraphCheckpoint(
+            nodes=nodes_data,
+            edges=edges_data,
+            adjacency=adjacency_data,
+            frame_number=frame_num,
+            non_black_frame_count=non_black_frame_count,
+            video_name=self.video_name,
+            labels_to_int=self.graph.labels_to_int,
+            num_object_classes=self.graph.num_object_classes,
+            video_length=self.graph.video_length
+        )
+        # Skip if no state change
+        if temp_checkpoint == self.checkpoints[-1]:
             logger.debug(f"[Frame {frame_num}] No graph changes, skipping checkpoint")
             return None
-        else:
-            # Graph changed, create a new checkpoint
-            return self.create_checkpoint(frame_num, non_black_frame_count)
+        # State changed, create new checkpoint
+        return self.create_checkpoint(frame_num, non_black_frame_count)
     
     def save_checkpoints(self) -> Optional[str]:
         """Save all checkpoints to disk using a more portable format.

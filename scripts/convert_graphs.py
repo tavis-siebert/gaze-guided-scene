@@ -54,22 +54,13 @@ def convert_checkpoint_file(input_path: Path, output_path: Path) -> bool:
             "video_length": first_checkpoint.video_length
         }
         
-        # Filter out redundant checkpoints where the graph didn't change
+        # Prune redundant checkpoints using equality comparison
         pruned_checkpoints = []
-        prev_state = None
-        
+        prev_checkpoint = None
         for checkpoint in checkpoints:
-            # Create serialized state for comparison
-            current_state = {
-                "nodes": checkpoint.nodes,
-                "edges": checkpoint.edges,
-                "adjacency": checkpoint.adjacency
-            }
-            
-            # Always include the first checkpoint or if state changed
-            if prev_state is None or current_state != prev_state:
+            if prev_checkpoint is None or checkpoint != prev_checkpoint:
                 pruned_checkpoints.append(checkpoint)
-                prev_state = current_state
+                prev_checkpoint = checkpoint
         
         # Create the new format dictionary with pruned checkpoints
         new_format = {
