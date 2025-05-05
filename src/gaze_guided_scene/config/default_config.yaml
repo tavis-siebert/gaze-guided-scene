@@ -1,0 +1,129 @@
+# Base directories
+base:
+  repo_root: ${REPO_ROOT}
+  scratch_dir: /tmp # Will be overwritten by other configs
+
+# Directories structure
+directories:
+  # Repository directories
+  repo:
+    egtea: ${base.repo_root}/data/egtea_gaze
+    datasets: ${base.repo_root}/data
+    graphs: ${base.repo_root}/data/graphs
+    traces: ${base.repo_root}/data/traces
+  
+  # Scratch directories
+  scratch:
+    root: ${base.scratch_dir}
+    egtea: ${directories.scratch.root}/egtea_gaze
+    ego_topo: ${directories.scratch.root}/ego-topo
+    tmp: ${directories.scratch.root}/tmp
+
+# Dataset paths and settings
+dataset:
+  # EGTEA Gaze+ dataset paths
+  egtea:
+    raw_videos: ${directories.scratch.egtea}/raw_videos
+    cropped_videos: ${directories.scratch.egtea}/cropped_videos
+    gaze_data: ${directories.repo.egtea}/gaze_data/gaze_data
+    action_annotations: ${directories.repo.egtea}/action_annotation
+    noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
+    verb_idx_file: ${dataset.egtea.action_annotations}/verb_idx.txt
+  
+  # Sampling settings for graph dataset
+  sampling:
+    strategy: all  # 'all', 'uniform', or 'random'
+    samples_per_video: 0  # number of checkpoints per video; 0 = use all
+    allow_duplicates: true  # whether sampling can include the same checkpoint multiple times
+    random_seed: 42  # seed for reproducible sampling; null for no fixed seed
+    oversampling: true  # whether to sample all frames (not just checkpoint frames)
+
+  # Ego-topo data paths
+  ego_topo:
+    data_dir: ${directories.scratch.ego_topo}/data/gtea
+    splits:
+      train: ${dataset.ego_topo.data_dir}/split/train_S1.csv
+      val: ${dataset.ego_topo.data_dir}/split/val_S1.csv
+      train_test: ${dataset.ego_topo.data_dir}/train_test_splits.json
+      train_video_lengths: ${dataset.ego_topo.data_dir}/split/train_S1_nframes.csv
+      val_video_lengths: ${dataset.ego_topo.data_dir}/split/val_S1_nframes.csv
+
+# Model settings and paths
+models:
+  clip:
+    model_dir: ${directories.scratch.egtea}/clip_model
+    model_id: "openai/clip-vit-base-patch16"
+  yolo_world:
+    model_dir: ${directories.scratch.egtea}/yolo_world_model
+    model_file: "yolov8x-worldv2.onnx"
+    conf_threshold: 0.15
+    iou_threshold: 0.5
+
+# Training
+training:
+  batch_size: 128
+  num_epochs: 150
+  optimizer: "Adam"
+  lr: 0.001
+  num_classes: 106
+  num_heads: 4
+  hidden_dim: 256
+  num_layers: 3
+  res_connect: false
+  node_dropping: true
+  node_drop_p: 0
+  max_nodes_droppable: 4
+  # Validation set sampling timestamps (as ratios of video length)
+  val_timestamps: [0.25, 0.5, 0.75]
+
+# External resources
+external:
+  urls:
+    dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
+    dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
+    ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
+    yolo_world_model: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
+
+# Processing settings
+processing:
+  n_cores: 2
+  dataloader_workers: 2
+
+# Graph and fixation detection settings
+graph:
+  # Basic fixation parameters
+  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
+  min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
+
+  fixated_object_detection:
+    # Weights for different components of fixation score
+    weights:
+      # Weight for detection duration (higher gives more importance to objects fixated for longer periods)
+      duration: 1.0
+      
+      # Weight for bounding box stability (higher gives more importance to objects with stable positions)
+      bbox_stability: 1.0
+      
+      # Weight for gaze proximity (higher gives more importance to objects closer to gaze point)
+      gaze_proximity: 1.0
+      
+      # Weight for detection confidence (higher gives more importance to confident detections)
+      confidence: 1.0
+    
+    # Thresholds for component scores (objects with scores below thresholds will be filtered out)
+    thresholds:
+      # Bounding box stability threshold (0.0-1.0)
+      # Higher values require more stable bounding boxes
+      # 0.0 = No stability required, 1.0 = Perfect stability required (identical boxes)
+      bbox_stability: 0
+      
+      # Gaze proximity threshold (0.0-1.0)
+      # Higher values require gaze points to be closer to bbox centers
+      # 0.0 = No proximity requirement, 1.0 = Very close proximity required
+      # Value is normalized with 1.0/(1.0 + distance), so closer distances = higher values
+      gaze_proximity: 0
+      
+      # Confidence threshold (0.0-1.0)
+      # Higher values require more confident detections
+      # This is the geometric mean of detection confidences across frames
+      confidence: 0.3
