@@ -6,17 +6,11 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
-.venv
-
-# IDE files
-.vscode/
+# Environment files
+.*
 
 # Local/temporary files
 *.pth
 logs/
 out/
 config/local_config.yaml
-
-# Environment variables
-.env
