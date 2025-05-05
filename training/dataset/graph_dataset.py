@@ -6,11 +6,13 @@ from typing import Dict, List, Optional, Tuple, Union
 from torch_geometric.data import Data, Dataset
 from tqdm import tqdm
 import numpy as np
+from collections import defaultdict
 
 from graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
 from datasets.egtea_gaze.action_record import ActionRecord
 from datasets.egtea_gaze.video_metadata import VideoMetadata
 from training.dataset.augmentations import node_dropping
+from training.dataset.sampling import get_samples
 
 
 class GraphDataset(Dataset):
@@ -49,6 +51,7 @@ class GraphDataset(Dataset):
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p
         self.max_droppable = max_droppable
+        self.config = config
         
         # Initialize video metadata
         self.metadata = VideoMetadata(config)
@@ -58,54 +61,80 @@ class GraphDataset(Dataset):
         
         # Load each video's checkpoints and select only the frames we want
         self.processed_checkpoints = []
+        self.sample_tuples = []  # List of (checkpoint, frame_number) tuples
+        
         for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
-            checkpoints = self._load_and_filter_checkpoints(file_path)
-            self.processed_checkpoints.extend(checkpoints)
-            
-        # Apply sampling based on configuration
-        if config and getattr(config.dataset, 'sampling', None) and self.split == 'train':
-            sampling_cfg = config.dataset.sampling
-            strategy = sampling_cfg.strategy
-            k = sampling_cfg.samples_per_video
-            allow_dup = sampling_cfg.allow_duplicates
-            seed = sampling_cfg.random_seed
-            # Set seed for reproducibility if provided
-            if seed is not None:
-                random.seed(seed)
-                np.random.seed(seed)
-            from collections import defaultdict
-            grouped = defaultdict(list)
-            for cp in self.processed_checkpoints:
-                grouped[cp.video_name].append(cp)
-            sampled = []
-            # 'all' strategy or no sampling requested
-            if strategy == 'all' or k <= 0:
-                sampled = self.processed_checkpoints
-            # 'uniform' or 'random' sampling
-            elif strategy in ('uniform', 'random'):
-                for cps in grouped.values():
-                    cps_sorted = sorted(cps, key=lambda x: x.frame_number)
-                    n = len(cps_sorted)
-                    # Uniform sampling: pick evenly spaced frames
-                    if strategy == 'uniform':
-                        if k >= n:
-                            sampled.extend(random.choices(cps_sorted, k=k) if allow_dup else cps_sorted)
-                        else:
-                            indices = np.linspace(0, n - 1, k, dtype=int).tolist()
-                            sampled.extend([cps_sorted[i] for i in indices])
-                    # Random sampling: pick random frames
-                    else:  # strategy == 'random'
-                        if k >= n:
-                            sampled.extend(random.choices(cps_sorted, k=k) if allow_dup else random.sample(cps_sorted, n))
-                        else:
-                            sampled.extend(random.choices(cps_sorted, k=k) if allow_dup else random.sample(cps_sorted, k))
+            if self.split == "val":
+                # For validation, we use the specified timestamps
+                checkpoints = self._load_and_filter_checkpoints(file_path)
+                self.processed_checkpoints.extend(checkpoints)
+                self.sample_tuples.extend([(cp, cp.frame_number) for cp in checkpoints])
             else:
-                raise ValueError(f"Unknown sampling strategy: {strategy}")
-            self.processed_checkpoints = sampled
+                # For training, we need the raw checkpoints for sampling
+                checkpoints = self._load_checkpoints(file_path)
+                video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
+                self._process_training_checkpoints(checkpoints, video_name)
         
         # Initialize PyG Dataset
         super().__init__(root=str(self.root_dir), transform=transform, 
                          pre_transform=pre_transform, pre_filter=pre_filter)
+    
+    def _process_training_checkpoints(self, checkpoints: List[GraphCheckpoint], video_name: str):
+        """Process training checkpoints with or without oversampling.
+        
+        Args:
+            checkpoints: List of checkpoints to process
+            video_name: Name of the video
+        """
+        # Set action labels for each checkpoint
+        processed_checkpoints = []
+        for checkpoint in checkpoints:
+            if not hasattr(checkpoint, 'video_name') or checkpoint.video_name is None:
+                checkpoint.video_name = video_name
+            processed_checkpoints.append(checkpoint)
+        
+        # Apply sampling if configured
+        if self.config and getattr(self.config.dataset, 'sampling', None):
+            sampling_cfg = self.config.dataset.sampling
+            strategy = sampling_cfg.strategy
+            k = sampling_cfg.samples_per_video
+            allow_dup = sampling_cfg.allow_duplicates
+            oversampling = sampling_cfg.oversampling
+            
+            # Set seed for reproducibility if provided
+            seed = sampling_cfg.random_seed
+            if seed is not None:
+                random.seed(seed)
+                np.random.seed(seed)
+            
+            # Sample according to strategy
+            samples = get_samples(
+                processed_checkpoints,
+                video_name,
+                strategy,
+                k,
+                allow_dup,
+                oversampling,
+                self.metadata
+            )
+            
+            self.sample_tuples.extend(samples)
+        else:
+            # No sampling, use all checkpoints
+            self.processed_checkpoints.extend(processed_checkpoints)
+            self.sample_tuples.extend([(cp, cp.frame_number) for cp in processed_checkpoints])
+    
+    def _load_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
+        """Load all checkpoints from file without filtering.
+        
+        Args:
+            file_path: Path to checkpoint file
+            
+        Returns:
+            List of all checkpoints
+        """
+        # Use the CheckpointManager to load checkpoints
+        return CheckpointManager.load_checkpoints(str(file_path))
     
     def _load_and_filter_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
         """Load checkpoints from file and filter based on split.
@@ -122,34 +151,18 @@ class GraphDataset(Dataset):
         # Use the CheckpointManager to load checkpoints
         all_checkpoints = CheckpointManager.load_checkpoints(str(file_path))
         
-        # Filter and add action labels
-        processed_checkpoints = []
-        for checkpoint in all_checkpoints:
-            # Add action labels to checkpoint
-            action_labels = self.metadata.get_future_action_labels(
-                video_name, checkpoint.frame_number
-            )
-            
-            # Skip if no action labels available
-            if action_labels is None:
-                continue
-                
-            # Add action labels to checkpoint
-            setattr(checkpoint, 'action_labels', action_labels)
-            processed_checkpoints.append(checkpoint)
-        
         # In train mode, keep all checkpoints
         if self.split == "train":
-            return processed_checkpoints
+            return all_checkpoints
         
         # In val mode, sample checkpoints at specific timestamps
         elif self.split == "val":
             # Group by video
-            if not processed_checkpoints:
+            if not all_checkpoints:
                 return []
                 
             # Get video info from first checkpoint
-            video_length = processed_checkpoints[0].video_length
+            video_length = all_checkpoints[0].video_length
             
             # Calculate frame numbers from timestamp ratios
             timestamp_frames = [int(ratio * video_length) for ratio in self.val_timestamps]
@@ -157,7 +170,7 @@ class GraphDataset(Dataset):
             # Find the closest checkpoint to each target frame
             selected_checkpoints = []
             for target_frame in timestamp_frames:
-                closest = min(processed_checkpoints, 
+                closest = min(all_checkpoints, 
                               key=lambda cp: abs(cp.frame_number - target_frame))
                 selected_checkpoints.append(closest)
                 
@@ -165,7 +178,7 @@ class GraphDataset(Dataset):
     
     def len(self) -> int:
         """Get the number of samples in the dataset."""
-        return len(self.processed_checkpoints)
+        return len(self.sample_tuples)
     
     def get(self, idx: int) -> Data:
         """Get a single graph data object.
@@ -176,7 +189,15 @@ class GraphDataset(Dataset):
         Returns:
             PyG Data object
         """
-        checkpoint = self.processed_checkpoints[idx]
+        checkpoint, frame_number = self.sample_tuples[idx]
+        
+        # Get future action labels for the specific frame
+        action_labels = checkpoint.get_future_action_labels(frame_number, self.metadata)
+        
+        # Skip if no action labels available (should not happen due to sampling)
+        if action_labels is None:
+            # Fallback to next sample
+            return self.get((idx + 1) % len(self.sample_tuples))
         
         # Get node features
         node_features = self._extract_node_features(checkpoint)
@@ -185,7 +206,7 @@ class GraphDataset(Dataset):
         edge_index, edge_attr = self._extract_edge_features(checkpoint)
         
         # Get label for the specified task mode
-        y = checkpoint.action_labels[self.task_mode]
+        y = action_labels[self.task_mode]
         
         # Create PyG data object
         data = Data(x=node_features, edge_index=edge_index, edge_attr=edge_attr, y=y)
