@@ -38,6 +38,11 @@ dataset:
     random_seed: 42  # seed for reproducible sampling; null for no fixed seed
     oversampling: true  # whether to sample all frames (not just checkpoint frames)
 
+  # Timestamps for sampling frames at specific video positions
+  timestamps:
+    train: [0.25, 0.5, 0.75]  # For training, sample at these ratios of video length
+    val: [0.25, 0.5, 0.75]    # For validation, sample at these ratios of video length
+
   # Ego-topo data paths
   ego_topo:
     data_dir: ${directories.scratch.ego_topo}/data/gtea
@@ -45,6 +50,8 @@ dataset:
       train: ${dataset.ego_topo.data_dir}/split/train_S1.csv
       val: ${dataset.ego_topo.data_dir}/split/val_S1.csv
       train_test: ${dataset.ego_topo.data_dir}/train_test_splits.json
+      train_video_lengths: ${dataset.ego_topo.data_dir}/split/train_S1_nframes.csv
+      val_video_lengths: ${dataset.ego_topo.data_dir}/split/val_S1_nframes.csv
 
 # Model settings and paths
 models:
@@ -71,8 +78,6 @@ training:
   node_dropping: true
   node_drop_p: 0.5
   max_nodes_droppable: 4
-  # Validation set sampling timestamps (as ratios of video length)
-  val_timestamps: [0.25, 0.5, 0.75]
 
 # External resources
 external:
