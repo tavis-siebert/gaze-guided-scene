@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterator, List, Optional, Dict, Tuple
 
 from datasets.egtea_gaze.video_metadata import VideoMetadata
+from datasets.egtea_gaze.action_record import ActionRecord
 from datasets.egtea_gaze.gaze_data.gaze_io_sample import parse_gtea_gaze
 from config.config_utils import get_config
 from logger import get_logger
@@ -71,10 +72,14 @@ class Video:
         """Get future action labels at a given frame."""
         return self.metadata.get_future_action_labels(self.video_name, frame_number)
 
-    def get_object_labels(self) -> Dict[int, str]:
-        """Get mapping from class index to object label."""
-        return self.metadata.obj_labels  # renamed internally, adjust accordingly
+    def get_object_labels(self) -> List[str]:
+        """Get list of object (noun) labels."""
+        return self.metadata.obj_labels
 
     def get_labels_to_int(self) -> Dict[str, int]:
         """Get mapping from object label to class index."""
-        return self.metadata.labels_to_int 
+        return self.metadata.labels_to_int
+    
+    def get_action_names(self) -> Dict[int, str]:
+        """Get mapping from action indices to human-readable names."""
+        return ActionRecord.get_action_names() 
