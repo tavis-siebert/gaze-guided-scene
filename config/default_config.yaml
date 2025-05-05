@@ -30,6 +30,13 @@ dataset:
     noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
     verb_idx_file: ${dataset.egtea.action_annotations}/verb_idx.txt
   
+  # Sampling settings for graph dataset
+  sampling:
+    strategy: all  # 'all', 'uniform', or 'random'
+    samples_per_video: 0  # number of checkpoints per video; 0 = use all
+    allow_duplicates: true  # whether sampling can include the same checkpoint multiple times
+    random_seed: 42  # seed for reproducible sampling; null for no fixed seed
+
   # Ego-topo data paths
   ego_topo:
     data_dir: ${directories.scratch.ego_topo}/data/gtea
