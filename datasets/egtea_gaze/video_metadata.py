@@ -1,8 +1,8 @@
 """
 Video metadata module for EGTEA Gaze+ dataset.
 
-Simplified abstraction for video metadata, loading object labels,
-action records, and video lengths.
+Simplified abstraction for video metadata, loading action records,
+and video lengths, using noun labels from ActionRecord.
 """
 
 from pathlib import Path
@@ -27,36 +27,18 @@ class VideoMetadata:
             config: Configuration object. If not provided, will use the default config.
         """
         self.config = config or get_config()
-        self.obj_labels, self.labels_to_int = self._load_object_labels()
+        # Load action records first, which will also load name mappings
         ActionRecord.load_name_mappings(self.config.dataset.egtea.action_annotations)
         self.records_by_video, train_records = self._load_records()
         ActionRecord.initialize_action_mapping(train_records)
         self.video_lengths = self._load_video_lengths()
+        
+        # Use noun labels from ActionRecord instead of loading separate object labels
+        self.obj_labels = list(ActionRecord._noun_id_to_name.values())
+        self.labels_to_int = {label: i for i, label in enumerate(self.obj_labels)}
         self.num_object_classes = len(self.obj_labels)
-        logger.info(f"Initialized metadata for {len(self.records_by_video)} videos")
-
-    def _load_object_labels(self) -> Tuple[List[str], Dict[str, int]]:
-        """
-        Load object labels from file.
-
-        Returns:
-            A tuple containing:
-            - List of object labels
-            - Dictionary mapping labels to indices
-        """
-        try:
-            labels_file = self.config.dataset.ego_topo.object_labels
-            with open(labels_file) as f:
-                obj_labels = [line.strip() for line in f if line.strip()]
-            labels_to_int = {label: i for i, label in enumerate(obj_labels)}
-            logger.info(f"Loaded {len(obj_labels)} object labels")
-            return obj_labels, labels_to_int
-        except FileNotFoundError:
-            logger.error(f"Object labels file not found at {labels_file}")
-            raise
-        except Exception as e:
-            logger.error(f"Error loading object labels: {e}")
-            raise
+        
+        logger.info(f"Initialized metadata for {len(self.records_by_video)} videos with {self.num_object_classes} object classes")
 
     def _load_records(self) -> Tuple[Dict[str, List[ActionRecord]], List[ActionRecord]]:
         """
@@ -117,38 +99,15 @@ class VideoMetadata:
             raise
 
     def get_records_for_video(self, video_name: str) -> List[ActionRecord]:
-        """Get action records for a video.
-        
-        Args:
-            video_name: Name of the video
-            
-        Returns:
-            List of action records for the video
-        """
+        """Get action records for a video."""
         return self.records_by_video.get(video_name, [])
 
     def get_video_length(self, video_name: str) -> int:
-        """
-        Get the total number of frames in a video.
-
-        Args:
-            video_name: Name of the video.
-
-        Returns:
-            Frame count.
-        """
+        """Get the total number of frames in a video."""
         return self.video_lengths.get(video_name, 0)
 
     def get_action_frame_range(self, video_name: str) -> Tuple[int, int]:
-        """
-        Get the start and end frame of actions for a video.
-
-        Args:
-            video_name: Name of the video.
-
-        Returns:
-            (first_frame, last_frame).
-        """
+        """Get the start and end frame of actions for a video."""
         recs = self.get_records_for_video(video_name)
         if not recs:
             return 0, self.get_video_length(video_name)
@@ -157,16 +116,7 @@ class VideoMetadata:
         return start, end
 
     def get_future_action_labels(self, video_name: str, current_frame: int) -> Optional[Dict[str, torch.Tensor]]:
-        """
-        Create labels for future action prediction at a frame.
-
-        Args:
-            video_name: Name of the video.
-            current_frame: Frame index.
-
-        Returns:
-            Dict with next_action, future_actions, future_actions_ordered or None.
-        """
+        """Create labels for future action prediction at a frame."""
         records = self.get_records_for_video(video_name)
         return ActionRecord.create_future_action_labels(records, current_frame)
 
@@ -179,25 +129,9 @@ class VideoMetadata:
         return list(self.records_by_video.keys())
 
     def get_video_path(self, video_name: str) -> str:
-        """
-        Get full path to a video file.
-
-        Args:
-            video_name: Name of the video.
-
-        Returns:
-            Path as string.
-        """
+        """Get full path to a video file."""
         return str(Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4")
 
     def get_gaze_data_path(self, video_name: str) -> str:
-        """
-        Get full path to a gaze data file.
-
-        Args:
-            video_name: Name of the video.
-
-        Returns:
-            Path as string.
-        """
+        """Get full path to a gaze data file."""
         return str(Path(self.config.dataset.egtea.gaze_data) / f"{video_name}.txt") 
