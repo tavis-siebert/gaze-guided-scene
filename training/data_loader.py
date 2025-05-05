@@ -352,7 +352,7 @@ def tarjans(adj_lists: list[list[int]]):
     artPoints = set()
     time = 0
     
-    def dfs_AP(u, parent):
+    def dfs_AP(u, parent_u):
         nonlocal time
         children = 0
         discovered[u] = True
@@ -375,7 +375,7 @@ def tarjans(adj_lists: list[list[int]]):
                 if parent[u] != -1 and low[v] >= disc[u]:
                     artPoints.add(u)
             
-            elif v != parent[u]:
+            elif v != parent_u:
                 low[u] = min(low[u], disc[v])
                 
     for i in range(n):
