@@ -265,7 +265,7 @@ class ObjectDetector:
             
             # Apply minimum fixation threshold
             if fixation_ratio < self.min_fixation_frame_ratio:
-                logger.info(f"Object {obj_name} filtered out: fixation ratio {fixation_ratio:.2f} < threshold {self.min_fixation_frame_ratio}")
+                logger.debug(f"Object {obj_name} filtered out: fixation ratio {fixation_ratio:.2f} < threshold {self.min_fixation_frame_ratio}")
                 self.filtered_stats['fixation_ratio'] += 1
                 continue
                 
@@ -283,7 +283,7 @@ class ObjectDetector:
             
             # Apply confidence threshold
             if mean_confidence < self.confidence_threshold:
-                logger.info(f"Object {obj_name} filtered out: confidence score {mean_confidence:.2f} < threshold {self.confidence_threshold}")
+                logger.debug(f"Object {obj_name} filtered out: confidence score {mean_confidence:.2f} < threshold {self.confidence_threshold}")
                 self.filtered_stats['confidence'] += 1
                 continue
             
@@ -293,7 +293,7 @@ class ObjectDetector:
             
             # Apply stability threshold
             if stability_score < self.bbox_stability_threshold:
-                logger.info(f"Object {obj_name} filtered out: stability score {stability_score:.2f} < threshold {self.bbox_stability_threshold}")
+                logger.debug(f"Object {obj_name} filtered out: stability score {stability_score:.2f} < threshold {self.bbox_stability_threshold}")
                 self.filtered_stats['stability'] += 1
                 continue
             
@@ -305,7 +305,7 @@ class ObjectDetector:
             
             # Apply gaze proximity threshold
             if gaze_weight < self.gaze_proximity_threshold:
-                logger.info(f"Object {obj_name} filtered out: gaze proximity {gaze_weight:.2f} < threshold {self.gaze_proximity_threshold}")
+                logger.debug(f"Object {obj_name} filtered out: gaze proximity {gaze_weight:.2f} < threshold {self.gaze_proximity_threshold}")
                 self.filtered_stats['gaze_proximity'] += 1
                 continue
             
@@ -326,19 +326,19 @@ class ObjectDetector:
                 
             self.filtered_stats['passed_all'] += 1
             
-            logger.info(f"Fixation score for {obj_name}: {final_score:.4f}")
-            logger.info(f"  - Duration score: {duration_weighted_score:.4f} (ratio: {fixation_ratio:.2f})")
-            logger.info(f"  - Confidence score: {mean_confidence:.4f} (threshold: {self.confidence_threshold})")
-            logger.info(f"  - Stability score: {stability_score:.4f} (threshold: {self.bbox_stability_threshold})")
-            logger.info(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f}, threshold: {self.gaze_proximity_threshold})")
+            logger.debug(f"Fixation score for {obj_name}: {final_score:.4f}")
+            logger.debug(f"  - Duration score: {duration_weighted_score:.4f} (ratio: {fixation_ratio:.2f})")
+            logger.debug(f"  - Confidence score: {mean_confidence:.4f} (threshold: {self.confidence_threshold})")
+            logger.debug(f"  - Stability score: {stability_score:.4f} (threshold: {self.bbox_stability_threshold})")
+            logger.debug(f"  - Gaze weight: {gaze_weight:.4f} (distance to center: {gaze_distance:.2f}, threshold: {self.gaze_proximity_threshold})")
             
         # Log filter statistics
         if self.filtered_stats['total_considered'] > 0:
-            logger.info(f"Fixation filtering stats: {self.filtered_stats['passed_all']}/{self.filtered_stats['total_considered']} passed all filters")
-            logger.info(f"  - Filtered by fixation ratio: {self.filtered_stats['fixation_ratio']}")
-            logger.info(f"  - Filtered by confidence: {self.filtered_stats['confidence']}")
-            logger.info(f"  - Filtered by stability: {self.filtered_stats['stability']}")
-            logger.info(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
+            logger.debug(f"Fixation filtering stats: {self.filtered_stats['passed_all']}/{self.filtered_stats['total_considered']} passed all filters")
+            logger.debug(f"  - Filtered by fixation ratio: {self.filtered_stats['fixation_ratio']}")
+            logger.debug(f"  - Filtered by confidence: {self.filtered_stats['confidence']}")
+            logger.debug(f"  - Filtered by stability: {self.filtered_stats['stability']}")
+            logger.debug(f"  - Filtered by gaze proximity: {self.filtered_stats['gaze_proximity']}")
 
         # Store final scores in the instance variable
         self.fixation_scores = {obj: scores[obj]['final_score'] for obj in scores}
@@ -397,7 +397,15 @@ class ObjectDetector:
         # Log only fixated detections
         fixated_detections = [d for d in detections if d.is_fixated]
         if fixated_detections:
-            logger.info(f"[Frame {frame_idx}] {len(fixated_detections)} fixated object detections:")
+            fixated_count = len(fixated_detections)
+            
+            top_object = next((d for d in fixated_detections if d.is_top_scoring), None)
+            if top_object:
+                logger.info(f"[Frame {frame_idx}] Top fixated object: {top_object.class_name} (score: {top_object.fixation_score:.2f})")
+            else:
+                logger.info(f"[Frame {frame_idx}] Found {fixated_count} fixated objects")
+            
+            logger.debug(f"[Frame {frame_idx}] {fixated_count} fixated object detections:")
             for detection in fixated_detections:
                 bbox = detection.bbox
                 top_indicator = " (TOP)" if detection.is_top_scoring else ""
@@ -406,13 +414,13 @@ class ObjectDetector:
                 if detection.fixation_score > 0:
                     score_info += f", fixation score: {detection.fixation_score:.2f}{top_indicator}"
                     
-                logger.info(f"  - {detection.class_name} ({score_info}, "
+                logger.debug(f"  - {detection.class_name} ({score_info}, "
                           f"bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}])")
                 
                 # Log component scores if available and significant
                 if detection.fixation_score > 0:
                     comp = detection.components
-                    logger.info(f"    Components: conf={comp.confidence:.2f}, "
+                    logger.debug(f"    Components: conf={comp.confidence:.2f}, "
                                f"stab={comp.stability:.2f}, "
                                f"gaze={comp.gaze_proximity:.2f}, "
                                f"ratio={comp.fixation_ratio:.2f}")
@@ -623,7 +631,7 @@ class ObjectDetector:
         # Get object with highest fixation score
         fixated_object, score = max(self.fixation_scores.items(), key=lambda x: x[1])
         
-        # Log all scores for comparison
+        # Log all scores for comparison (at INFO level as this is final output)
         logger.info("Final fixation scores:")
         for obj, s in sorted(self.fixation_scores.items(), key=lambda x: x[1], reverse=True):
             logger.info(f"  - {obj}: {s:.4f}")

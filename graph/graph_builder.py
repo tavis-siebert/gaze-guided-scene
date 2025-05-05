@@ -229,14 +229,14 @@ class GraphBuilder:
         
         # Only proceed if we found fixated objects during this fixation period
         if not self.object_detector.has_fixated_objects():
-            logger.info(f"- No fixated objects found during this fixation period, skipping node creation")
+            logger.debug(f"- No fixated objects found during this fixation period, skipping node creation")
             self._reset_fixation_state(gaze_point)
             return
         
         fixated_object, confidence = self.object_detector.get_fixated_object()
         
-        logger.info(f"- Fixated object: {fixated_object} (confidence: {confidence:.2f})")
-        logger.info(f"- Visit duration: {fixation_duration} frames")
+        logger.debug(f"- Fixated object: {fixated_object} (confidence: {confidence:.2f})")
+        logger.debug(f"- Visit duration: {fixation_duration} frames")
         
         visit_record = [self.visit_start, self.visit_end]
         
@@ -251,7 +251,6 @@ class GraphBuilder:
             prev_position,
             gaze_point.position
         )
-        
         self._reset_fixation_state(gaze_point)
     
     def _reset_fixation_state(self, gaze_point: GazePoint):
@@ -270,7 +269,7 @@ class GraphBuilder:
         if self.visit_start == -1 or not self.object_detector.has_fixated_objects():
             return
         
-        logger.info("- Final fixation detected, creating dummy saccade")
+        logger.info("- Final fixation detected, updating graph...")
         self.visit_end = self.non_black_frame_count - 1
         
         # Create a dummy saccade point at a slightly different position from the last fixation
