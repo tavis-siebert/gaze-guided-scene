@@ -30,39 +30,33 @@ class VideoMetadata:
         self.obj_labels, self.labels_to_int = self._load_object_labels()
         ActionRecord.load_name_mappings(self.config.dataset.egtea.action_annotations)
         self.records_by_video, train_records = self._load_records()
-        ActionRecord.set_action_mapping(train_records)
+        ActionRecord.initialize_action_mapping(train_records)
         self.video_lengths = self._load_video_lengths()
         self.num_object_classes = len(self.obj_labels)
         logger.info(f"Initialized metadata for {len(self.records_by_video)} videos")
 
-    def _load_object_labels(self) -> Tuple[Dict[int, str], Dict[str, int]]:
+    def _load_object_labels(self) -> Tuple[List[str], Dict[str, int]]:
         """
-        Load object labels from noun index file.
+        Load object labels from file.
 
         Returns:
-            A tuple of (class_idx_to_label, label_to_class_idx).
+            A tuple containing:
+            - List of object labels
+            - Dictionary mapping labels to indices
         """
-        path = Path(self.config.dataset.egtea.noun_idx_file)
-        obj_labels: Dict[int, str] = {}
-        labels_to_int: Dict[str, int] = {}
         try:
-            with open(path) as f:
-                for line in f:
-                    parts = line.strip().split()
-                    if len(parts) < 2:
-                        continue
-                    label = " ".join(parts[:-1])
-                    idx = int(parts[-1]) - 1
-                    obj_labels[idx] = label
-                    labels_to_int[label] = idx
+            labels_file = self.config.dataset.ego_topo.object_labels
+            with open(labels_file) as f:
+                obj_labels = [line.strip() for line in f if line.strip()]
+            labels_to_int = {label: i for i, label in enumerate(obj_labels)}
             logger.info(f"Loaded {len(obj_labels)} object labels")
+            return obj_labels, labels_to_int
         except FileNotFoundError:
-            logger.error(f"Object labels file not found at {path}")
+            logger.error(f"Object labels file not found at {labels_file}")
             raise
         except Exception as e:
             logger.error(f"Error loading object labels: {e}")
             raise
-        return obj_labels, labels_to_int
 
     def _load_records(self) -> Tuple[Dict[str, List[ActionRecord]], List[ActionRecord]]:
         """
@@ -99,36 +93,37 @@ class VideoMetadata:
 
     def _load_video_lengths(self) -> Dict[str, int]:
         """
-        Load video lengths from corresponding nframes files.
+        Load video lengths from file.
 
         Returns:
-            Mapping from video name to frame count.
+            Dictionary mapping video names to frame counts
         """
-        lengths: Dict[str, int] = {}
-        splits = self.config.dataset.ego_topo.splits
-        for split_name in ("train", "val"):
-            ann_file = getattr(splits, split_name)
-            nframes_file = ann_file.replace(".csv", "_nframes.csv")
-            try:
-                with open(nframes_file) as f:
-                    for line in f:
-                        if not line.strip():
-                            continue
-                        vid, val = line.strip().split("\t")
-                        lengths[vid] = int(val)
-            except Exception as e:
-                logger.error(f"Failed loading lengths from {nframes_file}: {e}")
-        return lengths
+        try:
+            lengths_file = self.config.dataset.ego_topo.video_lengths
+            video_lengths = {}
+            with open(lengths_file) as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    video_name, length = line.strip().split(" ")
+                    video_lengths[video_name] = int(length)
+            logger.info(f"Loaded lengths for {len(video_lengths)} videos")
+            return video_lengths
+        except FileNotFoundError:
+            logger.error(f"Video lengths file not found at {lengths_file}")
+            raise
+        except Exception as e:
+            logger.error(f"Error loading video lengths: {e}")
+            raise
 
     def get_records_for_video(self, video_name: str) -> List[ActionRecord]:
-        """
-        Get action records for a specific video.
-
+        """Get action records for a video.
+        
         Args:
-            video_name: Name of the video.
-
+            video_name: Name of the video
+            
         Returns:
-            List of ActionRecord objects.
+            List of action records for the video
         """
         return self.records_by_video.get(video_name, [])
 
