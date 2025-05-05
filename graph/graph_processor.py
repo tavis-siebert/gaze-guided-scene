@@ -158,11 +158,10 @@ def process_video_worker(
             output_dir=output_dir,
             overwrite=overwrite
         )
-    except AttributeError as e:
-        logger.error(f"Error processing {video_name}: {str(e)}")
-        saved_path = None
     except Exception as e:
         logger.error(f"Error processing {video_name}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         saved_path = None
     
     return video_name, saved_path, split
