@@ -1,15 +1,12 @@
 import random
 import torch
-import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from torch_geometric.data import Data, Dataset
 from tqdm import tqdm
 import numpy as np
-from collections import defaultdict
 
 from graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
-from datasets.egtea_gaze.action_record import ActionRecord
 from datasets.egtea_gaze.video_metadata import VideoMetadata
 from training.dataset.augmentations import node_dropping
 from training.dataset.sampling import get_samples
@@ -64,20 +61,17 @@ class GraphDataset(Dataset):
         # Find all graph checkpoint files
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         
-        # Load each video's checkpoints and select only the frames we want
-        self.processed_checkpoints = []
-        self.sample_tuples = []  # List of (checkpoint, frame_number) tuples
+        # Load each video's checkpoints and build sample tuples
+        self.sample_tuples: List[Tuple[GraphCheckpoint, dict]] = []
         
         for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
             if self.split == "val":
-                # For validation, we use the specified timestamps
-                checkpoints = self._load_and_filter_checkpoints(file_path)
-                self.processed_checkpoints.extend(checkpoints)
-                self.sample_tuples.extend([(cp, cp.frame_number) for cp in checkpoints])
+                # For validation, sample tuples are populated in filter method
+                self._load_and_filter_checkpoints(file_path)
             else:
-                # For training, we need the raw checkpoints for sampling
+                # For training, sampling populates sample_tuples
                 checkpoints = self._load_checkpoints(file_path)
-                video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
+                video_name = Path(file_path).stem.split('_')[0]
                 self._process_training_checkpoints(checkpoints, video_name)
         
         # Initialize PyG Dataset
@@ -127,9 +121,8 @@ class GraphDataset(Dataset):
         else:
             # No sampling, use all checkpoints but still filter for valid action labels
             for checkpoint in processed_checkpoints:
-                action_labels = checkpoint.get_future_action_labels(checkpoint.frame_number, self.metadata)
-                if action_labels is not None:
-                    self.sample_tuples.append((checkpoint, checkpoint.frame_number, action_labels))
+                if (labels := checkpoint.get_future_action_labels(checkpoint.frame_number, self.metadata)) is not None:
+                    self.sample_tuples.append((checkpoint, labels))
     
     def _load_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
         """Load all checkpoints from file without filtering.
@@ -157,14 +150,11 @@ class GraphDataset(Dataset):
                 
         return checkpoints
     
-    def _load_and_filter_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
+    def _load_and_filter_checkpoints(self, file_path: Path):
         """Load checkpoints from file and filter based on split.
         
         Args:
             file_path: Path to checkpoint file
-            
-        Returns:
-            List of filtered checkpoints with added action labels
         """
         # Extract video name for looking up records
         video_name = Path(file_path).stem.split('_')[0]  # Assuming format: video_name_graph.pth
@@ -183,20 +173,15 @@ class GraphDataset(Dataset):
         
         # In train mode, keep all checkpoints
         if self.split == "train":
-            processed_checkpoints = []
             for checkpoint in all_checkpoints:
-                action_labels = checkpoint.get_future_action_labels(checkpoint.frame_number, self.metadata)
-                if action_labels is not None:
-                    # Store pre-computed action labels
-                    self.sample_tuples.append((checkpoint, checkpoint.frame_number, action_labels))
-                    processed_checkpoints.append(checkpoint)
-            return processed_checkpoints
+                if (labels := checkpoint.get_future_action_labels(checkpoint.frame_number, self.metadata)) is not None:
+                    self.sample_tuples.append((checkpoint, labels))
         
         # In val mode, sample checkpoints at specific timestamps
         elif self.split == "val":
             # Group by video
             if not all_checkpoints:
-                return []
+                return
                 
             # Get video info from first checkpoint
             video_length = all_checkpoints[0].video_length
@@ -210,13 +195,9 @@ class GraphDataset(Dataset):
                 closest = min(all_checkpoints, 
                               key=lambda cp: abs(cp.frame_number - target_frame))
                 
-                # Only include if it has valid action labels
-                action_labels = closest.get_future_action_labels(closest.frame_number, self.metadata)
-                if action_labels is not None:
+                if (labels := closest.get_future_action_labels(closest.frame_number, self.metadata)) is not None:
                     selected_checkpoints.append(closest)
-                    self.sample_tuples.append((closest, closest.frame_number, action_labels))
-                
-            return selected_checkpoints
+                    self.sample_tuples.append((closest, labels))
     
     def len(self) -> int:
         """Get the number of samples in the dataset."""
@@ -231,7 +212,7 @@ class GraphDataset(Dataset):
         Returns:
             PyG Data object
         """
-        checkpoint, frame_number, action_labels = self.sample_tuples[idx]
+        checkpoint, action_labels = self.sample_tuples[idx]
 
         # Get node features
         node_features = self._extract_node_features(checkpoint)

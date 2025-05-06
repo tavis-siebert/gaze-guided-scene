@@ -8,9 +8,8 @@ This module provides sampling strategies for graph datasets, including:
 """
 
 import random
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 import numpy as np
-from pathlib import Path
 
 from graph.checkpoint_manager import GraphCheckpoint
 from datasets.egtea_gaze.video_metadata import VideoMetadata
@@ -24,7 +23,7 @@ def get_samples(
     allow_duplicates: bool,
     oversampling: bool,
     metadata: VideoMetadata
-) -> List[Tuple[GraphCheckpoint, int, Dict]]:
+) -> List[Tuple[GraphCheckpoint, Dict]]:
     """Sample checkpoints according to the specified strategy.
     
     Args:
@@ -37,9 +36,7 @@ def get_samples(
         metadata: VideoMetadata object to get valid frame ranges
     
     Returns:
-        List of tuples (checkpoint, frame_number, action_labels), where frame_number is the actual 
-        frame to use for label generation and action_labels is pre-computed future action labels.
-        When oversampling is False, frame_number will be the same as checkpoint.frame_number.
+        List of tuples (checkpoint, action_labels), where action_labels is pre-computed future action labels.
     
     Raises:
         ValueError: If the strategy is not recognized
@@ -68,7 +65,7 @@ def _sample_from_checkpoints(
     samples_per_video: int,
     allow_duplicates: bool,
     metadata: VideoMetadata
-) -> List[Tuple[GraphCheckpoint, int, Dict]]:
+) -> List[Tuple[GraphCheckpoint, Dict]]:
     """Sample from available checkpoint frames without oversampling.
     
     Args:
@@ -79,45 +76,39 @@ def _sample_from_checkpoints(
         metadata: VideoMetadata object used to get future action labels
     
     Returns:
-        List of tuples (checkpoint, frame_number, action_labels)
+        List of tuples (checkpoint, action_labels)
     
     Raises:
         ValueError: If the strategy is not recognized
     """
-    # First prepare all potential samples with their frames
-    potential_samples = []
+    # Build all valid (checkpoint, labels) pairs
+    potential = []
     for cp in checkpoints:
-        action_labels = cp.get_future_action_labels(cp.frame_number, metadata)
-        if action_labels is not None:
-            potential_samples.append((cp, cp.frame_number, action_labels))
-    
-    n = len(potential_samples)
-    if n == 0:
+        labels = cp.get_future_action_labels(cp.frame_number, metadata)
+        if labels is not None:
+            potential.append((cp, labels))
+    if not potential:
         return []
     
-    # 'all' strategy: use all valid checkpoints
+    # 'all' strategy: return all valid checkpoints
     if strategy == 'all' or samples_per_video <= 0:
-        return potential_samples
+        return potential
     
     # 'uniform' strategy: sample evenly spaced checkpoints
     if strategy == 'uniform':
-        if samples_per_video >= n:
-            samples_to_use = random.choices(potential_samples, k=samples_per_video) if allow_duplicates else potential_samples
-        else:
-            indices = np.linspace(0, n - 1, samples_per_video, dtype=int).tolist()
-            samples_to_use = [potential_samples[i] for i in indices]
+        if samples_per_video >= len(potential):
+            return random.choices(potential, k=samples_per_video) if allow_duplicates else potential
+        indices = np.linspace(0, len(potential) - 1, samples_per_video, dtype=int).tolist()
+        return [potential[i] for i in indices]
     
     # 'random' strategy: sample random checkpoints
     elif strategy == 'random':
-        if samples_per_video >= n:
-            samples_to_use = random.choices(potential_samples, k=samples_per_video) if allow_duplicates else potential_samples
-        else:
-            samples_to_use = random.choices(potential_samples, k=samples_per_video) if allow_duplicates else random.sample(potential_samples, samples_per_video)
+        if samples_per_video >= len(potential):
+            return random.choices(potential, k=samples_per_video) if allow_duplicates else potential
+        return random.choices(potential, k=samples_per_video) if allow_duplicates else random.sample(potential, samples_per_video)
     
     else:
         raise ValueError(f"Unknown sampling strategy: {strategy}")
-    
-    return samples_to_use
 
 
 def _sample_with_oversampling(
@@ -127,7 +118,7 @@ def _sample_with_oversampling(
     samples_per_video: int,
     allow_duplicates: bool,
     metadata: VideoMetadata
-) -> List[Tuple[GraphCheckpoint, int, Dict]]:
+) -> List[Tuple[GraphCheckpoint, Dict]]:
     """Sample from all valid frames using oversampling.
     
     Args:
@@ -139,7 +130,7 @@ def _sample_with_oversampling(
         metadata: VideoMetadata object to get valid frame ranges
     
     Returns:
-        List of tuples (checkpoint, frame_number, action_labels)
+        List of tuples (checkpoint, action_labels)
     
     Raises:
         ValueError: If the strategy is not recognized
@@ -154,47 +145,35 @@ def _sample_with_oversampling(
     # All valid frames for sampling
     valid_frames = list(range(start_frame, end_frame + 1))
     
-    # First filter out frames with no future actions
-    potential_frames = []
+    # Build all valid (checkpoint, labels) pairs for oversampling
+    potential = []
     for frame in valid_frames:
-        # Find the most recent checkpoint that is at or before the current frame
-        suitable_checkpoints = [cp for cp in checkpoints if cp.frame_number <= frame]
-        if not suitable_checkpoints:
+        suitable = [cp for cp in checkpoints if cp.frame_number <= frame]
+        if not suitable:
             continue
-        
-        checkpoint = suitable_checkpoints[-1]
-        action_labels = checkpoint.get_future_action_labels(frame, metadata)
-        if action_labels is not None:
-            potential_frames.append((frame, checkpoint, action_labels))
-    
-    if not potential_frames:
+        cp = suitable[-1]
+        labels = cp.get_future_action_labels(frame, metadata)
+        if labels is not None:
+            potential.append((cp, labels))
+    if not potential:
         return []
     
-    n_frames = len(potential_frames)
-    
-    # 'all' strategy: use all valid frames
+    # 'all' strategy: return all valid frames
     if strategy == 'all' or samples_per_video <= 0:
-        frames_to_sample = potential_frames
+        return potential
     
     # 'uniform' strategy: sample evenly spaced frames
     elif strategy == 'uniform':
-        if samples_per_video >= n_frames:
-            frames_to_sample = random.choices(potential_frames, k=samples_per_video) if allow_duplicates else potential_frames
-        else:
-            indices = np.linspace(0, n_frames - 1, samples_per_video, dtype=int).tolist()
-            frames_to_sample = [potential_frames[i] for i in indices]
+        if samples_per_video >= len(potential):
+            return random.choices(potential, k=samples_per_video) if allow_duplicates else potential
+        indices = np.linspace(0, len(potential) - 1, samples_per_video, dtype=int).tolist()
+        return [potential[i] for i in indices]
     
     # 'random' strategy: sample random frames
     elif strategy == 'random':
-        if samples_per_video >= n_frames:
-            frames_to_sample = random.choices(potential_frames, k=samples_per_video) if allow_duplicates else potential_frames
-        else:
-            frames_to_sample = random.choices(potential_frames, k=samples_per_video) if allow_duplicates else random.sample(potential_frames, samples_per_video)
+        if samples_per_video >= len(potential):
+            return random.choices(potential, k=samples_per_video) if allow_duplicates else potential
+        return random.choices(potential, k=samples_per_video) if allow_duplicates else random.sample(potential, samples_per_video)
     
     else:
-        raise ValueError(f"Unknown sampling strategy: {strategy}")
-    
-    # Convert to expected format (checkpoint, frame_number, action_labels)
-    result = [(checkpoint, frame, action_labels) for frame, checkpoint, action_labels in frames_to_sample]
-    
-    return result 
+        raise ValueError(f"Unknown sampling strategy: {strategy}") 
