@@ -78,40 +78,34 @@ logs/                    # Training and execution logs
    
    > **Note:** Dropbox tokens expire after a period of time. If you encounter authentication errors, you'll need to generate a new token following the steps above.
 
-3. **Install the package**:
+3. **Download dataset**:
    ```bash
-   cd src/
-   uv pip install -e .
+   ./run.sh setup-scratch
    ```
 
-4. **Download dataset**:
+4. **Build scene graphs**:
    ```bash
-   python src/gaze_guided_scene/main.py setup-scratch
-   ```
-
-5. **Build scene graphs**:
-   ```bash
-   python src/gaze_guided_scene/main.py build-graphs
+   ./run.sh build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   python src/gaze_guided_scene/main.py build-graphs --videos VIDEO_NAME --enable-tracing
+   ./run.sh build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
-6. **Train a model**:
+5. **Train a model**:
    ```bash
-   python src/gaze_guided_scene/main.py train --task future_actions
+   ./run.sh train --task future_actions
    ```
    
    Or for next action prediction:
    ```bash
-   python src/gaze_guided_scene/main.py train --task next_action
+   ./run.sh train --task next_action
    ```
 
-7. **Visualize graph construction** (requires prior trace generation):
+6. **Visualize graph construction** (requires prior trace generation):
    ```bash
-   python src/gaze_guided_scene/main.py visualize --video-name VIDEO_NAME
+   ./run.sh visualize --video-name VIDEO_NAME
    ```
 
 ## Component Descriptions
@@ -184,10 +178,10 @@ The project includes TensorBoard integration for visualizing training metrics an
 
 ```bash
 # Run training with TensorBoard logging
-python src/gaze_guided_scene/main.py train --task next_action --device gpu
+./run.sh train --task next_action --device gpu
 
 # Run training with TensorBoard logging
-python src/gaze_guided_scene/main.py train --task future_actions --device gpu
+./run.sh train --task future_actions --device gpu
 
 # Launch TensorBoard to view metrics
 tensorboard --logdir logs
@@ -196,7 +190,7 @@ tensorboard --logdir logs
 ## Command-Line Interface
 
 ```bash
-python src/gaze_guided_scene/main.py [options] <command>
+./run.sh [options] <command>
 ```
 
 **Commands**:
