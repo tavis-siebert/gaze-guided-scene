@@ -177,7 +177,7 @@ def main():
         if args.trace_path:
             trace_file = Path(args.trace_path)
         elif args.video_name:
-            trace_file = Path(config.directories.repo.traces) / f"{args.video_name}_trace.jsonl"
+            trace_file = Path(config.directories.traces) / f"{args.video_name}_trace.jsonl"
         else:
             logger.error("Either --video-name or --trace-path must be provided")
             sys.exit(1)
