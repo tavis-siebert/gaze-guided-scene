@@ -304,10 +304,6 @@ class ActionRecord:
         
         past_records = [record for record in records if record.end_frame <= current_frame]
         future_records = [record for record in records if record.start_frame > current_frame]
-        
-        if len(past_records) < 3 or len(future_records) < 3:
-            return None
-        
         future_records = sorted(future_records, key=lambda record: record.start_frame)
         
         future_actions = [
