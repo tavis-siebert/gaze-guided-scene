@@ -5,8 +5,8 @@ from typing import Dict, Any, Tuple, Union, Optional
 import getpass
 from dataclasses import dataclass
 
-# Get absolute path to repository root directory (parent of config directory)
-REPO_ROOT = str(Path(__file__).parent.parent.absolute())
+# Get absolute path to repository root directory
+REPO_ROOT = str(Path(__file__).parent.parent.parent.parent.absolute())
 
 # Global cached config
 _GLOBAL_CONFIG = None
