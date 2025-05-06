@@ -11,10 +11,10 @@ from typing import Dict, List, Optional, Tuple
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from graph.graph_builder import GraphBuilder
-from graph.utils import split_list, filter_videos
-from config.config_utils import DotDict
-from logger import get_logger
+from gaze_guided_scene.graph.graph_builder import GraphBuilder
+from gaze_guided_scene.graph.utils import split_list, filter_videos
+from gaze_guided_scene.config.config_utils import DotDict
+from gaze_guided_scene.logger import get_logger
 
 logger = get_logger(__name__)
 

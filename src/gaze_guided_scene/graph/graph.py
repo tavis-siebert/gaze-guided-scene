@@ -1,18 +1,17 @@
-from typing import Dict, List, Optional, Set, Tuple, Any
+from typing import Dict, List, Optional, Set, Tuple, Any, TYPE_CHECKING
 import torch
 import numpy as np
 from collections import deque, defaultdict
 import math
-from typing import TYPE_CHECKING
 
-from graph.node import Node, VisitRecord
-from graph.edge import Edge
-from graph.utils import AngleUtils, GraphTraversal
-from graph.visualizer import GraphVisualizer
-from logger import get_logger
+from gaze_guided_scene.graph.node import Node, VisitRecord
+from gaze_guided_scene.graph.edge import Edge
+from gaze_guided_scene.graph.utils import AngleUtils, GraphTraversal
+from gaze_guided_scene.logger import get_logger
 
 if TYPE_CHECKING:
-    from graph.checkpoint_manager import GraphCheckpoint
+    from gaze_guided_scene.graph.checkpoint_manager import GraphCheckpoint
+    from gaze_guided_scene.graph.visualizer import GraphVisualizer
 
 GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor

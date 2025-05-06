@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 from pathlib import Path
 
-from graph.dashboard.components.base import BaseComponent
+from gaze_guided_scene.graph.dashboard.components.base import BaseComponent
 
 
 class MetaInfo(BaseComponent):

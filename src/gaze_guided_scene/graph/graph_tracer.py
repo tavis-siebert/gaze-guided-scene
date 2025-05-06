@@ -12,7 +12,7 @@ from typing import Dict, Any, List, Optional, Union, Tuple
 import logging
 import numpy as np
 
-from logger import get_logger
+from gaze_guided_scene.logger import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)

@@ -1,5 +1,5 @@
 """Playback controls component for dashboard."""
 
-from graph.dashboard.components.playback_controls.playback_controls import PlaybackControls
+from gaze_guided_scene.graph.dashboard.components.playback_controls.playback_controls import PlaybackControls
 
 __all__ = ['PlaybackControls'] 

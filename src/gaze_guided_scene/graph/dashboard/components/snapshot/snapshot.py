@@ -6,7 +6,7 @@ from dash import html
 import pandas as pd
 import dash
 
-from graph.dashboard.playback import Playback
+from gaze_guided_scene.graph.dashboard.playback import Playback
 
 
 class Snapshot:

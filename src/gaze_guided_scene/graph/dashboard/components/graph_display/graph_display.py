@@ -5,14 +5,14 @@ import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from graph.dashboard.components.base import BaseComponent
-from graph.dashboard.utils.constants import (
+from gaze_guided_scene.graph.dashboard.components.base import BaseComponent
+from gaze_guided_scene.graph.dashboard.utils.constants import (
     FIGURE_HEIGHT, FIGURE_MARGIN, FIGURE_BG_COLOR, FIGURE_PAPER_BG_COLOR,
     FIGURE_HOVER_LABEL, MAX_EDGE_HOVER_POINTS
 )
-from graph.dashboard.components.graph_display.layout import compute_graph_layout
-from graph.dashboard.components.graph_display.plotting import create_empty_graph, add_edges_to_figure, add_nodes_to_figure
-from logger import get_logger
+from gaze_guided_scene.graph.dashboard.components.graph_display.layout import compute_graph_layout
+from gaze_guided_scene.graph.dashboard.components.graph_display.plotting import create_empty_graph, add_edges_to_figure, add_nodes_to_figure
+from gaze_guided_scene.logger import get_logger
 
 logger = get_logger(__name__)
 

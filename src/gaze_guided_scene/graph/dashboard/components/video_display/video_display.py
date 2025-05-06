@@ -1,7 +1,5 @@
-"""Video display component for the graph visualization dashboard."""
 from typing import Optional, List, Tuple, Dict, Any
 import threading
-from logger import get_logger
 import cv2
 import numpy as np
 import plotly.graph_objects as go
@@ -11,11 +9,12 @@ from dash import dcc, html
 import os
 import pandas as pd
 
-from graph.dashboard.components.base import BaseComponent
-from graph.dashboard.playback import Playback
-from graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
-from graph.dashboard.utils import format_label
-from datasets.egtea_gaze.constants import RESOLUTION
+from gaze_guided_scene.logger import get_logger
+from gaze_guided_scene.graph.dashboard.components.base import BaseComponent
+from gaze_guided_scene.graph.dashboard.playback import Playback
+from gaze_guided_scene.graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
+from gaze_guided_scene.graph.dashboard.utils import format_label
+from gaze_guided_scene.datasets.egtea_gaze.constants import RESOLUTION
 
 logger = get_logger(__name__)
 
