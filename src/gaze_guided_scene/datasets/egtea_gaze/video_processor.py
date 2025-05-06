@@ -70,10 +70,7 @@ class Video:
         frame = frame_dict['data']
         pts = frame_dict['pts']
         is_black = frame.count_nonzero().item() == 0
-        try:
-            gaze_point = next(self._gaze_iter)
-        except StopIteration:
-            gaze_point = None
+        gaze_point = next(self._gaze_iter)
         return frame, pts, is_black, gaze_point
 
     def get_future_actions(self, frame_number: int) -> Optional[Dict[str, torch.Tensor]]:
