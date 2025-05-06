@@ -40,7 +40,7 @@ class GraphBuilder:
         self.split = split
         self.enable_tracing = enable_tracing
         self.output_dir = output_dir
-        self.tracer = GraphTracer(self.config.directories.repo.traces, "", enabled=False)
+        self.tracer = GraphTracer(self.config.directories.traces, "", enabled=False)
         
         self.metadata = VideoMetadata(self.config)
         
@@ -81,7 +81,7 @@ class GraphBuilder:
         """
         logger.info(f"\nProcessing video: {video_name}")
         self.video_name = video_name
-        self.tracer = GraphTracer(self.config.directories.repo.traces, video_name, enabled=self.enable_tracing)
+        self.tracer = GraphTracer(self.config.directories.traces, video_name, enabled=self.enable_tracing)
         if self.enable_tracing:
             logger.info(f"Tracing enabled for {video_name}")
         

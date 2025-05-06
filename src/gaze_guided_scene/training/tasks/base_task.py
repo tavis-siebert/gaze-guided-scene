@@ -69,7 +69,7 @@ class BaseTask:
     def _setup_data(self):
         """Setup datasets and data loaders"""
         # Get graphs directory path
-        graphs_dir = Path(self.config.directories.repo.graphs)
+        graphs_dir = Path(self.config.directories.graphs)
         if not graphs_dir.exists():
             self.logger.error(f"Graphs directory {graphs_dir} not found. Run 'python main.py build' first.")
             raise FileNotFoundError(f"Graphs directory {graphs_dir} not found")

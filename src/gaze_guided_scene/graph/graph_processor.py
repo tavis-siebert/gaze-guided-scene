@@ -187,7 +187,7 @@ def build_graphs(
     
     # Configure tracing if enabled
     if enable_tracing:
-        trace_dir = config.directories.repo.traces
+        trace_dir = config.directories.traces
         logger.info(f"Graph tracing enabled. Traces will be saved to {trace_dir}")
         
     # Load video splits
@@ -236,7 +236,7 @@ def build_graphs(
         logger.info(f"Using {num_workers} CPU workers for processing")
     
     # Setup graphs output directory
-    graphs_dir = Path(config.directories.repo.graphs)
+    graphs_dir = Path(config.directories.graphs)
     graphs_dir.mkdir(exist_ok=True)
     
     # Prepare work items
@@ -287,6 +287,6 @@ def build_graphs(
     # Log summary
     logger.info(f"Graph building completed successfully!")
     logger.info(f"Created {len(all_paths['train'])} train checkpoints and {len(all_paths['val'])} val checkpoints")
-    logger.info(f"Checkpoints saved under {Path(config.directories.repo.graphs)}")
+    logger.info(f"Checkpoints saved under {Path(config.directories.graphs)}")
     
     return all_paths 

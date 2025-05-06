@@ -3,15 +3,13 @@ base:
   repo_root: ${REPO_ROOT}
   scratch_dir: /tmp # Will be overwritten by other configs
 
-# Directories structure
+# Data directories
 directories:
-  # Repository directories
-  repo:
-    egtea: ${base.repo_root}/data/egtea_gaze
-    datasets: ${base.repo_root}/data
-    graphs: ${base.repo_root}/data/graphs
-    traces: ${base.repo_root}/data/traces
-  
+  data_dir: ${base.repo_root}/data
+  egtea: ${directories.data_dir}/egtea_gaze
+  graphs: ${directories.data_dir}/graphs
+  traces: ${directories.data_dir}/traces
+
   # Scratch directories
   scratch:
     root: ${base.scratch_dir}
@@ -25,8 +23,8 @@ dataset:
   egtea:
     raw_videos: ${directories.scratch.egtea}/raw_videos
     cropped_videos: ${directories.scratch.egtea}/cropped_videos
-    gaze_data: ${directories.repo.egtea}/gaze_data/gaze_data
-    action_annotations: ${directories.repo.egtea}/action_annotation
+    gaze_data: ${directories.egtea}/gaze_data/gaze_data
+    action_annotations: ${directories.egtea}/action_annotation
     noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
     verb_idx_file: ${dataset.egtea.action_annotations}/verb_idx.txt
   
