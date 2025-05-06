@@ -125,9 +125,11 @@ class GraphDataset(Dataset):
             
             self.sample_tuples.extend(samples)
         else:
-            # No sampling, use all checkpoints
-            self.processed_checkpoints.extend(processed_checkpoints)
-            self.sample_tuples.extend([(cp, cp.frame_number) for cp in processed_checkpoints])
+            # No sampling, use all checkpoints but still filter for valid action labels
+            for checkpoint in processed_checkpoints:
+                action_labels = checkpoint.get_future_action_labels(checkpoint.frame_number, self.metadata)
+                if action_labels is not None:
+                    self.sample_tuples.append((checkpoint, checkpoint.frame_number, action_labels))
     
     def _load_checkpoints(self, file_path: Path) -> List[GraphCheckpoint]:
         """Load all checkpoints from file without filtering.
@@ -181,7 +183,14 @@ class GraphDataset(Dataset):
         
         # In train mode, keep all checkpoints
         if self.split == "train":
-            return all_checkpoints
+            processed_checkpoints = []
+            for checkpoint in all_checkpoints:
+                action_labels = checkpoint.get_future_action_labels(checkpoint.frame_number, self.metadata)
+                if action_labels is not None:
+                    # Store pre-computed action labels
+                    self.sample_tuples.append((checkpoint, checkpoint.frame_number, action_labels))
+                    processed_checkpoints.append(checkpoint)
+            return processed_checkpoints
         
         # In val mode, sample checkpoints at specific timestamps
         elif self.split == "val":
@@ -200,7 +209,12 @@ class GraphDataset(Dataset):
             for target_frame in timestamp_frames:
                 closest = min(all_checkpoints, 
                               key=lambda cp: abs(cp.frame_number - target_frame))
-                selected_checkpoints.append(closest)
+                
+                # Only include if it has valid action labels
+                action_labels = closest.get_future_action_labels(closest.frame_number, self.metadata)
+                if action_labels is not None:
+                    selected_checkpoints.append(closest)
+                    self.sample_tuples.append((closest, closest.frame_number, action_labels))
                 
             return selected_checkpoints
     
@@ -217,13 +231,8 @@ class GraphDataset(Dataset):
         Returns:
             PyG Data object
         """
-        checkpoint, frame_number = self.sample_tuples[idx]
-        # Get future action labels for the specific frame
-        action_labels = checkpoint.get_future_action_labels(frame_number, self.metadata)
-        
-        if action_labels is None:
-            raise ValueError(f"No action labels available for sample idx={idx}, video={checkpoint.video_name}, frame={frame_number}")
-        
+        checkpoint, frame_number, action_labels = self.sample_tuples[idx]
+
         # Get node features
         node_features = self._extract_node_features(checkpoint)
         
