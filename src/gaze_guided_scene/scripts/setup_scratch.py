@@ -7,8 +7,9 @@ from typing import Optional, List
 import subprocess
 import requests
 from transformers import CLIPProcessor, CLIPModel
-from logger import get_logger
-from config.config_utils import DotDict
+
+from gaze_guided_scene.logger import get_logger
+from gaze_guided_scene.config.config_utils import DotDict
 
 # Initialize logger for this module
 logger = get_logger(__name__)

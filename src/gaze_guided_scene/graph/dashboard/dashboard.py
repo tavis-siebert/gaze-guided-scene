@@ -5,13 +5,13 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
-from graph.dashboard.utils.constants import DEFAULT_PLAY_INTERVAL_MS
-from graph.dashboard.playback import Playback
-from graph.dashboard.components.video_display import VideoDisplay
-from graph.dashboard.components.graph_display import GraphDisplay
-from graph.dashboard.components.playback_controls import PlaybackControls
-from graph.dashboard.components.meta_info import MetaInfo
-from graph.dashboard.components.snapshot import Snapshot
+from gaze_guided_scene.graph.dashboard.utils.constants import DEFAULT_PLAY_INTERVAL_MS
+from gaze_guided_scene.graph.dashboard.playback import Playback
+from gaze_guided_scene.graph.dashboard.components.video_display import VideoDisplay
+from gaze_guided_scene.graph.dashboard.components.graph_display import GraphDisplay
+from gaze_guided_scene.graph.dashboard.components.playback_controls import PlaybackControls
+from gaze_guided_scene.graph.dashboard.components.meta_info import MetaInfo
+from gaze_guided_scene.graph.dashboard.components.snapshot import Snapshot
 
 
 class Dashboard:

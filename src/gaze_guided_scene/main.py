@@ -4,9 +4,10 @@ import sys
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import logging
+
 from gaze_guided_scene.config.config_utils import load_config, DotDict
 from gaze_guided_scene.logger import get_logger, configure_root_logger
-import logging
 
 logger = None
 

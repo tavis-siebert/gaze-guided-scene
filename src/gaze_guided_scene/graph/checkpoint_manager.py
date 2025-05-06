@@ -2,8 +2,8 @@ from typing import Dict, List, Optional, Any, Tuple
 import torch
 from dataclasses import dataclass
 from pathlib import Path
-from graph.graph import Graph
-from logger import get_logger
+from gaze_guided_scene.graph.graph import Graph
+from gaze_guided_scene.logger import get_logger
 
 logger = get_logger(__name__)
 

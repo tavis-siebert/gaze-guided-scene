@@ -1,5 +1,5 @@
 """Base component classes for dashboard."""
 
-from graph.dashboard.components.base.base_component import BaseComponent
+from gaze_guided_scene.graph.dashboard.components.base.base_component import BaseComponent
 
 __all__ = ['BaseComponent'] 

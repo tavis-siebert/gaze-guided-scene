@@ -8,9 +8,10 @@ and visualizing scene graphs based on gaze data and object detection.
 # Core graph components
 from gaze_guided_scene.graph.node import Node, VisitRecord
 from gaze_guided_scene.graph.edge import Edge
-from gaze_guided_scene.graph.graph import Graph
 from gaze_guided_scene.graph.utils import AngleUtils, GraphTraversal
-from gaze_guided_scene.graph.visualizer import GraphVisualizer
+
+# Import Graph separately to avoid circular dependencies
+from gaze_guided_scene.graph.graph import Graph
 
 # Checkpoint handling
 from gaze_guided_scene.graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
@@ -19,9 +20,11 @@ from gaze_guided_scene.graph.checkpoint_manager import CheckpointManager, GraphC
 from gaze_guided_scene.graph.dashboard.playback.event import GraphEvent
 from gaze_guided_scene.graph.dashboard.playback import Playback
 
+# Import visualizer after graph to avoid circular imports
+from gaze_guided_scene.graph.visualizer import GraphVisualizer, visualize_graph_construction
+
 # Utility functions
 from gaze_guided_scene.graph.utils import get_roi, FeatureMatcher
-from gaze_guided_scene.graph.visualizer import visualize_graph_construction
 
 # Graph building
 from gaze_guided_scene.graph.graph_builder import GraphBuilder
