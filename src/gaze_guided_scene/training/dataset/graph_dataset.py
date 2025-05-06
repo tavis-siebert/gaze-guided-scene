@@ -218,14 +218,11 @@ class GraphDataset(Dataset):
             PyG Data object
         """
         checkpoint, frame_number = self.sample_tuples[idx]
-        
         # Get future action labels for the specific frame
         action_labels = checkpoint.get_future_action_labels(frame_number, self.metadata)
         
-        # Skip if no action labels available (should not happen due to sampling)
         if action_labels is None:
-            # Fallback to next sample
-            return self.get((idx + 1) % len(self.sample_tuples))
+            raise ValueError(f"No action labels available for sample idx={idx}, video={checkpoint.video_name}, frame={frame_number}")
         
         # Get node features
         node_features = self._extract_node_features(checkpoint)
