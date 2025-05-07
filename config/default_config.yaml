@@ -57,6 +57,21 @@ models:
     conf_threshold: 0.15
     iou_threshold: 0.5
 
+# Training
+training:
+  batch_size: 128
+  num_epochs: 150
+  optimizer: "Adam"
+  lr: 0.001
+  num_classes: 106
+  num_heads: 4
+  hidden_dim: 256
+  num_layers: 3
+  res_connect: false
+  node_dropping: true
+  node_drop_p: 0.5
+  max_nodes_droppable: 4
+
 # External resources
 external:
   urls:

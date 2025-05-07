@@ -159,7 +159,7 @@ def build_dataset(config: DotDict, use_gpu: bool = True, videos: Optional[List[s
         num_devices = config.processing.n_cores
         use_gpu = False
         device_type = "CPU"
-    
+
     logger.info(f"Using {num_devices} {device_type}(s) for dataset building")
     logger.info(f"Total videos to process - Train: {len(train_videos)}, Val: {len(val_videos)}")
     
