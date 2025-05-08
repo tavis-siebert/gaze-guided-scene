@@ -187,9 +187,6 @@ class ActionRecord:
     def _load_all_records(cls) -> Tuple[Dict[str, List["ActionRecord"]], List["ActionRecord"]]:
         """
         Load action records for train and val splits from ego_topo split files.
-
-        Returns:
-            A mapping from video names to records and a list of training records.
         """
         records_by_video: Dict[str, List["ActionRecord"]] = defaultdict(list)
         train_records: List["ActionRecord"] = []
@@ -197,24 +194,32 @@ class ActionRecord:
         config = cls.get_config()
         splits = config.dataset.ego_topo.splits
         
-        for split_name in ("train", "val"):
-            ann_file = getattr(splits, split_name)
-            
-            try:
-                with open(ann_file) as f:
-                    for line in f:
-                        if not line.strip():
-                            continue
-                        record = ActionRecord(line.strip().split("\t"))
-                        records_by_video[record.video_name].append(record)
-                        if split_name == "train":
-                            train_records.append(record)
-            except FileNotFoundError:
-                logger.error(f"Action records file not found at {ann_file}")
-                raise
-            except Exception as e:
-                logger.error(f"Error loading action records for {split_name} split: {e}")
-                raise
+        # Set a temporary flag to prevent recursive initialization
+        temp_init_flag = cls._is_initialized
+        cls._is_initialized = True  # Temporarily set to True to prevent recursion
+        
+        try:
+            for split_name in ("train", "val"):
+                ann_file = getattr(splits, split_name)
+                
+                try:
+                    with open(ann_file) as f:
+                        for line in f:
+                            if not line.strip():
+                                continue
+                            record = ActionRecord(line.strip().split("\t"))
+                            records_by_video[record.video_name].append(record)
+                            if split_name == "train":
+                                train_records.append(record)
+                except FileNotFoundError:
+                    logger.error(f"Action records file not found at {ann_file}")
+                    raise
+                except Exception as e:
+                    logger.error(f"Error loading action records for {split_name} split: {e}")
+                    raise
+        finally:
+            # Restore the original initialization flag
+            cls._is_initialized = temp_init_flag
         
         # Sort records for each video by end frame
         for recs in records_by_video.values():
