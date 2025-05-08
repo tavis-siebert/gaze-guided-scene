@@ -4,6 +4,7 @@ Shared test fixtures and test data for various test modules.
 
 import pytest
 import torch
+import os
 from unittest.mock import patch, MagicMock
 from PIL import Image
 from pathlib import Path
@@ -17,7 +18,8 @@ SAMPLE_LABELS = ["apple", "microwave", "knife", "tomato", "plate"]
 @pytest.fixture
 def clip_model():
     """Fixture to provide a CLIP model instance for tests."""
-    model = ClipModel(device="cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ClipModel(device=device)
     model.load()
     return model
 

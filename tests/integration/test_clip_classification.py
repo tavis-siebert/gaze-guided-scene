@@ -8,6 +8,8 @@ from the test data directory.
 import pytest
 from tests.resources.fixtures import clip_model, test_images, SAMPLE_LABELS
 
+@pytest.mark.integration
+@pytest.mark.real_model
 def test_image_classification(clip_model, test_images):
     """Test image classification functionality with real test images."""
     # Test apple image classification
@@ -26,6 +28,8 @@ def test_image_classification(clip_model, test_images):
         assert all(isinstance(score, float) for score in scores)
         assert best_label == "microwave"
 
+@pytest.mark.integration
+@pytest.mark.real_model
 def test_custom_labels_classification(clip_model, test_images):
     """Test classification with custom labels."""
     if "ego-holding-tomatoe-and-knife" in test_images:
