@@ -747,7 +747,7 @@ class VideoDisplay(BaseComponent):
         if not actions:
             return
             
-        # Group actions by their verb_id and noun_id
+        # Group actions by their verb_id and noun_id for display purposes
         action_counts = {}
         action_details = {}
         
@@ -758,24 +758,14 @@ class VideoDisplay(BaseComponent):
             # Count occurrences and store details
             if action_key in action_counts:
                 action_counts[action_key] += 1
-                # Extend the frame range if this instance covers different frames
-                current_start = action_details[action_key]['start']
-                current_end = action_details[action_key]['end']
-                action_details[action_key]['start'] = min(current_start, action['start'])
-                action_details[action_key]['end'] = max(current_end, action['end'])
             else:
                 action_counts[action_key] = 1
                 action_details[action_key] = {
                     'text': action_text,
-                    'verb_id': action['verb_id'],
-                    'noun_id': action['noun_id'],
-                    'start': action['start'],
-                    'end': action['end']
                 }
         
-        # Create formatted action text list with counts
+        # Create formatted action text list with counts for display
         action_texts = []
-        hover_texts = []
         
         for action_key, count in action_counts.items():
             details = action_details[action_key]
@@ -786,11 +776,15 @@ class VideoDisplay(BaseComponent):
                 formatted_text = details['text']
             
             action_texts.append(formatted_text)
-            
+        
+        # Create individual hover texts for each original action
+        hover_texts = []
+        for action in actions:
+            action_text = f"{action['verb']} {action['noun']}"
             hover_text = (
-                f"Action: {details['text']}{' (x'+str(count)+')' if count > 1 else ''}<br>"
-                f"Verb ID: {details['verb_id']}, Noun ID: {details['noun_id']}<br>"
-                f"Frames: {details['start']} - {details['end']}"
+                f"Action: {action_text}<br>"
+                f"Verb ID: {action['verb_id']}, Noun ID: {action['noun_id']}<br>"
+                f"Frames: {action['start']} - {action['end']}"
             )
             hover_texts.append(hover_text)
         
