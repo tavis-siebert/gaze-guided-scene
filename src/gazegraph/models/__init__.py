@@ -6,12 +6,11 @@ object detection (CLIP, YOLO-World) used in the scene graph construction.
 """
 
 from models.sift import SIFT
-from models.clip import ClipModel, ClipImageClassificationModel
+from models.clip import ClipModel
 from models.yolo_world import YOLOWorldModel
 
 __all__ = [
     'SIFT',
-    'ClipImageClassificationModel',
     'ClipModel',
     'YOLOWorldModel'
 ] 
