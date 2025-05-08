@@ -7,8 +7,9 @@ import torch
 from pathlib import Path
 
 from gazegraph.models.clip import ClipModel
-from tests.resources.fixtures import clip_model, test_images, SAMPLE_LABELS
+from tests.resources.fixtures import clip_model, mock_clip_model, test_images, SAMPLE_LABELS
 
+@pytest.mark.unit
 def test_initialization():
     """Test that the CLIP model initializes properly."""
     model = ClipModel(device="cpu")
@@ -16,11 +17,15 @@ def test_initialization():
     assert model.model is None
     assert model.preprocess is None
 
+@pytest.mark.unit
+@pytest.mark.real_model
 def test_model_loading(clip_model):
     """Test that the model loads successfully."""
     assert clip_model.model is not None
     assert clip_model.preprocess is not None
 
+@pytest.mark.unit
+@pytest.mark.real_model
 def test_encode_text(clip_model):
     """Test text encoding functionality."""
     texts = ["a photo of an apple", "a photo of a microwave"]
@@ -31,6 +36,8 @@ def test_encode_text(clip_model):
     assert all(isinstance(enc, torch.Tensor) for enc in encodings)
     assert all(enc.shape[1] == 512 for enc in encodings)  # CLIP's default embedding size
 
+@pytest.mark.unit
+@pytest.mark.real_model
 def test_encode_image(clip_model, test_images):
     """Test image encoding functionality."""
     for name, img in test_images.items():
@@ -40,6 +47,8 @@ def test_encode_image(clip_model, test_images):
         assert isinstance(encoding, torch.Tensor)
         assert encoding.shape[1] == 512  # CLIP's default embedding size
 
+@pytest.mark.unit
+@pytest.mark.real_model
 def test_tensor_image_input(clip_model, test_images):
     """Test using preprocessed tensor as input instead of PIL Image."""
     if test_images:
@@ -53,4 +62,31 @@ def test_tensor_image_input(clip_model, test_images):
         
         # Test classification with tensor
         scores, _ = clip_model.classify(SAMPLE_LABELS, preprocessed)
-        assert len(scores) == len(SAMPLE_LABELS) 
+        assert len(scores) == len(SAMPLE_LABELS)
+
+@pytest.mark.unit
+@pytest.mark.mock_only
+def test_mock_model_loading(mock_clip_model):
+    """Test that the mock model loads successfully."""
+    assert mock_clip_model.model is not None
+    assert mock_clip_model.preprocess is not None
+
+@pytest.mark.unit
+@pytest.mark.mock_only
+def test_mock_encode_text(mock_clip_model):
+    """Test text encoding functionality with mock model."""
+    texts = ["a photo of an apple", "a photo of a microwave"]
+    encodings = mock_clip_model.encode_text(texts)
+    
+    assert len(encodings) == 2
+    assert all(isinstance(enc, torch.Tensor) for enc in encodings)
+
+@pytest.mark.unit
+@pytest.mark.mock_only
+def test_mock_classify(mock_clip_model):
+    """Test classification with mock model."""
+    image = torch.ones((1, 3, 224, 224))  # Mock image tensor
+    scores, best_label = mock_clip_model.classify(SAMPLE_LABELS, image)
+    
+    assert len(scores) == len(SAMPLE_LABELS)
+    assert best_label in SAMPLE_LABELS 

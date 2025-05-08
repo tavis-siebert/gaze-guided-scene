@@ -11,6 +11,34 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 3. Extracts features at specified timestamps for downstream tasks
 4. Provides interactive visualization of the graph construction process
 
+## Testing
+
+### Running Tests Locally
+
+To run tests locally (using mock models):
+
+```bash
+# Run all tests, automatically skipping those requiring real models
+pytest tests/
+
+# Run only unit tests
+pytest tests/unit/
+
+# Force run tests requiring real models
+pytest --run-real-model tests/
+```
+
+### Running Tests on Cluster
+
+For more resource-intensive tests, you can submit a job to the cluster:
+
+```bash
+# Submit test job to cluster
+sbatch src/gazegraph/scripts/run_tests.sh
+```
+
+Test logs will be written to `logs/tests.out`.
+
 ## Project Structure
 
 ```
