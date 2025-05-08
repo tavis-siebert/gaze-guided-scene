@@ -5,14 +5,16 @@ Object detection module for detecting and tracking objects in video frames.
 import torch
 import numpy as np
 import math
-from typing import Dict, List, Tuple, Any, Optional, DefaultDict, Union
+from typing import Dict, List, Tuple, Any, Optional, DefaultDict, Union, TYPE_CHECKING
 from collections import defaultdict, Counter
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from gazegraph.models.yolo_world import YOLOWorldModel
-from gazegraph.graph.graph_tracer import GraphTracer
+# Use TYPE_CHECKING to avoid circular imports
+if TYPE_CHECKING:
+    from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.graph.gaze import GazePoint
 from gazegraph.config.config_utils import DotDict
 
@@ -144,7 +146,7 @@ class ObjectDetector:
         obj_labels: Dict[int, str],
         labels_to_int: Dict[str, int],
         config: DotDict,
-        tracer: Optional[GraphTracer] = None
+        tracer: Optional['GraphTracer'] = None
     ):
         """Initialize the object detector.
         
