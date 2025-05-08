@@ -1,5 +1,5 @@
 """
-Gaze-guided Scene Graph Testing Package.
+Test package for gaze-guided-scene-graph.
 
 The test suite is organized as follows:
 

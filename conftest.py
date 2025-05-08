@@ -5,6 +5,11 @@ Pytest configuration file for the project.
 import pytest
 import os
 import sys
+from pathlib import Path
+
+# Add the source directory to sys.path for importing from the package
+src_path = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_path))
 
 def pytest_addoption(parser):
     parser.addoption(

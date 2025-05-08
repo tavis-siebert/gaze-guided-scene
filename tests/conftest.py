@@ -1,22 +1,20 @@
 """
-Main pytest configuration file.
+Main pytest configuration file for tests directory.
 
-This module sets up the testing environment for all tests,
-including path configuration and shared fixtures.
+This module sets up shared fixtures and configurations specific to tests.
 """
 
-import os
-import sys
-from pathlib import Path
-
-# Add the source directory to sys.path for importing from the package
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
-# Set up any environment variables needed for testing
-os.environ["PYTHONPATH"] = f"{str(src_path)}:{os.environ.get('PYTHONPATH', '')}"
+import pytest
 
 # Import shared fixtures
 pytest_plugins = [
     "tests.resources.fixtures",
-] 
+]
+
+# Add test-specific fixtures below
+@pytest.fixture
+def sample_data_path():
+    """Return path to test sample data directory."""
+    import os
+    from pathlib import Path
+    return Path(os.path.dirname(__file__)) / "resources" / "data" 
