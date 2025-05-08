@@ -14,7 +14,7 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 ## Project Structure
 
 ```
-src/gaze_guided_scene/   # Main package code
+src/gazegraph/           # Main package code
 ├── config/              # Configuration files and utilities
 ├── datasets/            # Dataset loaders and processors
 │   └── egtea_gaze/      # EGTEA Gaze+ dataset specific code
