@@ -2,7 +2,7 @@ from typing import Tuple, List, Optional, Any, Dict
 import torch
 import numpy as np
 
-from gaze_guided_scene.graph.utils import AngleUtils
+from gazegraph.graph.utils import AngleUtils
 
 GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor

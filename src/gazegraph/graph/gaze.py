@@ -7,14 +7,14 @@ from typing import List, Tuple, Optional, Union, Any, Iterator
 from enum import IntEnum
 import numpy as np
 
-from gaze_guided_scene.datasets.egtea_gaze.constants import (
+from gazegraph.datasets.egtea_gaze.constants import (
     GAZE_TYPE_FIXATION, 
     GAZE_TYPE_SACCADE, 
     GAZE_TYPE_UNTRACKED, 
     GAZE_TYPE_UNKNOWN,
     GAZE_TYPE_TRUNCATED
 )
-from gaze_guided_scene.config.config_utils import DotDict
+from gazegraph.config.config_utils import DotDict
 
 
 class GazeType(IntEnum):

@@ -6,8 +6,8 @@ import onnxruntime as ort
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from gaze_guided_scene.logger import get_logger
-from gaze_guided_scene.models.onnx_utils import make_session_options
+from gazegraph.logger import get_logger
+from gazegraph.models.onnx_utils import make_session_options
 
 # Initialize logger for this module
 logger = get_logger(__name__)

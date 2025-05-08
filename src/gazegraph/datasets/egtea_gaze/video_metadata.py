@@ -10,9 +10,9 @@ from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 import torch
 
-from gaze_guided_scene.datasets.egtea_gaze.action_record import ActionRecord
-from gaze_guided_scene.config.config_utils import get_config
-from gaze_guided_scene.logger import get_logger
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
+from gazegraph.config.config_utils import get_config
+from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -3,19 +3,19 @@ from typing import Dict, List
 import networkx as nx
 import plotly.graph_objects as go
 
-from gaze_guided_scene.graph.dashboard.utils.constants import (
+from gazegraph.graph.dashboard.utils.constants import (
     NODE_BACKGROUND, NODE_BORDER, NODE_BASE_SIZE, NODE_FONT_SIZE,
     NODE_FONT_COLOR, EDGE_WIDTH, EDGE_COLOR, EDGE_HOVER_OPACITY,
     EDGE_HOVER_SIZE, EDGE_LABEL_FONT_SIZE, EDGE_LABEL_COLOR,
     FIGURE_HEIGHT, FIGURE_MARGIN, FIGURE_BG_COLOR, FIGURE_PAPER_BG_COLOR,
     FIGURE_HOVER_LABEL, MAX_EDGE_HOVER_POINTS, GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
 )
-from gaze_guided_scene.graph.dashboard.utils import (
+from gazegraph.graph.dashboard.utils import (
     format_node_label, format_feature_text, generate_intermediate_points,
     get_angle_symbol
 )
-from gaze_guided_scene.graph.dashboard.utils.svg import ICON_X_POINTS, ICON_Y_POINTS
-from gaze_guided_scene.logger import get_logger
+from gazegraph.graph.dashboard.utils.svg import ICON_X_POINTS, ICON_Y_POINTS
+from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
 

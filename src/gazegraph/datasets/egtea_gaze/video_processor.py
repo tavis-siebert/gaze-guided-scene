@@ -9,12 +9,12 @@ import torchvision as tv
 from pathlib import Path
 from typing import Iterator, List, Optional, Dict, Tuple
 
-from gaze_guided_scene.datasets.egtea_gaze.video_metadata import VideoMetadata
-from gaze_guided_scene.datasets.egtea_gaze.action_record import ActionRecord
-from gaze_guided_scene.datasets.egtea_gaze.gaze_io_sample import parse_gtea_gaze
-from gaze_guided_scene.config.config_utils import get_config
-from gaze_guided_scene.logger import get_logger
-from gaze_guided_scene.graph.gaze import GazeProcessor, GazePoint
+from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
+from gazegraph.datasets.egtea_gaze.gaze_io_sample import parse_gtea_gaze
+from gazegraph.config.config_utils import get_config
+from gazegraph.logger import get_logger
+from gazegraph.graph.gaze import GazeProcessor, GazePoint
 
 # Import parse_gtea_gaze from the correct location
 import sys
