@@ -6,4 +6,4 @@
 #SBATCH --gpus=1
 
 # Run all tests, including integration tests that need GPU
-uv run pytest -v tests/ 
+uv run pytest -v -rs tests/
