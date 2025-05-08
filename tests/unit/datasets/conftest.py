@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 @pytest.fixture
-def mock_dataset_config():
+def mock_config():
     """Mock configuration with test data paths for datasets."""
     config = MagicMock()
     config.dataset.egtea.action_annotations = "test_annotations"
@@ -20,6 +20,12 @@ def mock_dataset_config():
     config.dataset.ego_topo.splits.val = "test_val_split.txt"
     
     return config
+
+# Keeping the mock_dataset_config as an alias for backward compatibility
+@pytest.fixture
+def mock_dataset_config(mock_config):
+    """Alias for mock_config for backward compatibility."""
+    return mock_config
 
 @pytest.fixture
 def temp_dataset_dir():
