@@ -42,6 +42,25 @@ class ScoreComponents:
             'duration_weighted': self.duration_weighted,
             'gaze_distance': self.gaze_distance
         }
+        
+    @classmethod
+    def from_dict(cls, data: Dict[str, float]) -> 'ScoreComponents':
+        """Create ScoreComponents from a dictionary.
+        
+        Args:
+            data: Dictionary containing score components
+            
+        Returns:
+            New ScoreComponents instance
+        """
+        return cls(
+            confidence=data.get('confidence', 0.0),
+            stability=data.get('stability', 0.0),
+            gaze_proximity=data.get('gaze_proximity', 0.0),
+            fixation_ratio=data.get('fixation_ratio', 0.0),
+            duration_weighted=data.get('duration_weighted', 0.0),
+            gaze_distance=data.get('gaze_distance', 0.0)
+        )
 
 @dataclass
 class Detection:
@@ -82,6 +101,38 @@ class Detection:
                 'components': self.components.to_dict()
             }
         }
+        
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], frame_idx: Optional[int] = None) -> 'Detection':
+        """Create Detection from a dictionary.
+        
+        Args:
+            data: Dictionary containing detection data
+            frame_idx: Optional frame index to override the one in data
+            
+        Returns:
+            New Detection instance
+        """
+        det_data = data['detection']
+        fix_data = data['fixation']
+        
+        # Convert bbox from list to tuple if needed
+        bbox = tuple(det_data['bbox']) if isinstance(det_data['bbox'], list) else det_data['bbox']
+        
+        # Use provided frame_idx if available, otherwise from data
+        actual_frame_idx = frame_idx if frame_idx is not None else det_data.get('frame_idx', -1)
+        
+        return cls(
+            bbox=bbox,
+            class_name=det_data['class_name'],
+            score=det_data['score'],
+            class_id=det_data['class_id'],
+            frame_idx=actual_frame_idx,
+            is_fixated=fix_data['is_fixated'],
+            is_top_scoring=fix_data['is_top_scoring'],
+            fixation_score=fix_data['score'],
+            components=ScoreComponents.from_dict(fix_data['components'])
+        )
 
 
 class ObjectDetector:
