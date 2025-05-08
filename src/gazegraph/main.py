@@ -186,7 +186,7 @@ def main():
             logger.error(f"No trace file found at: {trace_file}")
             if args.video_name:
                 logger.error("To generate a trace file, run:")
-                logger.error(f"    python main.py build-graphs --videos {args.video_name} --enable-tracing")
+                logger.error(f"    ./run.sh build-graphs --videos {args.video_name} --enable-tracing")
             sys.exit(1)
         
         # Validate and resolve video path
