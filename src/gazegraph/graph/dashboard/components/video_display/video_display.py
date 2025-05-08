@@ -142,17 +142,17 @@ class VideoDisplay(BaseComponent):
             
         return annotations
     
-    def _get_current_action(self, frame_number: int) -> Optional[Dict]:
-        """Get the current action for a specific frame number.
+    def _get_current_action(self, frame_number: int) -> List[Dict]:
+        """Get all current actions for a specific frame number.
         
         Args:
             frame_number: Current frame number
             
         Returns:
-            Dictionary with action information or None if no action
+            List of dictionaries with action information or empty list if no actions
         """
         if not self.video_path:
-            return None
+            return []
             
         # Extract video name from path
         video_filename = os.path.basename(self.video_path)
@@ -161,7 +161,8 @@ class VideoDisplay(BaseComponent):
         # Find annotations for this video
         video_annotations = self.action_annotations.get(video_name, [])
         
-        # Find annotation that contains this frame
+        # Find all annotations that contain this frame
+        current_actions = []
         for annotation in video_annotations:
             if annotation['start'] <= frame_number <= annotation['end']:
                 verb_id = annotation['verb_id']
@@ -171,16 +172,16 @@ class VideoDisplay(BaseComponent):
                 verb = self.verbs.get(verb_id, f"Unknown verb ({verb_id})")
                 noun = self.nouns.get(noun_id, f"Unknown noun ({noun_id})")
                 
-                return {
+                current_actions.append({
                     'verb': verb,
                     'noun': noun,
                     'verb_id': verb_id,
                     'noun_id': noun_id,
                     'start': annotation['start'],
                     'end': annotation['end']
-                }
+                })
                 
-        return None
+        return current_actions
     
     def create_layout(self) -> dbc.Card:
         """Create the component's layout.
@@ -742,12 +743,27 @@ class VideoDisplay(BaseComponent):
             frame_number: Current frame number
             traces: List to append action overlay traces to
         """
-        action = self._get_current_action(frame_number)
-        if not action:
+        actions = self._get_current_action(frame_number)
+        if not actions:
             return
             
-        # Get action text
-        action_text = f"{action['verb']} {action['noun']}"
+        # Combine all actions into a single text string, separated by commas
+        action_texts = []
+        hover_texts = []
+        
+        for action in actions:
+            action_text = f"{action['verb']} {action['noun']}"
+            action_texts.append(action_text)
+            
+            hover_text = (
+                f"Action: {action_text}<br>"
+                f"Verb ID: {action['verb_id']}, Noun ID: {action['noun_id']}<br>"
+                f"Frames: {action['start']} - {action['end']}"
+            )
+            hover_texts.append(hover_text)
+        
+        combined_action_text = ", ".join(action_texts)
+        combined_hover_text = "<br><br>".join(hover_texts)
         
         # Set overlay position at the bottom center of the frame
         overlay_y = self.frame_height - 30  # 30 pixels from bottom
@@ -769,7 +785,7 @@ class VideoDisplay(BaseComponent):
             x=[self.frame_width / 2],
             y=[overlay_y],
             mode="text",
-            text=[action_text],
+            text=[combined_action_text],
             textposition="middle center",
             textfont=dict(
                 size=16,
@@ -777,11 +793,7 @@ class VideoDisplay(BaseComponent):
                 family="Arial Bold"
             ),
             hoverinfo="text",
-            hovertext=(
-                f"Action: {action_text}<br>"
-                f"Verb ID: {action['verb_id']}, Noun ID: {action['noun_id']}<br>"
-                f"Frames: {action['start']} - {action['end']}"
-            ),
+            hovertext=combined_hover_text,
             showlegend=False
         ))
 
