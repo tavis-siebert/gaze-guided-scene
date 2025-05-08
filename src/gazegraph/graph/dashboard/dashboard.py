@@ -177,11 +177,12 @@ class Dashboard:
                 current_time
             )
     
-    def run(self, port: int = 8050, debug: bool = False) -> None:
+    def run(self, port: int = 8050, debug: bool = False, use_reloader: bool = False) -> None:
         """Run the dashboard server.
         
         Args:
             port: Port number to run the server on
             debug: Whether to run in debug mode
+            use_reloader: Whether to use the Flask reloader (defaults to False)
         """
-        self.app.run(debug=debug, port=port, use_reloader=debug)
+        self.app.run(debug=debug, port=port, use_reloader=use_reloader)
