@@ -6,7 +6,7 @@ import torch
 from typing import Optional, Dict, List, Union
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
-from gazegraph.models.clip import ClipTextEmbeddingModel
+from gazegraph.models.clip import ClipModel
 from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,14 +25,15 @@ class NodeEmbedder:
             device: Device to run models on ("cuda" or "cpu")
         """
         self.device = device
-        self.text_embedder = None
+        self.clip_model = None
         
-    def _get_text_embedder(self) -> ClipTextEmbeddingModel:
+    def _get_clip_model(self) -> ClipModel:
         """Get or initialize the text embedding model."""
-        if self.text_embedder is None:
-            logger.info(f"Initializing CLIP text embedder on {self.device}")
-            self.text_embedder = ClipTextEmbeddingModel(device=self.device)
-        return self.text_embedder
+        if self.clip_model is None:
+            logger.info(f"Initializing CLIP model on {self.device}")
+            self.clip_model = ClipModel(device=self.device)
+            self.clip_model.load()
+        return self.clip_model
         
     def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:
         """
@@ -51,7 +52,7 @@ class NodeEmbedder:
             return None
             
         # Get text embedding
-        embedder = self._get_text_embedder()
-        embedding = embedder([action_name])[0]  # List of 1 tensor -> single tensor
+        clip_model = self._get_clip_model()
+        embedding = clip_model.encode_text([action_name])[0]  # List of 1 tensor -> single tensor
         
         return embedding 

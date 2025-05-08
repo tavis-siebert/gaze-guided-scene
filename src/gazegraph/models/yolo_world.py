@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 
 from gazegraph.logger import get_logger
 from gazegraph.models.onnx_utils import make_session_options
-from gazegraph.models.clip import ClipTextEmbeddingModel
+from gazegraph.models.clip import ClipModel
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ class YOLOWorldModel:
         
         # Will be initialized when loading model
         self.session = None
-        self.text_embedder = None
+        self.clip_model = None
         self.class_embeddings = None
         self.names = []
         self.input_names = None
@@ -63,7 +63,8 @@ class YOLOWorldModel:
                 sess_options=sess_options,
                 providers=providers
             )
-            self.text_embedder = ClipTextEmbeddingModel(device=self.text_embedding_device)
+            self.clip_model = ClipModel(device=self.text_embedding_device)
+            self.clip_model.load()
             
             # Get model details
             model_inputs = self.session.get_inputs()
@@ -85,7 +86,7 @@ class YOLOWorldModel:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
         self.names = class_names
-        txt_feats = self.text_embedder(class_names)
+        txt_feats = self.clip_model.encode_text(class_names)
         # Process the list of tensors
         txt_feats = torch.cat(txt_feats, dim=0)
         txt_feats /= txt_feats.norm(dim=1, keepdim=True)
