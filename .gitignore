@@ -13,7 +13,7 @@ wheels/
 *.pth
 logs/
 out/
-src/config/local_config.yaml
+src/gazegraph/config/local_config.yaml
 *.tar.gz
 
 # Ignore all files in traces directory
