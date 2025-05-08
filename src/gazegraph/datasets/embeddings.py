@@ -5,7 +5,6 @@ Node embedding module for creating semantic embeddings of graph nodes.
 import torch
 from typing import Optional, Dict, List, Union, Tuple
 from PIL import Image
-import numpy as np
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.models.clip import ClipModel
@@ -163,6 +162,10 @@ class NodeEmbedder:
             )
         return collected_roi_embeddings
 
+    def _is_valid_roi(self, roi_tensor: torch.Tensor) -> bool:
+        """Check if ROI tensor is non-empty and has valid dimensions."""
+        return roi_tensor is not None and roi_tensor.numel() > 0 and roi_tensor.shape[1] > 0 and roi_tensor.shape[2] > 0
+
     def _get_roi_embeddings_for_frame(
         self,
         frame_tensor: torch.Tensor,
@@ -185,12 +188,8 @@ class NodeEmbedder:
         for detection in matching_detections:
             roi_tensor = self._extract_roi(frame_tensor, detection.bbox)
             
-            if roi_tensor is None or roi_tensor.nelement() == 0 or \
-               roi_tensor.shape[1] == 0 or roi_tensor.shape[2] == 0:
-                logger.debug(
-                    f"Skipping empty/invalid ROI from bbox {detection.bbox} "
-                    f"in frame {frame_num} for '{object_label}'."
-                )
+            if not self._is_valid_roi(roi_tensor):
+                logger.debug(f"Skipping invalid ROI {detection.bbox} in frame {frame_num} for '{object_label}'.")
                 continue
             
             pil_image = self._convert_roi_tensor_to_pil(roi_tensor)
