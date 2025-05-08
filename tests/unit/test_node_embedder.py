@@ -308,7 +308,7 @@ def test_roi_image_classification(node_embedder, test_checkpoint, test_tracer, t
                          if det.class_name == object_label and det.is_fixated]
         
         if not matching_dets:
-            pytest.skip("No matching detections found for the node. Found: {detections} but expected: {object_label}")
+            pytest.skip(f"No matching detections found for the node. Found: {detections} but expected: {object_label}")
         
         # Extract ROI
         roi_tensor = node_embedder._extract_roi(frame_tensor, matching_dets[0].bbox)
