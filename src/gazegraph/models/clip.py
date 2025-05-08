@@ -1,7 +1,7 @@
 import torch
 import clip
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Callable
+from typing import Dict, List, Optional, Union, Callable, Tuple
 from transformers import CLIPProcessor, CLIPModel as HFCLIPModel
 from PIL import Image
 
@@ -75,3 +75,32 @@ class ClipModel:
             image_features = self.model.encode_image(image)
             
         return image_features
+
+    def classify(self, labels: List[str], image: Union[Image.Image, torch.Tensor]) -> Tuple[List[float], str]:
+        """Classify an image by computing similarity scores against provided labels.
+
+        Args:
+            labels: Candidate class labels
+            image: PIL Image or preprocessed tensor
+
+        Returns:
+            A tuple of (scores, best_label) where scores is a list of similarity scores 
+            corresponding to labels and best_label is the label with the highest score.
+        """
+        if self.model is None:
+            self.load()
+
+        if isinstance(image, Image.Image):
+            image_tensor = self.preprocess(image).unsqueeze(0).to(self.device)
+        else:
+            image_tensor = image.to(self.device)
+
+        text_tokens = clip.tokenize(labels).to(self.device)
+
+        with torch.no_grad():
+            logits_per_image, _ = self.model(image_tensor, text_tokens)
+
+        scores = logits_per_image[0].tolist()
+        best_index = int(logits_per_image.argmax(dim=1)[0])
+        best_label = labels[best_index]
+        return scores, best_label
