@@ -1,0 +1,45 @@
+[project]
+name = "gaze-guided-scene"
+version = "0.1.0"
+authors = [
+    {name = "Timon Fercho", email = "ferchoti@gmail.com"},
+    {name = "Tavis Siebert", email = "tavisiebert2002@gmail.com"}
+]
+description = "Gaze-Guided Scene Graphs for Egocentric Action Prediction"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "av>=14.3.0",
+    "clip-for-odlabel>=1.0.0",
+    "dash>=2.9.0",
+    "dash-bootstrap-components>=1.4.0",
+    "debugpy>=1.8.14",
+    "dropbox>=12.0.2",
+    "matplotlib>=3.10.1",
+    "networkx>=3.0",
+    "numpy>=2.2.5",
+    "onnxruntime>=1.21.1; platform_machine == 'arm64'",
+    "onnxruntime-gpu>=1.21.1; platform_machine != 'arm64'",
+    "opencv-python>=4.11.0.86",
+    "optree>=0.13.0",
+    "pandas>=2.2.3",
+    "plotly>=5.13.0",
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.3",
+    "scikit-learn>=1.6.1",
+    "standard-imghdr>=3.13.0",
+    "svg-path>=1.5",
+    "tensorboard>=2.0.0",
+    "torch>=2.7.0",
+    "torch-geometric>=2.6.1",
+    "torchvision>=0.22.0",
+    "tqdm>=4.67.1",
+    "transformers>=4.51.3",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+"Github" = "https://github.com/tavis-siebert/gaze-guided-scene"
