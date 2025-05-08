@@ -8,14 +8,17 @@ enabling playback and visualization for debugging and analysis.
 import json
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union, Tuple, DefaultDict
+from typing import Dict, Any, List, Optional, Union, Tuple, DefaultDict, TYPE_CHECKING
 from collections import defaultdict
 import logging
 import numpy as np
 from dataclasses import dataclass
 
 from gazegraph.logger import get_logger
-from gazegraph.graph.object_detection import Detection, ScoreComponents
+
+# Use TYPE_CHECKING to avoid circular imports
+if TYPE_CHECKING:
+    from gazegraph.graph.object_detection import Detection, ScoreComponents
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -39,22 +42,24 @@ class GraphTracer:
             enabled: Whether tracing is enabled
         """
         self.enabled = enabled
+        self.output_path = Path(output_path)
+        self.trace_file = self.output_path / f"{video_name}_trace.jsonl"
+
+        # Initialize event cache
+        self._cache_valid = False
+        self._events_by_frame: DefaultDict[int, List[Dict[str, Any]]] = defaultdict(list)
+
         if not self.enabled:
             logger.info("Graph tracing disabled")
             return
             
-        self.output_path = Path(output_path)
         self.output_path.mkdir(parents=True, exist_ok=True)
         
-        self.trace_file = self.output_path / f"{video_name}_trace.jsonl"
         # Clear any existing trace file
         with open(self.trace_file, 'w') as f:
             pass
             
         self.event_count = 0
-        # Initialize event cache
-        self._events_by_frame: DefaultDict[int, List[Dict[str, Any]]] = defaultdict(list)
-        self._cache_valid = False
         
         logger.info(f"Graph tracer initialized. Logging to {self.trace_file}")
     
@@ -294,7 +299,7 @@ class GraphTracer:
             self._events_by_frame.clear()
             self._cache_valid = False
             
-    def get_detections_for_frame(self, frame_number: int) -> List[Detection]:
+    def get_detections_for_frame(self, frame_number: int) -> List[Any]:
         """Get all detections for a specific frame number.
         
         This function efficiently retrieves and parses detections from the event cache
@@ -317,6 +322,9 @@ class GraphTracer:
                 continue
                 
             try:
+                # Import here to avoid circular import
+                from gazegraph.graph.object_detection import Detection
+                
                 for det_dict in event['data']['detections']:
                     detection = Detection.from_dict(det_dict, frame_number)
                     detections.append(detection)
