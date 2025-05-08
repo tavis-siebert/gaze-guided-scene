@@ -53,7 +53,8 @@ def test_tensor_image_input(clip_model, test_images):
     """Test using preprocessed tensor as input instead of PIL Image."""
     if test_images:
         img = next(iter(test_images.values()))
-        preprocessed = clip_model.preprocess(img).unsqueeze(0)
+        # Create preprocessed tensor and move to the same device as the model
+        preprocessed = clip_model.preprocess(img).unsqueeze(0).to(clip_model.device)
         
         # Test image encoding with tensor
         encoding = clip_model.encode_image(preprocessed)
@@ -89,4 +90,23 @@ def test_mock_classify(mock_clip_model):
     scores, best_label = mock_clip_model.classify(SAMPLE_LABELS, image)
     
     assert len(scores) == len(SAMPLE_LABELS)
-    assert best_label in SAMPLE_LABELS 
+    assert best_label in SAMPLE_LABELS
+
+@pytest.mark.unit
+@pytest.mark.mock_only
+def test_mock_tensor_input(mock_clip_model):
+    """Test using tensor input with the mock model."""
+    # Create a mock tensor
+    tensor = torch.ones((1, 3, 224, 224))
+    
+    # Move to the device (shouldn't matter for mock)
+    tensor = tensor.to(mock_clip_model.device)
+    
+    # Test image encoding
+    encoding = mock_clip_model.encode_image(tensor)
+    assert isinstance(encoding, torch.Tensor)
+    
+    # Test classification
+    scores, label = mock_clip_model.classify(SAMPLE_LABELS, tensor)
+    assert len(scores) == len(SAMPLE_LABELS)
+    assert label in SAMPLE_LABELS 

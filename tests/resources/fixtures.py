@@ -62,7 +62,18 @@ def mock_clip_model():
         # Return the mocks from clip.load
         mock_load.return_value = (mock_model, mock_preprocess)
         
+        # Configure the preprocessor to return a tensor
+        mock_preprocess.return_value = torch.ones((3, 224, 224))
+        
         # Create and return the model
         model = ClipModel(device="cpu")
         model.load()
+        
+        # Add a method to ensure tensors are moved to the correct device
+        def mock_to(tensor, device):
+            return tensor
+            
+        # Make mock_model.to() work correctly
+        mock_model.to = MagicMock(return_value=mock_model)
+        
         yield model 
