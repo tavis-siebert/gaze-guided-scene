@@ -1,5 +1,5 @@
 [project]
-name = "gaze-guided-scene"
+name = "gaze-guided-scene-graph"
 version = "0.1.0"
 authors = [
     {name = "Timon Fercho", email = "ferchoti@gmail.com"},

@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 import numpy as np
 
 # Import the Dashboard component that integrates all visualization components
-from gaze_guided_scene.graph.dashboard.dashboard import Dashboard
+from gazegraph.graph.dashboard.dashboard import Dashboard
 
 
 class GraphVisualizer:

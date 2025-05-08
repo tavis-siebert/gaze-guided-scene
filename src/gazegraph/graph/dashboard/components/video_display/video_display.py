@@ -9,12 +9,12 @@ from dash import dcc, html
 import os
 import pandas as pd
 
-from gaze_guided_scene.logger import get_logger
-from gaze_guided_scene.graph.dashboard.components.base import BaseComponent
-from gaze_guided_scene.graph.dashboard.playback import Playback
-from gaze_guided_scene.graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
-from gaze_guided_scene.graph.dashboard.utils import format_label
-from gaze_guided_scene.datasets.egtea_gaze.constants import RESOLUTION
+from gazegraph.logger import get_logger
+from gazegraph.graph.dashboard.components.base import BaseComponent
+from gazegraph.graph.dashboard.playback import Playback
+from gazegraph.graph.dashboard.utils.constants import GAZE_TYPE_INFO, GAZE_TYPE_FIXATION
+from gazegraph.graph.dashboard.utils import format_label
+from gazegraph.datasets.egtea_gaze.constants import RESOLUTION
 
 logger = get_logger(__name__)
 

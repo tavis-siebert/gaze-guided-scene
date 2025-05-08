@@ -17,8 +17,8 @@ script_dir = Path(__file__).resolve().parent
 project_root = script_dir.parent
 sys.path.insert(0, str(project_root))
 
-from gaze_guided_scene.graph.checkpoint_manager import GraphCheckpoint
-from gaze_guided_scene.logger import get_logger
+from gazegraph.graph.checkpoint_manager import GraphCheckpoint
+from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -2,7 +2,7 @@ import glob
 import os
 import numpy as np
 from typing import Dict, Tuple, Optional, Any
-from gaze_guided_scene.logger import get_logger
+from gazegraph.logger import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)

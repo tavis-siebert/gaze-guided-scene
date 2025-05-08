@@ -7,7 +7,7 @@ import multiprocessing
 from onnxruntime import SessionOptions
 from typing import Optional
 
-from gaze_guided_scene.logger import get_logger
+from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
 

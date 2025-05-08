@@ -1,2 +1,2 @@
 #!/bin/bash
-uv run src/gaze_guided_scene/main.py "$@" 
+uv run src/gazegraph/main.py "$@" 

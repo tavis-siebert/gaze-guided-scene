@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from transformers import CLIPProcessor, CLIPModel as HFCLIPModel
 
-from gaze_guided_scene.logger import get_logger
+from gazegraph.logger import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)

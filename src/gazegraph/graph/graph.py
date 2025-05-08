@@ -4,14 +4,14 @@ import numpy as np
 from collections import deque, defaultdict
 import math
 
-from gaze_guided_scene.graph.node import Node, VisitRecord
-from gaze_guided_scene.graph.edge import Edge
-from gaze_guided_scene.graph.utils import AngleUtils, GraphTraversal
-from gaze_guided_scene.logger import get_logger
+from gazegraph.graph.node import Node, VisitRecord
+from gazegraph.graph.edge import Edge
+from gazegraph.graph.utils import AngleUtils, GraphTraversal
+from gazegraph.logger import get_logger
 
 if TYPE_CHECKING:
-    from gaze_guided_scene.graph.checkpoint_manager import GraphCheckpoint
-    from gaze_guided_scene.graph.visualizer import GraphVisualizer
+    from gazegraph.graph.checkpoint_manager import GraphCheckpoint
+    from gazegraph.graph.visualizer import GraphVisualizer
 
 GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor

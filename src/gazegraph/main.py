@@ -6,8 +6,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import logging
 
-from gaze_guided_scene.config.config_utils import load_config, DotDict
-from gaze_guided_scene.logger import get_logger, configure_root_logger
+from gazegraph.config.config_utils import load_config, DotDict
+from gazegraph.logger import get_logger, configure_root_logger
 
 logger = None
 
@@ -123,12 +123,12 @@ def main():
     logger.info(f"Loaded configuration from {args.config}")
     
     if args.command == "setup-scratch":
-        from gaze_guided_scene.scripts.setup_scratch import setup_scratch
+        from gazegraph.scripts.setup_scratch import setup_scratch
         dropbox_token = get_dropbox_token(args)
         logger.info("Starting scratch setup process")
         setup_scratch(config, access_token=dropbox_token)
     elif args.command == "train":
-        from gaze_guided_scene.training.tasks import get_task
+        from gazegraph.training.tasks import get_task
         logger.info(f"Starting training for task: {args.task}")
         
         # Determine the device to use
@@ -154,7 +154,7 @@ def main():
                 task.close()
                 logger.info("TensorBoard writer closed")
     elif args.command == "build-graphs":
-        from gaze_guided_scene.graph.graph_processor import build_graphs
+        from gazegraph.graph.graph_processor import build_graphs
         logger.info("Starting graph building process")
         
         # Check GPU availability if requested
@@ -169,7 +169,7 @@ def main():
             overwrite=args.overwrite
         )
     elif args.command == "visualize":
-        from gaze_guided_scene.graph.visualizer import visualize_graph_construction
+        from gazegraph.graph.visualizer import visualize_graph_construction
         logger.info("Starting graph visualization process")
         
         # Validate and resolve trace file path

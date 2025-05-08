@@ -6,38 +6,38 @@ and visualizing scene graphs based on gaze data and object detection.
 """
 
 # Core graph components
-from gaze_guided_scene.graph.node import Node, VisitRecord
-from gaze_guided_scene.graph.edge import Edge
-from gaze_guided_scene.graph.utils import AngleUtils, GraphTraversal
+from gazegraph.graph.node import Node, VisitRecord
+from gazegraph.graph.edge import Edge
+from gazegraph.graph.utils import AngleUtils, GraphTraversal
 
 # Import Graph separately to avoid circular dependencies
-from gaze_guided_scene.graph.graph import Graph
+from gazegraph.graph.graph import Graph
 
 # Checkpoint handling
-from gaze_guided_scene.graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
+from gazegraph.graph.checkpoint_manager import CheckpointManager, GraphCheckpoint
 
 # Dashboard imports
-from gaze_guided_scene.graph.dashboard.playback.event import GraphEvent
-from gaze_guided_scene.graph.dashboard.playback import Playback
+from gazegraph.graph.dashboard.playback.event import GraphEvent
+from gazegraph.graph.dashboard.playback import Playback
 
 # Import visualizer after graph to avoid circular imports
-from gaze_guided_scene.graph.visualizer import GraphVisualizer, visualize_graph_construction
+from gazegraph.graph.visualizer import GraphVisualizer, visualize_graph_construction
 
 # Utility functions
-from gaze_guided_scene.graph.utils import get_roi, FeatureMatcher
+from gazegraph.graph.utils import get_roi, FeatureMatcher
 
 # Graph building
-from gaze_guided_scene.graph.graph_builder import GraphBuilder
-from gaze_guided_scene.graph.graph_processor import build_graph, build_graphs
+from gazegraph.graph.graph_builder import GraphBuilder
+from gazegraph.graph.graph_processor import build_graph, build_graphs
 
 # Tracing
-from gaze_guided_scene.graph.graph_tracer import GraphTracer
+from gazegraph.graph.graph_tracer import GraphTracer
 
 # Gaze processing
-from gaze_guided_scene.graph.gaze import GazeProcessor, GazePoint, GazeType
+from gazegraph.graph.gaze import GazeProcessor, GazePoint, GazeType
 
 # Object detection
-from gaze_guided_scene.graph.object_detection import ObjectDetector
+from gazegraph.graph.object_detection import ObjectDetector
 
 __all__ = [
     'Graph',

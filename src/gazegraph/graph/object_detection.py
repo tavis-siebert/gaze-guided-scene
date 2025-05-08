@@ -11,10 +11,10 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gaze_guided_scene.models.yolo_world import YOLOWorldModel
-from gaze_guided_scene.graph.graph_tracer import GraphTracer
-from gaze_guided_scene.graph.gaze import GazePoint
-from gaze_guided_scene.config.config_utils import DotDict
+from gazegraph.models.yolo_world import YOLOWorldModel
+from gazegraph.graph.graph_tracer import GraphTracer
+from gazegraph.graph.gaze import GazePoint
+from gazegraph.config.config_utils import DotDict
 
 logger = logging.getLogger(__name__)
 
