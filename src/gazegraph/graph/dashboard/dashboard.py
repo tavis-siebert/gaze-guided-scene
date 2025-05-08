@@ -11,7 +11,6 @@ from gazegraph.graph.dashboard.components.video_display import VideoDisplay
 from gazegraph.graph.dashboard.components.graph_display import GraphDisplay
 from gazegraph.graph.dashboard.components.playback_controls import PlaybackControls
 from gazegraph.graph.dashboard.components.meta_info import MetaInfo
-from gazegraph.graph.dashboard.components.snapshot import Snapshot
 
 
 class Dashboard:
@@ -55,11 +54,6 @@ class Dashboard:
             playback=self.playback
         )
         self.meta_info = MetaInfo(video_path, trace_file_path)
-        
-        # Initialize the snapshot component if action mapping is provided
-        self.snapshot = None
-        if action_mapping_path:
-            self.snapshot = Snapshot(playback=self.playback, action_mapping_path=action_mapping_path)
             
         self.play_interval_ms = play_interval_ms
         
@@ -116,14 +110,7 @@ class Dashboard:
             dbc.Row([
                 dbc.Col([
                     self.playback_controls.create_layout()
-                ], width=9 if self.snapshot else 12),
-                
-                # Only add the snapshot column if the component is available
-                *([
-                    dbc.Col([
-                        self.snapshot.create_layout()
-                    ], width=3)
-                ] if self.snapshot else []),
+                ], width=12),
             ], className="mb-2"),
             
             dbc.Row(dbc.Col(
@@ -140,10 +127,6 @@ class Dashboard:
             app: Dash application instance
         """
         self.playback_controls.register_callbacks(app)
-        
-        # Register snapshot callbacks if the component is available
-        if self.snapshot:
-            self.snapshot.register_callbacks(app)
         
         @app.callback(
             [Output(f"{self.video_display.component_id}-graph", "figure"),
@@ -177,11 +160,12 @@ class Dashboard:
                 current_time
             )
     
-    def run(self, port: int = 8050, debug: bool = False) -> None:
+    def run(self, port: int = 8050, debug: bool = False, use_reloader: bool = False) -> None:
         """Run the dashboard server.
         
         Args:
             port: Port number to run the server on
             debug: Whether to run in debug mode
+            use_reloader: Whether to use the Flask reloader (defaults to False)
         """
-        self.app.run(debug=debug, port=port, use_reloader=debug)
+        self.app.run(debug=debug, port=port, use_reloader=use_reloader)
