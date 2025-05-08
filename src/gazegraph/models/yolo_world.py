@@ -8,23 +8,9 @@ from typing import Dict, List, Any, Optional
 
 from gazegraph.logger import get_logger
 from gazegraph.models.onnx_utils import make_session_options
+from gazegraph.models.clip import ClipTextEmbeddingModel
 
-# Initialize logger for this module
 logger = get_logger(__name__)
-
-class TextEmbedder:
-    def __init__(self, device: str = "cuda"):
-        """Initialize CLIP text embedder."""
-        self.device = "cuda" if device == "0" else device
-        self.model, _ = clip.load("ViT-B/32", device=self.device)
-
-    def __call__(self, text: List[str]) -> torch.Tensor:
-        """Embed text using CLIP model."""
-        text_token = clip.tokenize(text).to(self.device)
-        txt_feats = [self.model.encode_text(token).detach() for token in text_token.split(1)]
-        txt_feats = torch.cat(txt_feats, dim=0)
-        txt_feats /= txt_feats.norm(dim=1, keepdim=True)
-        return txt_feats.unsqueeze(0)
 
 class YOLOWorldModel:
     """Handles YOLO-World model loading and inference for object detection."""
@@ -77,7 +63,7 @@ class YOLOWorldModel:
                 sess_options=sess_options,
                 providers=providers
             )
-            self.text_embedder = TextEmbedder(device=self.text_embedding_device)
+            self.text_embedder = ClipTextEmbeddingModel(device=self.text_embedding_device)
             
             # Get model details
             model_inputs = self.session.get_inputs()
@@ -99,7 +85,11 @@ class YOLOWorldModel:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
         self.names = class_names
-        self.class_embeddings = self.text_embedder(class_names)
+        txt_feats = self.text_embedder(class_names)
+        # Process the list of tensors
+        txt_feats = torch.cat(txt_feats, dim=0)
+        txt_feats /= txt_feats.norm(dim=1, keepdim=True)
+        self.class_embeddings = txt_feats.unsqueeze(0)
         logger.info(f"Set {len(class_names)} class names for YOLO-World")
     
     def run_inference(

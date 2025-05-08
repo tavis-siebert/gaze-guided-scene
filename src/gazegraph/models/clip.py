@@ -1,14 +1,26 @@
 import torch
+import clip
 from pathlib import Path
 from typing import Dict, List, Optional
 from transformers import CLIPProcessor, CLIPModel as HFCLIPModel
 
 from gazegraph.logger import get_logger
 
-# Initialize logger for this module
 logger = get_logger(__name__)
 
-class ClipModel:
+class ClipTextEmbeddingModel:
+    def __init__(self, device: str = "cuda"):
+        """Initialize CLIP text embedder."""
+        self.device = "cuda" if device == "0" else device
+        self.model, _ = clip.load("ViT-B/32", device=self.device)
+
+    def __call__(self, text: List[str]) -> List[torch.Tensor]:
+        """Embed text using CLIP model."""
+        text_token = clip.tokenize(text).to(self.device)
+        txt_feats = [self.model.encode_text(token).detach() for token in text_token.split(1)]
+        return txt_feats
+
+class ClipImageClassificationModel:
     """
     Handles CLIP model loading, processing, and inference for object detection.
     """
