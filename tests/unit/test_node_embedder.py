@@ -272,11 +272,8 @@ def test_object_node_embedding_with_real_data(node_embedder, test_checkpoint, te
 def test_roi_image_classification(node_embedder, test_checkpoint, test_tracer, test_video):
     """Test that extracted ROI images are correctly classified by CLIP."""
     # Get noun labels from ActionRecord (which auto-initializes when needed)
-    try:
-        id_to_name, _ = ActionRecord.get_noun_label_mappings()
-        object_labels = list(id_to_name.values())
-    except Exception as e:
-        pytest.skip(f"Failed to load action record mappings: {e}")
+    id_to_name, _ = ActionRecord.get_noun_label_mappings()
+    object_labels = list(id_to_name.values())
     
     # Ensure CLIP model is loaded
     clip_model = node_embedder._get_clip_model()
@@ -285,9 +282,8 @@ def test_roi_image_classification(node_embedder, test_checkpoint, test_tracer, t
     node_ids = [nid for nid, node in test_checkpoint.nodes.items() 
                if 'visits' in node and node['visits']]
     
-    if not node_ids:
-        pytest.skip("No valid nodes with visits found in checkpoint")
-    
+    assert len(node_ids) > 0, "No valid nodes with visits found in checkpoint"
+
     # Test for first valid node
     node_id = node_ids[0]
     node_data = test_checkpoint.nodes[node_id]
@@ -297,44 +293,24 @@ def test_roi_image_classification(node_embedder, test_checkpoint, test_tracer, t
     # Seek to the visit start frame
     test_video.seek_to_frame(visit_start)
     
-    try:
-        # Get the frame
-        frame_dict = next(test_video.stream)
-        frame_tensor = frame_dict['data']
-        
-        # Get detections
-        detections = test_tracer.get_detections_for_frame(visit_start)
-        matching_dets = [det for det in detections 
-                         if det.class_name == object_label and det.is_fixated]
-        
-        if not matching_dets:
-            pytest.skip(f"No matching detections found for the node. Found: {detections} but expected: {object_label}")
-        
-        # Extract ROI
-        roi_tensor = node_embedder._extract_roi(frame_tensor, matching_dets[0].bbox)
-        
-        if not node_embedder._is_valid_roi(roi_tensor):
-            pytest.skip("Invalid ROI extracted")
-        
-        # Convert to PIL
-        pil_image = NodeEmbedder._convert_roi_tensor_to_pil(roi_tensor)
-        
-        if pil_image is None:
-            pytest.skip("Failed to convert ROI to PIL image")
-        
-        # Classify the ROI
-        scores, best_label = clip_model.classify(object_labels, pil_image)
-        
-        # The test passes if classification completes successfully
-        # We're not strictly asserting the label matches since CLIP's classifications
-        # can be somewhat unpredictable
-        assert scores is not None
-        assert best_label is not None
-        
-        # For debugging information
-        print(f"Original object label: {object_label}")
-        print(f"CLIP best label: {best_label}")
-        print(f"Top scores: {sorted(zip(object_labels, scores), key=lambda x: x[1], reverse=True)[:3]}")
-        
-    except Exception as e:
-        pytest.fail(f"Error during ROI classification test: {e}") 
+    # Get the frame
+    frame_dict = next(test_video.stream)
+    frame_tensor = frame_dict['data']
+    
+    # Get the detections for the frame
+    detections = test_tracer.get_detections_for_frame(visit_start)
+    matching_dets = [det for det in detections 
+                      if det.class_name == object_label and det.is_fixated]
+    assert len(matching_dets) > 0, f"No matching detections found for the node. Found: {detections} but expected: {object_label}"
+    
+    # Extract the ROI
+    roi_tensor = node_embedder._extract_roi(frame_tensor, matching_dets[0].bbox)
+    assert node_embedder._is_valid_roi(roi_tensor), f"Invalid ROI extracted: {roi_tensor.shape}"
+    
+    # Convert the ROI to a PIL image
+    pil_image = NodeEmbedder._convert_roi_tensor_to_pil(roi_tensor)
+    assert pil_image is not None, "Failed to convert ROI to PIL image"
+    
+    # Make sure the best label is the object label
+    scores, best_label = clip_model.classify(object_labels, pil_image)
+    assert best_label == object_label, f"CLIP best label is not the expected object label: {best_label} != {object_label}"
