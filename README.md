@@ -11,12 +11,37 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 3. Extracts features at specified timestamps for downstream tasks
 4. Provides interactive visualization of the graph construction process
 
+## Project Structure
+
+```
+src/gaze_guided_scene/   # Main package code
+├── config/              # Configuration files and utilities
+├── datasets/            # Dataset loaders and processors
+│   └── egtea_gaze/      # EGTEA Gaze+ dataset specific code
+├── graph/               # Scene graph construction and processing
+├── models/              # Neural network models
+├── scripts/             # Utility scripts
+├── training/            # Training infrastructure
+├── logger.py            # Logging utilities
+└── main.py              # Main entry point
+
+data/                    # Data storage
+├── egtea_gaze/          # EGTEA Gaze+ dataset
+│   ├── action_annotation/
+│   └── gaze_data/
+├── graphs/              # Generated scene graphs
+└── traces/              # Execution traces for visualization
+
+logs/                    # Training and execution logs
+```
+
 ## Setup
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12+
 - Access to a Dropbox token for downloading the EGTEA Gaze+ dataset
+- [uv package manager](https://astral.sh/uv) (setup scripts will install if not present)
 
 ### Quick Start
 
@@ -33,40 +58,65 @@ This project builds scene graphs from egocentric video and gaze data to capture 
    source scripts/setup_euler_cluster_env.sh
    ```
 
+   These scripts will:
+   - Check if uv is installed, and install it if necessary
+   - Ensure the proper Python version is available
+   - Synchronize project dependencies using the lockfile (`uv sync`)
+
 2. **Create a Dropbox token**:
    - Create an app at [Dropbox App Console](https://www.dropbox.com/developers/apps/)
    - Enable `sharing.read` permission
    - Generate an OAuth 2.0 token
-   - Add to `.env` file: `DROPBOX_TOKEN=your_token_here`
+   - Add to `.env` file: 
+     ```
+     # Dropbox token for dataset downloads
+     DROPBOX_TOKEN=your_token_here
+     
+     # Optional: Custom config path
+     CONFIG_PATH=path/to/your/config.yaml
+     ```
    
    > **Note:** Dropbox tokens expire after a period of time. If you encounter authentication errors, you'll need to generate a new token following the steps above.
 
 3. **Download dataset**:
    ```bash
-   python main.py setup-scratch
+   ./run.sh setup-scratch
    ```
 
-4. **Build the dataset**:
+4. **Build scene graphs**:
    ```bash
-   python main.py build
+   ./run.sh build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   python main.py build --videos VIDEO_NAME --enable-tracing
+   ./run.sh build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
-5. **Visualize graph construction** (requires prior trace generation):
+5. **Train a model**:
    ```bash
-   python main.py visualize --video-name VIDEO_NAME
+   ./run.sh train --task future_actions
+   ```
+   
+   Or for next action prediction:
+   ```bash
+   ./run.sh train --task next_action
    ```
 
-## Project Structure
+6. **Visualize graph construction** (requires prior trace generation):
+   ```bash
+   ./run.sh visualize --video-name VIDEO_NAME
+   ```
 
-- **datasets/**: Dataset processing scripts and files
-- **egtea_gaze/**: Action and gaze annotations/processing
+## Component Descriptions
+
 - **graph/**: Scene graph construction and visualization
-  - **Core Components**: Graph, Node, GraphBuilder, GraphTracer, GraphVisualizer
+  - **Core Components**: 
+    - **Graph, Node**: Core data structures
+    - **GraphBuilder**: Processes a single video to build a scene graph
+    - **GraphProcessor**: Handles multi-video processing with parallel execution
+    - **GraphTracer**: Records trace data during graph construction
+    - **GraphVisualizer**: Visualizes the graph construction process
   - **dashboard/**: Interactive visualization dashboard
     - **components/**: UI components (VideoDisplay, GraphDisplay, PlaybackControls, MetaInfo)
     - **playback/**: Event handling and graph state management
@@ -98,84 +148,58 @@ trace_dir:           # Directory for graph construction trace files
 - Path references: `${path.to.reference}`
 - Environment variables: `${USER}`, `${REPO_ROOT}`
 - Configuration files: `student_cluster_config.yaml`, `euler_cluster_config.yaml`
+- Environment variable `CONFIG_PATH` to specify configuration file path
+
+## Environment Variables
+
+The project supports configuration via environment variables in a `.env` file in the project root:
+
+1. **Create a `.env` file**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Available environment variables**:
+   ```
+   # Configuration file path
+   CONFIG_PATH=path/to/your/config.yaml
+   
+   # Dropbox token for dataset downloads
+   DROPBOX_TOKEN=your_token_here
+   ```
+
+Environment variables take precedence over defaults in the code. When specified, `CONFIG_PATH` 
+determines which configuration file is loaded by default, but can still be overridden with the
+`--config` command-line argument.
+
+## TensorBoard Integration
+
+The project includes TensorBoard integration for visualizing training metrics and model performance. The logs are stored under `logs/{task}/` by default.
+
+```bash
+# Run training with TensorBoard logging
+./run.sh train --task next_action --device gpu
+
+# Run training with TensorBoard logging
+./run.sh train --task future_actions --device gpu
+
+# Launch TensorBoard to view metrics
+tensorboard --logdir logs
+```
 
 ## Command-Line Interface
 
 ```bash
-python main.py [options] <command>
+./run.sh [options] <command>
 ```
 
 **Commands**:
 - `setup-scratch`: Download and setup dataset
-- `build`: Build the scene graph dataset
-  - Options:
-    - `--device {gpu|cpu}`: Device to use (default: gpu)
-    - `--videos VIDEO_NAME [VIDEO_NAME ...]`: Specific videos to process
-    - `--enable-tracing`: Enable graph construction tracing for visualization
-- `visualize`: Visualize the graph construction process
-  - Options:
-    - `--video-name VIDEO_NAME`: Name of the video to visualize (used to locate trace file if trace-path not provided)
-    - `--video-path PATH`: Path to the video file (optional when using --video-name, required with --trace-path)
-    - `--trace-path PATH`: Path to the trace file (alternative to --video-name)
-    - `--port PORT`: Server port (default: 8050)
-    - `--debug`: Run in debug mode
+- `build-graphs`: Build scene graphs from videos
+- `train`: Train a GNN on a specified task
+- `visualize`: Visualize graph construction process
 
-**Global options**:
-- `--config`: Custom config file path (default: config/student_cluster_config.yaml)
-- `--log-level`: Set logging level
-- `--log-file`: Specify log file
-
-For help:
-```bash
-python main.py --help
-python main.py <command> --help
-```
-
-## Graph Tracing and Visualization
-
-The project includes a tracing and visualization system for recording and analyzing the graph construction process.
-
-### Tracing System
-
-Trace files are stored in the `traces` directory (configurable via `trace_dir` in config):
-- Each video gets its own trace file named `{video_name}_trace.jsonl`
-- Each file contains events like fixations, saccades, node/edge creation
-- Rerunning a trace for the same video overwrites its previous trace file
-
-To generate traces for visualization:
-```bash
-# For a single video
-python main.py build --videos VIDEO_NAME --enable-tracing
-
-# For multiple videos (each gets its own trace file)
-python main.py build --videos VIDEO1 VIDEO2 VIDEO3 --enable-tracing
-```
-
-### Visualization Dashboard
-
-The interactive dashboard displays the graph construction process:
-
-```bash
-# Using video name (video and trace files are located using config paths)
-python main.py visualize --video-name VIDEO_NAME [--video-path PATH] [--port PORT]
-
-# Using full paths
-python main.py visualize --trace-path /path/to/trace_file.jsonl --video-path /path/to/video.mp4 [--port PORT]
-```
-
-**Dashboard Components**:
-- **Dashboard** - Main component that integrates all visualization components
-- **Playback** - Handles trace file loading and graph state management
-- **VideoDisplay** - Manages video frames and overlay visualization
-- **GraphDisplay** - Handles graph visualization and interaction
-- **PlaybackControls** - Playback navigation controls
-- **MetaInfo** - Displays information about the video and trace files
-
-**Key Features**:
-- **Interactive Graph Visualization**: Angle-based node positioning with stable layout, directional edges with symbolic notation, node highlight animations, gaze transition arrows, interactive hover details, timeline markers, and improved empty state visualization.
-
-- **Video Playback**: Frame-by-frame playback with gaze overlays, fixation/saccade visualization, object detection highlighting, and synchronized graph display.
-
-- **Intuitive Controls**: Play/pause with emoji buttons, real-time speed control, timeline slider with event markers, navigation buttons, and MM:SS time display.
-
-- **Performance Optimizations**: Figure caching, optimized layout initialization, FIFO frame caching, precomputed SVG paths, edge hover thresholds, reduced framerate, static background rendering, and batch frame processing.
+**Global Options**:
+- `--config`: Path to custom config file
+- `--log-level`: Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `--log-file`: Path to log file

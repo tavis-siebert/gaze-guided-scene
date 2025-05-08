@@ -1,8 +1,19 @@
-.env
-.vscode/
-venv/
+# Python-generated files
 __pycache__/
-out/
-run.sh
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Environment files
+.*
+
+# Local/temporary files
 *.pth
 logs/
+out/
+src/config/local_config.yaml
+
+# Ignore all files in traces directory
+data/traces/
