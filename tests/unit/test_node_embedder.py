@@ -36,7 +36,7 @@ def test_tracer():
     trace_path = Path("data/traces/OP01-R01-PastaSalad_trace.jsonl")
     if not trace_path.exists():
         pytest.skip("Test trace file not available")
-    return GraphTracer("data/traces", "OP01-R01-PastaSalad", enabled=True)
+    return GraphTracer("data/traces", "OP01-R01-PastaSalad", enabled=False)
 
 
 @pytest.fixture
