@@ -256,6 +256,25 @@ class ActionRecord:
         return result
     
     @classmethod
+    def get_action_name_by_idx(cls, action_idx: int) -> Optional[str]:
+        """Get the human-readable name for an action index.
+        
+        Args:
+            action_idx: The index of the action
+            
+        Returns:
+            The action name as a string, or None if not found
+            
+        Raises:
+            RuntimeError: If action mapping is not initialized
+        """
+        if not cls._is_initialized:
+            raise RuntimeError("Action mapping not initialized. Call initialize_action_mapping() first.")
+            
+        action_names = cls.get_action_names()
+        return action_names.get(action_idx)
+    
+    @classmethod
     def get_noun_label_mappings(cls) -> Tuple[Dict[int, str], Dict[str, int]]:
         """Get noun label mappings.
         
