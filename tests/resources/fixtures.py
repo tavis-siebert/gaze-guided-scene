@@ -11,9 +11,23 @@ from pathlib import Path
 
 from gazegraph.models.clip import ClipModel
 
+# Get the test resources directory
+TEST_RESOURCES_DIR = Path(__file__).parent
+TEST_DATA_DIR = TEST_RESOURCES_DIR / "data"
+TEST_IMAGES_DIR = TEST_DATA_DIR / "images"
+
 # Constants for tests
-TEST_IMAGES_DIR = Path("data/tests/images")
 SAMPLE_LABELS = ["apple", "microwave", "knife", "tomato", "plate"]
+
+@pytest.fixture
+def test_resources_dir():
+    """Return the path to the test resources directory."""
+    return TEST_RESOURCES_DIR
+
+@pytest.fixture
+def test_data_dir():
+    """Return the path to the test data directory."""
+    return TEST_DATA_DIR
 
 @pytest.fixture
 def clip_model():
@@ -26,6 +40,9 @@ def clip_model():
 @pytest.fixture
 def test_images():
     """Fixture to load test images from the data directory."""
+    # Ensure the directory exists
+    os.makedirs(TEST_IMAGES_DIR, exist_ok=True)
+    
     images = {}
     for img_path in TEST_IMAGES_DIR.glob("*.jpg"):
         images[img_path.stem] = Image.open(img_path)
@@ -36,10 +53,22 @@ def test_images():
 @pytest.fixture
 def test_image():
     """Fixture that provides a single test image."""
+    # Ensure the directory exists
+    os.makedirs(TEST_IMAGES_DIR, exist_ok=True)
+    
     for img_path in TEST_IMAGES_DIR.glob("*.jpg"):
         return Image.open(img_path)
     for img_path in TEST_IMAGES_DIR.glob("*.png"):
         return Image.open(img_path)
+    
+    # Create a dummy image if no images exist
+    if not list(TEST_IMAGES_DIR.glob("*.jpg")) and not list(TEST_IMAGES_DIR.glob("*.png")):
+        img = Image.new('RGB', (224, 224), color=(73, 109, 137))
+        os.makedirs(TEST_IMAGES_DIR, exist_ok=True)
+        img_path = TEST_IMAGES_DIR / "dummy_test_image.jpg"
+        img.save(img_path)
+        return img
+    
     return None
 
 @pytest.fixture
