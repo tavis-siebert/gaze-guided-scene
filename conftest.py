@@ -13,23 +13,23 @@ sys.path.insert(0, str(src_path))
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--run-real-model",
+        "--run-gpu",
         action="store_true",
         default=False,
-        help="run tests that require a real CLIP model"
+        help="run tests that require a GPU"
     )
 
 def pytest_collection_modifyitems(config, items):
     # Check if we're running in a cluster environment
-    is_cluster = "SLURM_JOB_ID" in os.environ
+    has_gpu = torch.cuda.is_available()
     
     # If we're on a cluster or user explicitly requested real model tests,
     # don't skip any tests
-    if is_cluster or config.getoption("--run-real-model"):
+    if has_gpu or config.getoption("--run-gpu"):
         return
     
     # Skip real_model tests when running locally
-    skip_real_model = pytest.mark.skip(reason="need --run-real-model option to run")
+    skip_real_model = pytest.mark.skip(reason="need --run-gpu option to run")
     
     for item in items:
         if "real_model" in item.keywords:
