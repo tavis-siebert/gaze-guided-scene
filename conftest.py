@@ -12,6 +12,13 @@ import torch
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
+# Register test markers
+def pytest_configure(config):
+    """Register custom pytest markers."""
+    config.addinivalue_line("markers", "unit: mark a test as a unit test")
+    config.addinivalue_line("markers", "integration: mark a test as an integration test")
+    config.addinivalue_line("markers", "gpu: mark a test that requires a GPU")
+
 def pytest_addoption(parser):
     parser.addoption(
         "--run-gpu",
@@ -31,4 +38,9 @@ def pytest_collection_modifyitems(config, items):
     
     for item in items:
         if "gpu" in item.keywords:
-            item.add_marker(skip_gpu) 
+            item.add_marker(skip_gpu)
+
+@pytest.fixture
+def test_data_dir():
+    """Return the path to the test data directory."""
+    return Path(__file__).parent / "data" / "tests" 
