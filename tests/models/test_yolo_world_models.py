@@ -3,7 +3,9 @@ from PIL import Image
 from pathlib import Path
 from gazegraph.models.yolo_world_model import YOLOWorldModel
 from gazegraph.config.config_utils import get_config
-
+import numpy as np
+from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
+import hashlib
 @pytest.fixture
 def ultralytics_model_path():
     """Fixture for Ultralytics model path from config."""
@@ -97,4 +99,73 @@ def test_object_detection_suite(yolo_world_model):
         if missing_objects:
             all_detected = False
     
-    assert all_detected, "Some expected objects were not detected in test suite" 
+    assert all_detected, "Some expected objects were not detected in test suite"
+
+# Fixtures for custom model tests
+@pytest.fixture
+def model_dir():
+    config = get_config()
+    return Path(config.models.yolo_world.paths.ultralytics).parent
+
+@pytest.fixture
+def test_image():
+    img = Image.fromarray(np.zeros((640, 640, 3), dtype=np.uint8))
+    return img
+
+@pytest.fixture
+def custom_classes():
+    return ["person", "car"]
+
+# Custom model tests from ultralytics suite
+@pytest.mark.gpu
+def test_custom_model_save_load(model_dir, custom_classes):
+    # Initialize model with custom save flag
+    model = YOLOWorldUltralyticsModel(use_custom_model=True)
+    # Set custom classes
+    model.set_classes(custom_classes)
+    # Check if custom model file is created
+    class_str = '_'.join(custom_classes)
+    class_str_hash = hashlib.sha256(class_str.encode()).hexdigest()[:8]
+    custom_model_path = model_dir / f"custom_yolov8x-worldv2_{class_str_hash}.pt"
+    assert custom_model_path.exists(), f"Custom model file not found at {custom_model_path}"
+    # Load the custom model in a new instance
+    new_model = YOLOWorldUltralyticsModel(use_custom_model=True, custom_classes=custom_classes)
+    assert new_model.names == custom_classes, "Loaded custom model does not have the expected classes"
+
+@pytest.mark.gpu
+def test_custom_model_confidence_improvement(model_dir, test_image, custom_classes):
+    # Initialize standard model without custom flag
+    standard_model = YOLOWorldUltralyticsModel()
+    standard_model.set_classes(custom_classes)
+    # Run inference with standard model
+    standard_results = standard_model.predict(test_image)
+    standard_confidences = [det['score'] for det in standard_results]
+    standard_avg_conf = np.mean(standard_confidences) if standard_confidences else 0.0
+    # Initialize and save custom model
+    custom_model = YOLOWorldUltralyticsModel(use_custom_model=True)
+    custom_model.set_classes(custom_classes)
+    # Load the custom model in a new instance
+    loaded_custom_model = YOLOWorldUltralyticsModel(use_custom_model=True, custom_classes=custom_classes)
+    custom_results = loaded_custom_model.predict(test_image)
+    custom_confidences = [det['score'] for det in custom_results]
+    custom_avg_conf = np.mean(custom_confidences) if custom_confidences else 0.0
+    # Qualitative check: custom model should have higher average confidence
+    assert custom_avg_conf >= standard_avg_conf, f"Custom model confidence ({custom_avg_conf}) not higher than standard ({standard_avg_conf})"
+
+@pytest.mark.gpu
+def test_custom_model_file_naming(model_dir, custom_classes):
+    # Test that different class sets create different custom model files
+    model1 = YOLOWorldUltralyticsModel(use_custom_model=True)
+    model1.set_classes(custom_classes)
+    different_classes = ["dog", "cat"]
+    model2 = YOLOWorldUltralyticsModel(use_custom_model=True)
+    model2.set_classes(different_classes)
+    class_str1 = '_'.join(custom_classes)
+    class_str2 = '_'.join(different_classes)
+    class_str_hash1 = hashlib.sha256(class_str1.encode()).hexdigest()[:8]
+    class_str_hash2 = hashlib.sha256(class_str2.encode()).hexdigest()[:8]
+    custom_model_path1 = model_dir / f"custom_yolov8x-worldv2_{class_str_hash1}.pt"
+    custom_model_path2 = model_dir / f"custom_yolov8x-worldv2_{class_str_hash2}.pt"
+    assert custom_model_path1.exists(), f"First custom model file not found at {custom_model_path1}"
+    assert custom_model_path2.exists(), f"Second custom model file not found at {custom_model_path2}"
+    assert custom_model_path1 != custom_model_path2, "Different class sets should create different model files" 

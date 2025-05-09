@@ -20,7 +20,9 @@ class YOLOWorldModel(ABC):
         iou_threshold: Optional[float] = None,
         device: Optional[str] = None,
         use_prefix: Optional[bool] = None,
-        replace_underscores: Optional[bool] = None
+        replace_underscores: Optional[bool] = None,
+        use_custom_model: bool = False,
+        custom_classes: Optional[List[str]] = None
     ) -> 'YOLOWorldModel':
         """Factory method to create the appropriate YOLO-World model."""
         config = get_config().models.yolo_world
@@ -39,7 +41,7 @@ class YOLOWorldModel(ABC):
         # Create appropriate model instance
         if actual_backend.lower() == "ultralytics":
             from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
-            return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores)
+            return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores, use_custom_model, custom_classes)
         else:  # must be "onnx" based on validation above
             from gazegraph.models.yolo_world_onnx import YOLOWorldOnnxModel
             return YOLOWorldOnnxModel(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores)
