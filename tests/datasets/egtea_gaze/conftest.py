@@ -5,8 +5,8 @@ Configuration for EGTEA Gaze dataset-related tests.
 import pytest
 import tempfile
 import os
-from unittest.mock import patch, MagicMock
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 @pytest.fixture
 def mock_verb_index_file():
@@ -37,38 +37,34 @@ def mock_noun_index_file():
     os.unlink(temp_path)
 
 @pytest.fixture
-def mock_train_split_file():
-    """Create a temporary train split file for testing."""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
-        f.write("video_1\t10\t30\t1\t3\n")  # take knife
-        f.write("video_1\t40\t60\t2\t1\n")  # put cup
-        f.write("video_2\t5\t25\t3\t4\n")   # open microwave
-        f.write("video_2\t30\t50\t4\t4\n")  # close microwave
-        f.write("video_3\t15\t35\t5\t2\n")  # wash bowl
-        temp_path = f.name
+def mock_split_files():
+    """Create temporary train and val split files for testing."""
+    # Create train split file
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as train_file:
+        train_file.write("video_1\t10\t30\t1\t3\n")  # take knife
+        train_file.write("video_1\t40\t60\t2\t1\n")  # put cup
+        train_file.write("video_2\t5\t25\t3\t4\n")   # open microwave
+        train_file.write("video_2\t30\t50\t4\t4\n")  # close microwave
+        train_file.write("video_3\t15\t35\t5\t2\n")  # wash bowl
+        train_path = train_file.name
     
-    yield temp_path
-    os.unlink(temp_path)
+    # Create val split file
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as val_file:
+        val_file.write("video_4\t5\t25\t1\t1\n")   # take cup
+        val_file.write("video_4\t30\t50\t4\t5\n")  # close fridge
+        val_path = val_file.name
+    
+    yield {"train": train_path, "val": val_path}
+    
+    # Cleanup
+    os.unlink(train_path)
+    os.unlink(val_path)
 
 @pytest.fixture
-def mock_val_split_file():
-    """Create a temporary val split file for testing."""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
-        f.write("video_4\t5\t25\t1\t1\n")   # take cup
-        f.write("video_4\t30\t50\t4\t5\n")  # close fridge
-        temp_path = f.name
-    
-    yield temp_path
-    os.unlink(temp_path)
-
-@pytest.fixture
-def setup_mock_files(mock_verb_index_file, mock_noun_index_file, mock_train_split_file, mock_val_split_file, monkeypatch):
+def setup_mock_files(mock_verb_index_file, mock_noun_index_file, mock_split_files, monkeypatch):
     """Set up mock files and directories for testing."""
     # Create a mock directory structure
     os.makedirs("test_annotations", exist_ok=True)
-    
-    # Copy mock files to test directory
-    monkeypatch.setattr("os.path.exists", lambda path: True)
     
     # Mock the open function to return our test files
     original_open = open
@@ -79,13 +75,14 @@ def setup_mock_files(mock_verb_index_file, mock_noun_index_file, mock_train_spli
         elif file == "test_annotations/noun_idx.txt":
             return original_open(mock_noun_index_file, *args, **kwargs)
         elif file == "test_train_split.txt":
-            return original_open(mock_train_split_file, *args, **kwargs)
+            return original_open(mock_split_files["train"], *args, **kwargs)
         elif file == "test_val_split.txt":
-            return original_open(mock_val_split_file, *args, **kwargs)
+            return original_open(mock_split_files["val"], *args, **kwargs)
         else:
             return original_open(file, *args, **kwargs)
     
-    # Apply the patch
+    # Apply patches
+    monkeypatch.setattr("os.path.exists", lambda path: True)
     monkeypatch.setattr("builtins.open", mock_open)
     
     yield
