@@ -21,8 +21,8 @@ class ClipModel:
         self.device = device
         self.model = None
         self.preprocess = None
-        
-    def load(self, name: str = "ViT-B/32", jit: bool = False, download_root: str = None) -> None:
+
+    def load(self, name: str = "ViT-L/14", jit: bool = False, download_root: str = None) -> None:
         """Load CLIP model and preprocessor.
         
         Args:
