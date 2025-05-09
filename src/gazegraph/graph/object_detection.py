@@ -163,9 +163,12 @@ class ObjectDetector:
         self.tracer = tracer
         self.config = config
         
-        # Extract settings from config
-        self.conf_threshold = config.models.yolo_world.conf_threshold
-        self.iou_threshold = config.models.yolo_world.iou_threshold
+        # Backend selection
+        backend = getattr(config.models.yolo_world, "backend", "ultralytics")
+        
+        # Extract settings from config for the specific backend
+        self.conf_threshold = config.models.yolo_world[backend].conf_threshold
+        self.iou_threshold = config.models.yolo_world[backend].iou_threshold
         
         # Fixation parameters
         self.min_fixation_frame_ratio = config.graph.min_fixation_frame_ratio
@@ -178,9 +181,6 @@ class ObjectDetector:
         self.bbox_stability_threshold = config.graph.fixated_object_detection.thresholds.bbox_stability
         self.gaze_proximity_threshold = config.graph.fixated_object_detection.thresholds.gaze_proximity
         self.confidence_threshold = config.graph.fixated_object_detection.thresholds.confidence
-        
-        # Backend selection
-        backend = getattr(config.models.yolo_world, "backend", "ultralytics")
         
         logger.info(f"Initializing YOLO-World model: {model_path.name} (backend={backend}, "
                     f"conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")

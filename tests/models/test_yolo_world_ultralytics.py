@@ -25,8 +25,6 @@ def yolo_world_model():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = YOLOWorldModel.create(
         backend="ultralytics",
-        conf_threshold=0.05,
-        iou_threshold=0.2,
         device=device
     )
     return model
@@ -34,7 +32,7 @@ def yolo_world_model():
 @pytest.mark.unit
 def test_initialization():
     """Test model initialization with factory."""
-    # Test ultralytics backend
+    # Test ultralytics backend with explicit parameters
     model_ultralytics = YOLOWorldModel.create(
         backend="ultralytics",
         conf_threshold=0.35,
@@ -58,6 +56,15 @@ def test_initialization():
     assert model_direct.device == "cpu"
     assert model_direct.names == []
     
+    # Test using default config-based parameters
+    model_from_config = YOLOWorldModel.create(
+        backend="ultralytics",
+        device="cpu"
+    )
+    # We don't assert specific values since they're now from config
+    assert isinstance(model_from_config, YOLOWorldUltralyticsModel)
+    assert model_from_config.device == "cpu"
+    
     # Test invalid backend
     with pytest.raises(ValueError):
         YOLOWorldModel.create(backend="invalid")
@@ -72,7 +79,7 @@ def test_model_loading(yolo_world_model, model_path):
     # Model should be instantiated but not loaded yet in the fixture
     assert yolo_world_model.model is None
     
-    # Load the model
+    # Load the model with explicit parameters
     model = YOLOWorldModel.create(
         backend="ultralytics",
         model_path=model_path,
