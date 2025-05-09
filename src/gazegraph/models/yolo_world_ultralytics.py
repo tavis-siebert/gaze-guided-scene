@@ -18,14 +18,16 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         model_path: Optional[Path] = None,
         conf_threshold: Optional[float] = None, 
         iou_threshold: Optional[float] = None,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        use_prefix: Optional[bool] = None,
+        replace_underscores: Optional[bool] = None
     ):
         """Initialize YOLO-World Ultralytics model."""
         # Initialize model to None before parent constructor
         self.model = None
         
         # Call parent constructor which handles all config
-        super().__init__(model_path, conf_threshold, iou_threshold, device)
+        super().__init__(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores)
     
     def _load_model(self, model_path: Path) -> None:
         """Load the YOLO-World model using Ultralytics."""
@@ -47,9 +49,8 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         if self.model is None:
             raise RuntimeError("Model not loaded")
         
-        # Format class names for prompts
-        formatted_names = [f"a photo of a {name.replace('_', ' ')}" for name in class_names]
-        self.model.set_classes(formatted_names)
+        # Class names are already formatted by the parent class
+        self.model.set_classes(class_names)
     
     def _run_inference(self, image: np.ndarray, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """Run inference with the Ultralytics model."""
