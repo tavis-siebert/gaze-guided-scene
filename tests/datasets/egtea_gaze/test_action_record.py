@@ -12,6 +12,27 @@ from collections import Counter
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.datasets.egtea_gaze.constants import NUM_ACTION_CLASSES
 
+@pytest.fixture
+def mock_action_records(monkeypatch):
+    """Fixture providing mock action records for testing."""
+    # Disable initialization to avoid loading files
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    return [
+        ActionRecord(["video_1", "10", "20", "1", "3"]),
+        ActionRecord(["video_1", "30", "40", "2", "1"]),
+        ActionRecord(["video_2", "5", "15", "3", "4"]),
+    ]
+
+@pytest.fixture
+def mock_records_by_video(mock_action_records):
+    """Fixture providing mock records organized by video."""
+    records_by_video = {}
+    for record in mock_action_records:
+        if record.video_name not in records_by_video:
+            records_by_video[record.video_name] = []
+        records_by_video[record.video_name].append(record)
+    return records_by_video
+
 # Basic initialization and properties
 def test_init_and_properties(monkeypatch):
     monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
@@ -118,20 +139,37 @@ def test_load_records_from_file_errors(monkeypatch):
 # API methods
 def test_api_methods(mock_action_records, mock_records_by_video):
     ActionRecord._ensure_initialized = classmethod(lambda *args, **kwargs: None)
-    assert ActionRecord.get_records_for_video("video_1") == mock_records_by_video["video_1"]
-    assert ActionRecord.get_records_for_video("none") == []
-    assert set(ActionRecord.get_all_videos()) == set(mock_records_by_video)
-    assert len(ActionRecord.get_all_records()) == sum(len(v) for v in mock_records_by_video.values())
-    ActionRecord._action_to_idx = {(1, 3): 0, (2, 1): 1}
-    mp = ActionRecord.get_action_mapping()
-    assert mp == {(1, 3): 0, (2, 1): 1} and mp is not ActionRecord._action_to_idx
-    ActionRecord._noun_id_to_name = {1: "cup", 2: "bowl"}
-    id2n, n2i = ActionRecord.get_noun_label_mappings()
-    assert id2n == {1: "cup", 2: "bowl"} and n2i == {"cup": 1, "bowl": 2}
-    ActionRecord._verb_id_to_name = {1: "take"}; ActionRecord._noun_id_to_name = {1: "cup", 3: "knife"}
-    assert ActionRecord.get_action_name_by_idx(0) == "take cup"
-    names = ActionRecord.get_action_names()
-    assert isinstance(names, dict) and names
+    
+    # Patch the internal state to use our mock data
+    with patch.object(ActionRecord, '_records_by_video', mock_records_by_video):
+        with patch.object(ActionRecord, '_action_to_idx', {(1, 3): 0, (2, 1): 1}):
+            # Test get_records_for_video
+            assert ActionRecord.get_records_for_video("video_1") == mock_records_by_video["video_1"]
+            assert ActionRecord.get_records_for_video("none") == []
+            
+            # Test get_all_videos
+            assert set(ActionRecord.get_all_videos()) == set(mock_records_by_video)
+            
+            # Test get_all_records
+            assert len(ActionRecord.get_all_records()) == sum(len(v) for v in mock_records_by_video.values())
+            
+            # Test get_action_mapping
+            mp = ActionRecord.get_action_mapping()
+            assert mp == {(1, 3): 0, (2, 1): 1} and mp is not ActionRecord._action_to_idx
+            
+            # Test get_noun_label_mappings
+            with patch.object(ActionRecord, '_noun_id_to_name', {1: "cup", 2: "bowl", 3: "knife"}):
+                id2n, n2i = ActionRecord.get_noun_label_mappings()
+                assert id2n == {1: "cup", 2: "bowl", 3: "knife"} and n2i == {"cup": 1, "bowl": 2, "knife": 3}
+                
+                # Test get_action_name_by_idx
+                with patch.object(ActionRecord, '_verb_id_to_name', {1: "take", 2: "put"}):
+                    assert ActionRecord.get_action_name_by_idx(0) == "take knife"
+                    assert ActionRecord.get_action_name_by_idx(1) == "put cup"
+                    
+                    # Test get_action_names
+                    names = ActionRecord.get_action_names()
+                    assert isinstance(names, dict) and names
 
 # Future action labels
 def test_create_future_action_labels(mock_records_by_video):
