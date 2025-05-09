@@ -1,9 +1,9 @@
 import torch
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union, Tuple
 from ultralytics import YOLOWorld
-
+from PIL import Image
 from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
@@ -52,6 +52,65 @@ class YOLOWorldUltralyticsModel:
         
         logger.info(f"Set {len(class_names)} class names")
     
+    def _ensure_numpy_hwc_format(self, frame: Union[np.ndarray, torch.Tensor, Image.Image]) -> np.ndarray:
+        """
+        Ensures the image is in numpy HWC format with proper channel ordering for YOLOWorld.
+        YOLOWorld expects:
+        - numpy arrays in HWC format with RGB channels (uint8, 0-255)
+        - OR PIL images
+        - OR torch tensors in BCHW format with RGB channels (float32, 0.0-1.0)
+        
+        Parameters:
+            frame: Input image as PIL.Image, np.ndarray, or torch.Tensor
+            
+        Returns:
+            np.ndarray: Image in RGB HWC format (uint8, 0-255)
+        """
+        # Handle PIL Images
+        if isinstance(frame, Image.Image):
+            # PIL is already in RGB format, just convert to numpy
+            return np.array(frame)
+            
+        # Handle torch tensors
+        elif isinstance(frame, torch.Tensor):
+            # Check for batch dimension (BCHW format)
+            if frame.dim() == 4:
+                # If it's a batch, take the first image
+                logger.warning("Received batch of images, using only the first one")
+                frame = frame[0]
+            
+            # If tensor is in channel-first format (CHW), convert to (HWC)
+            if frame.dim() == 3 and frame.shape[0] in [1, 3, 4]:
+                # Convert CHW -> HWC
+                image = frame.permute(1, 2, 0).cpu().numpy()
+            else:
+                image = frame.cpu().numpy()
+                
+            # Handle value range: if float and max value <= 1.0, convert to uint8
+            if image.dtype in [np.float32, np.float64] and image.max() <= 1.0:
+                image = (image * 255).astype(np.uint8)
+            
+            # Keep as RGB (YOLOWorld uses RGB)
+            return image
+            
+        # Handle numpy arrays (typically from OpenCV - BGR format)
+        elif isinstance(frame, np.ndarray):
+            # Ensure HWC format (if not already)
+            if frame.ndim == 3 and frame.shape[2] == 3:
+                # OpenCV images are BGR, convert to RGB
+                import cv2
+                # Check if this might be a BGR image from OpenCV
+                if frame.dtype == np.uint8:
+                    # Convert BGR to RGB (cv2 images are typically BGR)
+                    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                return frame
+            else:
+                logger.warning(f"Unexpected numpy array shape: {frame.shape}")
+                return frame
+        else:
+            logger.warning(f"Unsupported image type: {type(frame)}")
+            return frame
+    
     def run_inference(
         self, 
         frame: Any, 
@@ -74,12 +133,9 @@ class YOLOWorldUltralyticsModel:
                 class_names.append(label)
             self.set_classes(class_names)
         
-        # Convert tensor to numpy array if needed
-        if isinstance(frame, torch.Tensor):
-            image = frame.permute(1, 2, 0).cpu().numpy() if frame.shape[0] == 3 else frame.cpu().numpy()
-        else:
-            image = frame
-        
+        # Ensure proper image format
+        image = self._ensure_numpy_hwc_format(frame)
+
         # Run inference
         results = self.model.predict(
             source=image,
