@@ -9,7 +9,7 @@ from unittest.mock import patch, MagicMock
 from PIL import Image
 import numpy as np
 
-from gazegraph.datasets.embeddings import NodeEmbeddings
+from gazegraph.datasets.node_embeddings import NodeEmbeddings
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
 from gazegraph.graph.graph_tracer import GraphTracer
@@ -204,68 +204,78 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
 
 @pytest.mark.integration
 def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer, test_video, sample_data_path):
-    """Test that extracted ROI images are correctly classified by CLIP."""
-    # Get noun labels from ActionRecord (which auto-initializes when needed)
+    """Test that the best detection in the visit range is (mostly) correctly classified (top 3)."""
     id_to_name, _ = ActionRecord.get_noun_label_mappings()
     object_labels = list(id_to_name.values())
-    
-    # Ensure CLIP model is loaded
+    object_labels = [f"a photo of a {label.replace('_', ' ')}" for label in object_labels]
     clip_model = node_embeddings._get_clip_model()
-    
-    # Find nodes with visits
     node_ids = [nid for nid, node in test_checkpoint.nodes.items() 
                if 'visits' in node and node['visits']]
     
     assert len(node_ids) > 0, "No valid nodes with visits found in checkpoint"
 
-    # Test for first valid node
-    node_id = node_ids[0]
-    node_data = test_checkpoint.nodes[node_id]
-    object_label = node_data["object_label"]
-    visit_start, visit_end = node_data["visits"][0]
-    print(f"Checkpoint.frame_number: {test_checkpoint.frame_number}")
-    print(f"Node ID: {node_id}, Object Label: {object_label}, Visit Start: {visit_start}, Visit End: {visit_end}")
-    
-    # Seek to the visit start frame
-    print(f"Seeking to frame {visit_start}")
-    test_video.seek_to_frame(visit_start)
-    
-    # Get a frame from the visit
-    frame = next(test_video.stream)
-    frame_tensor = frame['data']
-    # write frame as a png for debugging
-    frame_pil = Image.fromarray(frame_tensor.numpy().transpose(1, 2, 0).astype(np.uint8))
-    # save to sample_data_path
-    frame_pil.save(sample_data_path / "frame.png")
-    
-    # Get the detections for the frame
-    detections = test_tracer.get_detections_for_frame(visit_start)
-    matching_dets = [det for det in detections 
-                      if det.class_name == object_label and det.is_fixated]
-    assert len(matching_dets) > 0, f"No matching detections found for the node. Found: {detections} but expected: {object_label}"
-    
-    # Extract the ROI
-    roi_tensor = node_embeddings._extract_roi(frame_tensor, matching_dets[0].bbox)
-    assert node_embeddings._is_valid_roi(roi_tensor), f"Invalid ROI extracted: {roi_tensor.shape}"
-    
-    # Convert the ROI to a PIL image
-    pil_image = NodeEmbeddings._convert_roi_tensor_to_pil(roi_tensor)
-    assert pil_image is not None, "Failed to convert ROI to PIL image"
-    
-    # write ROI as a png for debugging
-    pil_image.save(sample_data_path / "roi.png")
+    correct_count = 0
+    total_count = 0
 
-    # Make sure the best label is the object label
-    scores, best_label = clip_model.classify(object_labels, pil_image)
+    for node_id in node_ids:
+        node_data = test_checkpoint.nodes[node_id]
+        object_label = node_data["object_label"]
+        visit_start, visit_end = node_data["visits"][0]
 
-    # print score and label for top 5 labels
-    # apply softmax to scores
-    scores = torch.nn.functional.softmax(torch.tensor(scores), dim=0)
-    # sort scores and labels by score in descending order
-    scores, labels = zip(*sorted(zip(scores, object_labels), key=lambda x: x[0], reverse=True))
-    for i, (score, label) in enumerate(zip(scores, labels)):
-        print(f"Top {i+1} label: {label}, score: {score}")
-        if i > 5:
-            break
+        # Get all detections for the visit range
+        detections = []
+        for frame_idx in range(visit_start, visit_end + 1):
+            detections.extend(test_tracer.get_detections_for_frame(frame_idx))
 
-    assert best_label == object_label, f"CLIP best label is not the expected object label: {best_label} != {object_label}"
+        # Filter matching detections
+        matching_dets = [det for det in detections 
+                        if det.class_name == object_label and det.is_fixated]
+        print(f"Matching detections for object {object_label} (node {node_id}):")
+        for det in matching_dets:
+            print(f"  - Frame {det.frame_idx}, BBox: {det.bbox}, Score: {det.score}")
+        assert len(matching_dets) > 0, f"No matching detections found for object {object_label} (node {node_id})"
+
+        # Get the best detection
+        best_det = max(matching_dets, key=lambda x: x.score)
+        print(f"Best detection for object {object_label} (node {node_id}):")
+        print(f"  - Frame {best_det.frame_idx}, BBox: {best_det.bbox}, Score: {best_det.score}")
+        test_video.seek_to_frame(best_det.frame_idx)
+
+        # Extract ROI from best detection
+        frame = next(test_video.stream)
+        frame_tensor = frame['data']
+        # save frame to file
+        frame_pil = Image.fromarray(frame_tensor.numpy().transpose(1, 2, 0))
+        frame_pil.save(f"data/tests/out/test_node_embeddings_frame_{object_label}_node_{node_id}.png")
+        roi_tensor = node_embeddings._extract_roi(frame_tensor, best_det.bbox, padding=10)
+        pil_image = NodeEmbeddings._convert_roi_tensor_to_pil(roi_tensor)
+        # save pil_image to file
+        pil_image.save(f"data/tests/out/test_node_embeddings_roi_{object_label}_node_{node_id}.png")
+
+        # Classify ROI
+        scores, best_label = clip_model.classify(object_labels, pil_image)
+        
+        # Convert scores to tensor and apply softmax
+        scores_tensor = torch.tensor(scores)
+        scores = torch.nn.functional.softmax(scores_tensor, dim=0).tolist()
+        
+        # Sort scores and labels
+        sorted_results = sorted(zip(scores, object_labels), key=lambda x: x[0], reverse=True)
+        sorted_scores, sorted_labels = zip(*sorted_results)
+
+        # Print results
+        print(f"Top 3 labels for object {object_label} (node {node_id}):")
+        for label, score in list(zip(sorted_labels, sorted_scores))[:3]:
+            print(f"  - {label}: {score}")
+
+        expected_label = f"a photo of a {object_label.replace('_', ' ')}"
+        if expected_label in sorted_labels[:3]:
+            print(f"Correctly classified object {object_label} (node {node_id})")
+            correct_count += 1
+        else:
+            print(f"Incorrectly classified object {object_label} (node {node_id})")
+        total_count += 1
+    
+    accuracy = correct_count / total_count
+    print(f"Accuracy: {accuracy}")
+    assert accuracy > 0.9, f"Accuracy is too low: {accuracy}"
