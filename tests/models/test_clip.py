@@ -39,9 +39,10 @@ def test_classify(clip_model, test_images):
     # Gather label candidates from test image names (split on dash)
     labels = []
     for name in test_images.keys():
-        labels.extend(name.split("-"))
+        labels.extend([f"a photo of a {name.replace('_', ' ')}"])
 
     for name, img in test_images.items():
+        name = f"a photo of a {name.replace('_', ' ')}"
         # Create preprocessed tensor and move to the same device as the model
         preprocessed = clip_model.preprocess(img).unsqueeze(0).to(clip_model.device)
         
