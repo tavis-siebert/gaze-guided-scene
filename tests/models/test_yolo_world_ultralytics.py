@@ -5,7 +5,6 @@ Unit tests for YOLOWorld models.
 import pytest
 import torch
 import numpy as np
-import os
 from pathlib import Path
 from PIL import Image
 
@@ -17,51 +16,36 @@ from gazegraph.config.config_utils import get_config
 def model_path():
     """Fixture to provide the model path from config."""
     config = get_config()
-    return Path(config.models.yolo_world.model_file_ultralytics)
+    return Path(config.models.yolo_world.paths.ultralytics)
 
 @pytest.fixture
 def yolo_world_model():
     """Fixture to provide a YOLOWorldModel instance."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = YOLOWorldModel.create(
-        backend="ultralytics",
-        device=device
-    )
+    model = YOLOWorldModel.create(backend="ultralytics", device=device)
     return model
 
 @pytest.mark.unit
 def test_initialization():
     """Test model initialization with factory."""
-    # Test ultralytics backend with explicit parameters
-    model_ultralytics = YOLOWorldModel.create(
+    # Test with explicit parameters
+    model_explicit = YOLOWorldModel.create(
         backend="ultralytics",
         conf_threshold=0.35,
         iou_threshold=0.7,
         device="cpu"
     )
-    assert isinstance(model_ultralytics, YOLOWorldUltralyticsModel)
-    assert model_ultralytics.conf_threshold == 0.35
-    assert model_ultralytics.iou_threshold == 0.7
-    assert model_ultralytics.device == "cpu"
-    assert model_ultralytics.names == []
+    assert isinstance(model_explicit, YOLOWorldUltralyticsModel)
+    assert model_explicit.conf_threshold == 0.35
+    assert model_explicit.iou_threshold == 0.7
+    assert model_explicit.device == "cpu"
+    assert model_explicit.names == []
     
-    # Test direct initialization of the ultralytics model
-    model_direct = YOLOWorldUltralyticsModel(
-        conf_threshold=0.35,
-        iou_threshold=0.7,
-        device="cpu"
-    )
-    assert model_direct.conf_threshold == 0.35
-    assert model_direct.iou_threshold == 0.7
-    assert model_direct.device == "cpu"
-    assert model_direct.names == []
-    
-    # Test using default config-based parameters
+    # Test using default config values
     model_from_config = YOLOWorldModel.create(
-        backend="ultralytics",
+        backend="ultralytics", 
         device="cpu"
     )
-    # We don't assert specific values since they're now from config
     assert isinstance(model_from_config, YOLOWorldUltralyticsModel)
     assert model_from_config.device == "cpu"
     
@@ -72,19 +56,17 @@ def test_initialization():
 @pytest.mark.gpu
 def test_model_loading(yolo_world_model, model_path):
     """Test model loading."""
-    # Skip if model file doesn't exist - this avoids test failures in CI
+    # Skip if model file doesn't exist
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
     
     # Model should be instantiated but not loaded yet in the fixture
     assert yolo_world_model.model is None
     
-    # Load the model with explicit parameters
+    # Load the model with path
     model = YOLOWorldModel.create(
         backend="ultralytics",
-        model_path=model_path,
-        conf_threshold=0.05,
-        iou_threshold=0.2
+        model_path=model_path
     )
     
     # Check that model was loaded
@@ -97,14 +79,13 @@ def test_set_classes(model_path):
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
     
-    # Create model with path to load immediately
+    # Create and load model
     model = YOLOWorldModel.create(
         backend="ultralytics",
-        model_path=model_path,
-        conf_threshold=0.05,
-        iou_threshold=0.2
+        model_path=model_path
     )
     
+    # Set class names
     class_names = ["apple", "bowl", "microwave"]
     model.set_classes(class_names)
     
@@ -121,8 +102,7 @@ def test_predict(model_path, test_data_dir):
     model = YOLOWorldModel.create(
         backend="ultralytics",
         model_path=model_path,
-        conf_threshold=0.05,
-        iou_threshold=0.5
+        conf_threshold=0.05  # Use lower threshold for tests
     )
     
     # Load a test image
@@ -138,34 +118,26 @@ def test_predict(model_path, test_data_dir):
     class_names = ["apple", "bowl", "microwave"]
     model.set_classes(class_names)
     
-    # Test with numpy array
-    detections = model.predict(image_np, image_size=640)
-    
-    # Check that we get a list of detections
-    assert isinstance(detections, list)
-    
-    # If there are detections, check their format
-    if detections:
-        for detection in detections:
-            assert "bbox" in detection
-            assert "score" in detection
-            assert "class_id" in detection
-            assert "class_name" in detection
-            
-            assert isinstance(detection["bbox"], list) and len(detection["bbox"]) == 4
-            assert isinstance(detection["score"], float)
-            assert isinstance(detection["class_id"], int)
-            assert isinstance(detection["class_name"], str)
-    
-    # Test with PIL image
-    detections_pil = model.predict(image, image_size=640)
-    assert isinstance(detections_pil, list)
-    
-    # Test with torch tensor
-    # Convert image to tensor
+    # Run detection with different input types
+    detections_np = model.predict(image_np)
+    detections_pil = model.predict(image)
     image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).float() / 255.0
-    detections_tensor = model.predict(image_tensor, image_size=640)
-    assert isinstance(detections_tensor, list)
+    detections_tensor = model.predict(image_tensor)
+    
+    # Verify detections format
+    for detections in [detections_np, detections_pil, detections_tensor]:
+        assert isinstance(detections, list)
+        if detections:
+            for detection in detections:
+                assert "bbox" in detection
+                assert "score" in detection
+                assert "class_id" in detection
+                assert "class_name" in detection
+                
+                assert isinstance(detection["bbox"], list) and len(detection["bbox"]) == 4
+                assert isinstance(detection["score"], float)
+                assert isinstance(detection["class_id"], int)
+                assert isinstance(detection["class_name"], str)
 
 @pytest.mark.gpu
 def test_all_yolo_world_images(model_path):
@@ -173,56 +145,47 @@ def test_all_yolo_world_images(model_path):
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
     
+    # Initialize model with lower threshold for tests
     model = YOLOWorldModel.create(
         backend="ultralytics",
         model_path=model_path,
-        conf_threshold=0.05,
-        iou_threshold=0.2
+        conf_threshold=0.05
     )
     
     test_dir = Path("data/tests/yolo-world")
-    if not test_dir.exists() or not os.listdir(test_dir):
+    if not test_dir.exists() or not any(test_dir.iterdir()):
         pytest.skip(f"No test images found in {test_dir}")
     
+    # Extract objects from filenames (e.g. "apple-bowl.png" -> ["apple", "bowl"])
     def get_objects_from_filename(filename):
         return [obj.lower() for obj in filename.stem.split('-')]
     
-    all_images_detected = True
+    # Track detection results
+    all_detected = True
     
+    # Process each test image
     for img_file in test_dir.glob('*.png'):
-        # Load image and get expected objects
+        # Load image and expected objects
         image = Image.open(img_file).convert("RGB")
-        image_np = np.array(image)
         expected_objects = get_objects_from_filename(img_file)
         
         # Set class names and run prediction
         model.set_classes(expected_objects)
-        detections = model.predict(image_np, image_size=640)
+        detections = model.predict(image)
         
-        # Print detection details
-        print(f"Image: {img_file.name}")
-        print(f"Expected objects: {expected_objects}")
-        
-        # Check which objects were detected
-        detected_objects = set()
-        print("Detected objects:")
-        for detection in detections:
-            class_name = detection["class_name"].lower()
-            score = detection["score"]
-            bbox = detection["bbox"]
-            print(f"  {class_name}: confidence={score:.4f}, bbox={bbox}")
-            for expected in expected_objects:
-                if expected in class_name:
-                    detected_objects.add(expected)
-        
+        # Check if all expected objects were detected
+        detected_objects = {detection["class_name"].lower() for detection in detections}
         missing_objects = set(expected_objects) - detected_objects
-        print(f"Missing objects: {list(missing_objects) if missing_objects else 'None'}")
+        
+        # Log results
+        print(f"Image: {img_file.name}")
+        print(f"Expected: {expected_objects}")
+        print(f"Detected: {list(detected_objects)}")
+        print(f"Missing: {list(missing_objects) if missing_objects else 'None'}")
         print()
         
-        # Check if all objects were detected
         if missing_objects:
-            all_images_detected = False
+            all_detected = False
     
-    # Final assertion
-    assert all_images_detected, "Some expected objects were not detected in the test images"
+    assert all_detected, "Some expected objects were not detected"
     

@@ -8,7 +8,6 @@ from gazegraph.logger import get_logger
 from gazegraph.models.onnx_utils import make_session_options
 from gazegraph.models.clip import ClipModel
 from gazegraph.models.yolo_world_model import YOLOWorldModel
-from gazegraph.config.config_utils import get_config
 
 logger = get_logger(__name__)
 
@@ -22,14 +21,7 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
         iou_threshold: Optional[float] = None,
         device: Optional[str] = None
     ):
-        """Initialize YOLO-World ONNX model.
-        
-        Args:
-            model_path: Path to the model file
-            conf_threshold: Confidence threshold for detections. If None, uses config default
-            iou_threshold: IoU threshold for NMS. If None, uses config default
-            device: Device to run inference on
-        """
+        """Initialize YOLO-World ONNX model."""
         # Initialize attributes that will be set in _load_model
         self.session = None
         self.clip_model = None
@@ -38,35 +30,15 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
         self.output_names = None
         self.num_classes = None
         
-        # Get default thresholds from config if not provided
-        if conf_threshold is None or iou_threshold is None:
-            config = get_config()
-            backend_config = config.models.yolo_world.onnx
-            
-            if conf_threshold is None:
-                conf_threshold = backend_config.conf_threshold
-                
-            if iou_threshold is None:
-                iou_threshold = backend_config.iou_threshold
-        
-        # Configure ONNX-specific device string
-        self.text_embedding_device = "cuda" if device == "cuda" else "cpu"
+        # Configure ONNX-specific device string - ONNX uses "0" for first GPU
+        self.device = "0" if (device is None and torch.cuda.is_available()) else (device or "cpu")
+        self.text_embedding_device = "cuda" if self.device == "0" else "cpu"
         
         # Call parent constructor
-        super().__init__(model_path, conf_threshold, iou_threshold, device)
-    
-    def _setup_device(self, device: Optional[str]) -> None:
-        """Set up device for inference with ONNX format."""
-        # ONNX uses "0" for first GPU
-        self.device = "0" if (device is None and torch.cuda.is_available()) else (device or "cpu")
+        super().__init__(model_path, conf_threshold, iou_threshold, self.device)
     
     def _load_model(self, model_path: Path, num_workers: Optional[int] = None) -> None:
-        """Load the YOLO-World ONNX model.
-        
-        Args:
-            model_path: Path to the model file
-            num_workers: Number of parallel workers for ONNX Runtime
-        """
+        """Load the YOLO-World ONNX model."""
         try:
             logger.info(f"Loading YOLO-World ONNX model from: {model_path}")
             
@@ -109,11 +81,7 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
             raise
     
     def _update_model_classes(self, class_names: List[str]) -> None:
-        """Update the model with the new class names.
-        
-        Args:
-            class_names: List of class names
-        """
+        """Update the model with the new class names."""
         if self.session is None:
             raise RuntimeError("Model not loaded")
         
@@ -126,22 +94,9 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
         self.class_embeddings = txt_feats.unsqueeze(0)
     
     def _run_inference(self, image: np.ndarray, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Run inference with the ONNX model.
-        
-        Args:
-            image: Input image as RGB numpy array
-            image_size: Size to resize the image to for inference. If None, uses config default
-            
-        Returns:
-            List of detections with bbox, score, class_id, and class_name
-        """
+        """Run inference with the ONNX model."""
         if self.session is None or self.class_embeddings is None:
             raise RuntimeError("Model not loaded or classes not set")
-        
-        # Use config default for image_size if not provided
-        if image_size is None:
-            config = get_config()
-            image_size = config.models.yolo_world.image_size
         
         # Get original image dimensions
         h, w = image.shape[:2]

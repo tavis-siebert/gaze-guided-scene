@@ -45,9 +45,8 @@ class GraphBuilder:
         self.metadata = VideoMetadata(self.config)
         
         # Initialize YOLO-World model path
-        yolo_model_file = self.config.models.yolo_world.model_file
-        yolo_model_dir = Path(self.config.models.yolo_world.model_dir)
-        self.yolo_model_path = yolo_model_dir / yolo_model_file
+        backend = self.config.models.yolo_world.backend
+        self.yolo_model_path = Path(self.config.models.yolo_world.paths[backend])
         
         # Create object detector (will be re-initialized for each video with proper tracer)
         self.object_detector = None

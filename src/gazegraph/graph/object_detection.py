@@ -148,15 +148,7 @@ class ObjectDetector:
         config: DotDict,
         tracer: Optional['GraphTracer'] = None
     ):
-        """Initialize the object detector.
-        
-        Args:
-            model_path: Path to the detection model
-            obj_labels: Mapping of class IDs to object labels
-            labels_to_int: Mapping of object labels to class IDs
-            config: Configuration dictionary containing detection settings
-            tracer: Optional GraphTracer for logging detection info
-        """
+        """Initialize the object detector."""
         self.obj_labels = obj_labels
         self.labels_to_int = labels_to_int
         self.class_names = list(self.obj_labels.values())
@@ -164,11 +156,7 @@ class ObjectDetector:
         self.config = config
         
         # Backend selection
-        backend = getattr(config.models.yolo_world, "backend", "ultralytics")
-        
-        # Extract settings from config for the specific backend
-        self.conf_threshold = config.models.yolo_world[backend].conf_threshold
-        self.iou_threshold = config.models.yolo_world[backend].iou_threshold
+        backend = config.models.yolo_world.backend
         
         # Fixation parameters
         self.min_fixation_frame_ratio = config.graph.min_fixation_frame_ratio
@@ -182,8 +170,7 @@ class ObjectDetector:
         self.gaze_proximity_threshold = config.graph.fixated_object_detection.thresholds.gaze_proximity
         self.confidence_threshold = config.graph.fixated_object_detection.thresholds.confidence
         
-        logger.info(f"Initializing YOLO-World model: {model_path.name} (backend={backend}, "
-                    f"conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")
+        logger.info(f"Initializing YOLO-World model: {model_path.name} (backend={backend})")
         
         logger.info(f"Fixation detection with thresholds: "
                   f"stability={self.bbox_stability_threshold}, "
@@ -191,16 +178,15 @@ class ObjectDetector:
                   f"confidence={self.confidence_threshold}, "
                   f"min_fixation_ratio={self.min_fixation_frame_ratio}")
         
-        # Get number of processing workers from config
-        num_workers = getattr(config.processing, "n_cores", None)
-        
         # Create model using factory
         self.model = YOLOWorldModel.create(
             backend=backend,
-            model_path=model_path,
-            conf_threshold=self.conf_threshold,
-            iou_threshold=self.iou_threshold
+            model_path=model_path
         )
+        
+        # Cache model's thresholds for internal use
+        self.conf_threshold = self.model.conf_threshold
+        self.iou_threshold = self.model.iou_threshold
         
         # Set class names
         self.model.set_classes(self.class_names)
