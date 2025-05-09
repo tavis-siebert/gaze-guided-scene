@@ -54,6 +54,7 @@ models:
   yolo_world:
     model_dir: ${directories.scratch.egtea}/yolo_world_model
     model_file: "yolov8x-worldv2.onnx"
+    model_file_ultralytics: "yolov8x-worldv2.pt"
     conf_threshold: 0.15
     iou_threshold: 0.5
 
