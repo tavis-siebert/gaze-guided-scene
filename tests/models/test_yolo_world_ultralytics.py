@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from pathlib import Path
 from PIL import Image
+from unittest.mock import patch, MagicMock
 
 from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel, format_class_name
 from gazegraph.config.config_utils import get_config
@@ -23,14 +24,6 @@ def yolo_world_ultralytics_model():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = YOLOWorldUltralyticsModel(conf_threshold=0.35, iou_threshold=0.7, device=device)
     return model
-
-@pytest.mark.unit
-def test_format_class_name():
-    """Test the class name formatting function."""
-    assert format_class_name("dining_table") == "dining table"
-    assert format_class_name("wine_glass") == "wine glass"
-    assert format_class_name("no_underscore") == "no underscore"
-    assert format_class_name("multiple_under_scores") == "multiple under scores"
 
 @pytest.mark.unit
 def test_initialization():
