@@ -5,6 +5,7 @@ import clip
 import onnxruntime as ort
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+from ultralytics import YOLOWorld
 
 from gazegraph.logger import get_logger
 from gazegraph.models.onnx_utils import make_session_options
@@ -63,7 +64,7 @@ class YOLOWorldModel:
                 sess_options=sess_options,
                 providers=providers
             )
-            self.clip_model = ClipModel(device=self.text_embedding_device)
+            self.clip_model = ClipModel(device=self.text_embedding_device, name="ViT-B/32")
             self.clip_model.load()
             
             # Get model details
