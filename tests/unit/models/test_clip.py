@@ -49,21 +49,31 @@ def test_encode_image(clip_model, test_images):
 
 @pytest.mark.unit
 @pytest.mark.real_model
-def test_tensor_image_input(clip_model, test_images):
+def test_classify(clip_model, test_images):
     """Test using preprocessed tensor as input instead of PIL Image."""
-    if test_images:
-        img = next(iter(test_images.values()))
-        # Create preprocessed tensor and move to the same device as the model
-        preprocessed = clip_model.preprocess(img).unsqueeze(0).to(clip_model.device)
-        
-        # Test image encoding with tensor
-        encoding = clip_model.encode_image(preprocessed)
-        assert isinstance(encoding, torch.Tensor)
-        assert encoding.shape[1] == 512
-        
-        # Test classification with tensor
-        scores, _ = clip_model.classify(SAMPLE_LABELS, preprocessed)
-        assert len(scores) == len(SAMPLE_LABELS)
+    # Gather label candidates from test image names (split on dash)
+    labels = []
+    for name in test_images.keys():
+        candidates = name.split("-")
+        for candidate in candidates:
+          labels.append(candidate)
+
+    print(f"Labels: {labels}")
+
+    for name, img in test_images.items():
+      # Create preprocessed tensor and move to the same device as the model
+      preprocessed = clip_model.preprocess(img).unsqueeze(0).to(clip_model.device)
+      
+      # Test image encoding with tensor
+      encoding = clip_model.encode_image(preprocessed)
+      assert isinstance(encoding, torch.Tensor)
+      assert encoding.shape[1] == 512
+      
+      # Test classification with tensor
+      scores, best_label = clip_model.classify(labels, preprocessed)
+      assert len(scores) == len(labels), f"Number of scores is not equal to the number of labels: {len(scores)} != {len(labels)}"
+      assert best_label in name, f"Best label is not in the image name: {best_label} != {name}"
+      print(f"Image: {name}, Best Label: {best_label}")
 
 @pytest.mark.unit
 @pytest.mark.mock_only
