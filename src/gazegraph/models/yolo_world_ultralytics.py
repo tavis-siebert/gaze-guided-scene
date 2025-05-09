@@ -3,15 +3,11 @@ import numpy as np
 import cv2
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-from ultralytics import YOLO
+from ultralytics import YOLOWorld
 
 from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
-
-def format_class_name(name: str) -> str:
-    """Format a class name by replacing underscores with spaces."""
-    return name.replace('_', ' ')
 
 class YOLOWorldUltralyticsModel:
     """Handles YOLO-World model loading and inference using Ultralytics."""
@@ -38,8 +34,7 @@ class YOLOWorldUltralyticsModel:
                 logger.error(f"Model file does not exist at {model_path}")
                 raise FileNotFoundError(f"Model file not found: {model_path}")
             
-            self.model = YOLO(str(model_path))
-            self.model.to(self.device)
+            self.model = YOLOWorld(str(model_path))
             
             logger.info(f"YOLO-World model loaded successfully on device: {self.device}")
             
@@ -53,8 +48,11 @@ class YOLOWorldUltralyticsModel:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
         self.names = class_names
+
+        def format_class_name(name: str) -> str:
+            """Format a class name by replacing underscores with spaces."""
+            return name.replace('_', ' ')
         
-        # Format class names for better performance (replace underscores with spaces)
         formatted_class_names = [f"a photo of a {format_class_name(name)}" for name in class_names]
         self.model.set_classes(formatted_class_names)
         
@@ -91,12 +89,11 @@ class YOLOWorldUltralyticsModel:
             image = frame
         
         # Run inference with Ultralytics
-        results = self.model.predict(
-            source=image,
+        results = self.model.predict(source=image,
+            imgsz=image_size,
             conf=self.conf_threshold,
             iou=self.iou_threshold,
-            imgsz=image_size,
-            verbose=False
+            device=self.device
         )
         
         # Process results to match expected format
