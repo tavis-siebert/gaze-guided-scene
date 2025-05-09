@@ -24,14 +24,14 @@ def test_encode_text(clip_model):
     encodings = clip_model.encode_text(texts)
     assert len(encodings) == 2
     assert all(isinstance(e, torch.Tensor) for e in encodings)
-    assert all(e.shape[1] == 512 for e in encodings)
+    assert all(e.shape[1] == 768 for e in encodings)
 
 @pytest.mark.gpu
 def test_encode_image(clip_model, test_images):
     for img in test_images.values():
         encoding = clip_model.encode_image(img)
         assert isinstance(encoding, torch.Tensor)
-        assert encoding.shape[1] == 512
+        assert encoding.shape[1] == 768
 
 @pytest.mark.gpu
 def test_classify(clip_model, test_images):
@@ -48,7 +48,7 @@ def test_classify(clip_model, test_images):
         # Test image encoding with tensor
         encoding = clip_model.encode_image(preprocessed)
         assert isinstance(encoding, torch.Tensor)
-        assert encoding.shape[1] == 512
+        assert encoding.shape[1] == 768
         
         # Test classification with tensor
         scores, best_label = clip_model.classify(labels, preprocessed)
