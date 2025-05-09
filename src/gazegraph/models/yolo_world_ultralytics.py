@@ -48,6 +48,11 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         # Load custom model if specified
         if use_custom_model and custom_classes:
             self._load_custom_model(custom_classes)
+        # If model is still None, load the default model
+        elif self.model is None:
+            config = get_config()
+            default_model_path = Path(config.models.yolo_world.paths.ultralytics)
+            self._load_model(default_model_path)
     
     def _get_custom_model_path(self, class_names: List[str]) -> Path:
         """Generate path for custom model based on class names."""
@@ -67,6 +72,10 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
             logger.info(f"Custom YOLO-World model loaded successfully")
         else:
             logger.info(f"Custom model not found at {self.custom_model_path}, will save after setting classes")
+            # Load the default model since custom one doesn't exist yet
+            config = get_config()
+            default_model_path = Path(config.models.yolo_world.paths.ultralytics)
+            self._load_model(default_model_path)
     
     def _load_model(self, model_path: Path) -> None:
         """Load the YOLO-World model using Ultralytics."""
