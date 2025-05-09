@@ -29,7 +29,7 @@ def test_checkpoint():
     checkpoints = CheckpointManager.load_checkpoints(str(graph_path))
     if not checkpoints:
         pytest.skip("Test graph checkpoint not available")
-    return checkpoints[10]
+    return checkpoints[-1]
 
 
 @pytest.fixture
