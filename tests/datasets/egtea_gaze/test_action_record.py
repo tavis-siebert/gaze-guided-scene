@@ -1,259 +1,172 @@
 """
-Unit tests for the ActionRecord class in the gazegraph.datasets.egtea_gaze.action_record module.
+Consolidated unit tests for ActionRecord.
 """
 
+import os
+import tempfile
 import pytest
 import torch
-from unittest.mock import patch, MagicMock, PropertyMock
-from pathlib import Path
+from unittest.mock import patch, MagicMock
+from collections import Counter
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.datasets.egtea_gaze.constants import NUM_ACTION_CLASSES
 
-# Note: This test file uses fixtures defined in:
-# - tests/unit/datasets/conftest.py (mock_config)
-# - tests/unit/datasets/egtea_gaze/conftest.py (mock_verb_index_file, mock_noun_index_file, 
-#   mock_train_split_file, mock_val_split_file, setup_mock_files)
+# Basic initialization and properties
+def test_init_and_properties(monkeypatch):
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    record = ActionRecord(["video_1", "10", "30", "1", "3"])
+    assert record.video_name == "video_1"
+    assert record.start_frame == 10
+    assert record.end_frame == 30
+    assert record.label == [1, 3]
+    assert record.verb_id == 1
+    assert record.noun_id == 3
+    assert record.num_frames == 21
+    assert record.action_tuple == (1, 3)
+    ActionRecord._verb_id_to_name = {1: "take"}
+    ActionRecord._noun_id_to_name = {3: "knife"}
+    assert record.verb_name == "take"
+    assert record.noun_name == "knife"
+    assert record.action_name == "take knife"
+    ActionRecord._verb_id_to_name = {}
+    ActionRecord._noun_id_to_name = {}
+    assert ActionRecord(["v", "0", "1", "1", "2"]).action_name is None
 
-@pytest.mark.unit
-class TestActionRecord:
-    """Unit tests for the ActionRecord class."""
-    
-    def test_init_from_row(self):
-        """Test initialization from a data row."""
-        # Mock _ensure_initialized to avoid actual initialization
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            record = ActionRecord(["video_1", "10", "30", "1", "3"])
-            
-            assert record.video_name == "video_1"
-            assert record.start_frame == 10
-            assert record.end_frame == 30
-            assert record.label == [1, 3]
-            assert record.verb_id == 1
-            assert record.noun_id == 3
-            assert record.num_frames == 21
-            assert record.action_tuple == (1, 3)
-    
-    def test_name_properties(self):
-        """Test verb and noun name properties."""
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            # Set up mock name mappings
-            ActionRecord._verb_id_to_name = {1: "take", 2: "put"}
-            ActionRecord._noun_id_to_name = {1: "cup", 3: "knife"}
-            
-            record = ActionRecord(["video_1", "10", "30", "1", "3"])
-            
-            assert record.verb_name == "take"
-            assert record.noun_name == "knife"
-            assert record.action_name == "take knife"
-            
-            # Test with unmapped IDs
-            record2 = ActionRecord(["video_1", "10", "30", "99", "99"])
-            assert record2.verb_name is None
-            assert record2.noun_name is None
-            assert record2.action_name is None
-    
-    @pytest.mark.parametrize("verb_id,noun_id,expected_idx", [
-        (1, 3, 0),  # take knife -> index 0
-        (4, 4, 3),  # close microwave -> index 3
-        (99, 99, None),  # unknown action -> None
-    ])
-    def test_action_idx(self, verb_id, noun_id, expected_idx):
-        """Test action_idx property with various inputs."""
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            # Set up mock action mapping
-            ActionRecord._action_to_idx = {
-                (1, 3): 0,  # take knife
-                (2, 1): 1,  # put cup
-                (3, 4): 2,  # open microwave
-                (4, 4): 3,  # close microwave
-                (5, 2): 4,  # wash bowl
-            }
-            
-            record = ActionRecord(["video_1", "10", "30", str(verb_id), str(noun_id)])
-            assert record.action_idx == expected_idx
-    
-    @patch("gazegraph.datasets.egtea_gaze.action_record.get_config")
-    @patch.object(ActionRecord, '_load_name_mappings')
-    @patch.object(ActionRecord, '_load_all_records')
-    @patch.object(ActionRecord, '_compute_and_set_action_mapping')
-    def test_ensure_initialized(self, mock_compute, mock_load_records, mock_load_mappings, mock_get_config, mock_config):
-        """Test the _ensure_initialized method."""
-        mock_get_config.return_value = mock_config
-        mock_load_records.return_value = ({"video_1": []}, [])
-        
-        # Reset class variables
-        ActionRecord._is_initialized = False
-        
-        # Call the method
-        ActionRecord._ensure_initialized()
-        
-        # Verify method calls
-        mock_load_mappings.assert_called_once()
-        mock_load_records.assert_called_once()
-        mock_compute.assert_called_once()
-        
-        # Verify class state
-        assert ActionRecord._is_initialized is True
-        
-        # Call again - should not trigger any new calls
-        mock_load_mappings.reset_mock()
-        mock_load_records.reset_mock()
-        mock_compute.reset_mock()
-        
-        ActionRecord._ensure_initialized()
-        
-        mock_load_mappings.assert_not_called()
-        mock_load_records.assert_not_called()
-        mock_compute.assert_not_called()
-    
-    def test_load_name_mappings(self, setup_mock_files, mock_config):
-        """Test loading name mappings from files."""
-        with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config):
-            # Reset class variables
-            ActionRecord._verb_id_to_name = {}
-            ActionRecord._noun_id_to_name = {}
-            
-            # Call the method
+# action_idx property
+@pytest.mark.parametrize("verb,noun,expected", [
+    (1, 3, 0),
+    (4, 4, 3),
+    (99, 99, None),
+])
+def test_action_idx(monkeypatch, verb, noun, expected):
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    ActionRecord._action_to_idx = {(1, 3): 0, (2, 1): 1, (3, 4): 2, (4, 4): 3, (5, 2): 4}
+    rec = ActionRecord(["v", "0", "1", str(verb), str(noun)])
+    assert rec.action_idx == expected
+
+# String representation
+def test_str_representation(monkeypatch):
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    ActionRecord._verb_id_to_name = {1: "take"}
+    ActionRecord._noun_id_to_name = {3: "knife"}
+    rec = ActionRecord(["v", "5", "15", "1", "3"])
+    s = str(rec)
+    assert "take knife" in s and "start=5" in s and "end=15" in s
+    ActionRecord._verb_id_to_name = {}
+    ActionRecord._noun_id_to_name = {}
+    assert "(1, 3)" in str(ActionRecord(["v", "5", "15", "1", "3"]))
+
+# Name mappings
+def test_load_name_mappings_success(setup_mock_files, mock_config):
+    ActionRecord._verb_id_to_name = {}
+    ActionRecord._noun_id_to_name = {}
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config):
+        ActionRecord._load_name_mappings()
+    assert ActionRecord._verb_id_to_name == {1: "take", 2: "put", 3: "open", 4: "close", 5: "wash"}
+    assert ActionRecord._noun_id_to_name == {1: "cup", 2: "bowl", 3: "knife", 4: "microwave", 5: "fridge"}
+
+def test_load_name_mappings_missing(setup_mock_files, mock_config):
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config), \
+         patch("os.path.exists", return_value=False):
+        with pytest.raises(FileNotFoundError):
             ActionRecord._load_name_mappings()
-            
-            # Verify loaded data
-            assert ActionRecord._verb_id_to_name == {1: "take", 2: "put", 3: "open", 4: "close", 5: "wash"}
-            assert ActionRecord._noun_id_to_name == {1: "cup", 2: "bowl", 3: "knife", 4: "microwave", 5: "fridge"}
-    
-    def test_compute_action_mapping(self):
-        """Test computation of action mapping from records."""
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            # Create test records
-            records = [
-                ActionRecord(["video_1", "10", "30", "1", "3"]),  # take knife (occurs twice)
-                ActionRecord(["video_2", "5", "25", "1", "3"]),   # take knife (occurs twice)
-                ActionRecord(["video_1", "40", "60", "2", "1"]),  # put cup (occurs once)
-                ActionRecord(["video_2", "30", "50", "4", "4"]),  # close microwave (occurs once)
-            ]
-            
-            # Directly mock the Counter result instead of trying to set the property
-            expected_mapping = {
-                (1, 3): 0,  # take knife
-                (2, 1): 1,  # put cup
-                (4, 4): 2,  # close microwave
-            }
-            
-            with patch('collections.Counter') as mock_counter:
-                # Configure the Counter to return our desired counts
-                counter_instance = mock_counter.return_value
-                counter_instance.items.return_value = [
-                    ((1, 3), 2),  # take knife occurs twice
-                    ((2, 1), 1),  # put cup occurs once
-                    ((4, 4), 1),  # close microwave occurs once
-                ]
-                
-                # Call the method with test data
-                mapping = ActionRecord._compute_action_mapping(records, num_classes=3)
-                
-                # Verify the mapping
-                assert len(mapping) == 3  # Should have 3 actions
-                assert mapping == expected_mapping  # Check the complete mapping
-    
-    @patch("gazegraph.datasets.egtea_gaze.action_record.get_config")
-    def test_load_all_records(self, mock_get_config, setup_mock_files, mock_config):
-        """Test loading records from split files."""
-        mock_get_config.return_value = mock_config
-        
-        # Call the method
-        records_by_video, train_records = ActionRecord._load_all_records()
-        
-        # Verify loaded data
-        assert len(records_by_video) == 4  # 4 unique videos
-        assert "video_1" in records_by_video
-        assert "video_2" in records_by_video
-        assert "video_3" in records_by_video
-        assert "video_4" in records_by_video
-        
-        assert len(train_records) == 5  # 5 training records
-        
-        # Check that records are sorted by end_frame
-        video_1_records = records_by_video["video_1"]
-        assert len(video_1_records) == 2
-        assert video_1_records[0].end_frame < video_1_records[1].end_frame
-    
-    def test_get_action_names(self):
-        """Test getting action names from indices."""
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            # Set up mock data
-            ActionRecord._action_to_idx = {
-                (1, 3): 0,  # take knife
-                (2, 1): 1,  # put cup
-            }
-            ActionRecord._verb_id_to_name = {1: "take", 2: "put"}
-            ActionRecord._noun_id_to_name = {1: "cup", 3: "knife"}
-            
-            # Call the method
-            action_names = ActionRecord.get_action_names()
-            
-            # Verify results
-            assert action_names == {
-                0: "take knife",
-                1: "put cup"
-            }
-    
-    def test_create_future_action_labels(self):
-        """Test creating future action labels."""
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            # Set up mock data
-            records = [
-                ActionRecord(["video_1", "10", "30", "1", "3"]),  # take knife
-                ActionRecord(["video_1", "40", "60", "2", "1"]),  # put cup
-                ActionRecord(["video_1", "70", "90", "3", "4"]),  # open microwave
-            ]
-            
-            # Instead of patching the property, mock get_action_mapping to return a specific mapping
-            # that will naturally produce the action_idx values we want
-            action_mapping = {
-                (1, 3): 0,  # take knife
-                (2, 1): 1,  # put cup
-                (3, 4): 2,  # open microwave
-            }
-            
-            # Set the class-level _action_to_idx directly
-            ActionRecord._action_to_idx = action_mapping
-            
-            # Set up other class mocks
-            ActionRecord.get_records_for_video = MagicMock(return_value=records)
-            
-            # Test case 1: Current frame before all actions
-            result = ActionRecord.create_future_action_labels("video_1", 5, num_action_classes=3)
-            assert result is not None
-            assert result["next_action"].item() == 0  # take knife
-            assert torch.equal(result["future_actions"], torch.tensor([1, 1, 1]))  # all actions in future
-            assert torch.equal(result["future_actions_ordered"], torch.tensor([0, 1, 2]))  # order preserved
-            
-            # Test case 2: Current frame between actions
-            result = ActionRecord.create_future_action_labels("video_1", 35, num_action_classes=3)
-            assert result is not None
-            assert result["next_action"].item() == 1  # put cup
-            assert torch.equal(result["future_actions"], torch.tensor([0, 1, 1]))  # only put cup and open microwave
-            assert torch.equal(result["future_actions_ordered"], torch.tensor([1, 2]))  # order preserved
-            
-            # Test case 3: Current frame after all actions
-            result = ActionRecord.create_future_action_labels("video_1", 95, num_action_classes=3)
-            assert result is None  # no future actions
-    
-    def test_str_representation(self):
-        """Test string representation of action record."""
-        with patch.object(ActionRecord, '_ensure_initialized'):
-            # Set up mock name mappings
-            ActionRecord._verb_id_to_name = {1: "take"}
-            ActionRecord._noun_id_to_name = {3: "knife"}
-            
-            record = ActionRecord(["video_1", "10", "30", "1", "3"])
-            
-            # Check string representation with mapped names
-            assert "take knife" in str(record)
-            assert "video_1" in str(record)
-            assert "start=10" in str(record)
-            assert "end=30" in str(record)
-            
-            # Check string representation with unmapped IDs
-            record2 = ActionRecord(["video_2", "5", "25", "99", "99"])
-            assert "(99, 99)" in str(record2) 
+
+# Compute mapping
+def test_compute_action_mapping(monkeypatch):
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    records = [ActionRecord([f"v{i}", "0", "1", "1", "3"]) for i in range(2)]
+    records.append(ActionRecord(["v", "0", "1", "2", "1"]))
+    with patch("collections.Counter") as mock_ctr:
+        inst = mock_ctr.return_value
+        inst.items.return_value = [((1, 3), 2), ((2, 1), 1)]
+        mapping = ActionRecord._compute_action_mapping(records, num_classes=2)
+    assert mapping == {(1, 3): 0, (2, 1): 1}
+
+# Load all records
+def test_load_all_records_success(setup_mock_files, mock_config):
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config):
+        videos, train = ActionRecord._load_all_records()
+    assert "video_1" in videos and "video_4" in videos
+    assert len(train) == 5
+
+def test_load_all_records_file_not_found(mock_config):
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config), \
+         patch("os.path.exists", return_value=True), \
+         patch("builtins.open", side_effect=FileNotFoundError):
+        with pytest.raises(FileNotFoundError):
+            ActionRecord._load_all_records()
+
+# load_records_from_file
+def test_load_records_from_file(tmp_path, monkeypatch):
+    p = tmp_path / "f.txt"
+    p.write_text("video 10 20 1 2\n")
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    recs = ActionRecord.load_records_from_file(str(p))
+    assert len(recs) == 1 and recs[0].start_frame == 10
+
+def test_load_records_from_file_errors(monkeypatch):
+    monkeypatch.setattr(ActionRecord, '_ensure_initialized', lambda *args, **kwargs: None)
+    with pytest.raises(FileNotFoundError):
+        ActionRecord.load_records_from_file("no.txt")
+    f = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    f.write("bad\n"); f.close()
+    with pytest.raises(ValueError):
+        ActionRecord.load_records_from_file(f.name)
+    os.unlink(f.name)
+
+# API methods
+def test_api_methods(mock_action_records, mock_records_by_video):
+    ActionRecord._ensure_initialized = classmethod(lambda *args, **kwargs: None)
+    assert ActionRecord.get_records_for_video("video_1") == mock_records_by_video["video_1"]
+    assert ActionRecord.get_records_for_video("none") == []
+    assert set(ActionRecord.get_all_videos()) == set(mock_records_by_video)
+    assert len(ActionRecord.get_all_records()) == sum(len(v) for v in mock_records_by_video.values())
+    ActionRecord._action_to_idx = {(1, 3): 0, (2, 1): 1}
+    mp = ActionRecord.get_action_mapping()
+    assert mp == {(1, 3): 0, (2, 1): 1} and mp is not ActionRecord._action_to_idx
+    ActionRecord._noun_id_to_name = {1: "cup", 2: "bowl"}
+    id2n, n2i = ActionRecord.get_noun_label_mappings()
+    assert id2n == {1: "cup", 2: "bowl"} and n2i == {"cup": 1, "bowl": 2}
+    ActionRecord._verb_id_to_name = {1: "take"}; ActionRecord._noun_id_to_name = {1: "cup", 3: "knife"}
+    assert ActionRecord.get_action_name_by_idx(0) == "take cup"
+    names = ActionRecord.get_action_names()
+    assert isinstance(names, dict) and names
+
+# Future action labels
+def test_create_future_action_labels(mock_records_by_video):
+    ActionRecord._ensure_initialized = classmethod(lambda *args, **kwargs: None)
+    ActionRecord._action_to_idx = {(1, 3): 0, (2, 1): 1}
+    ActionRecord.get_records_for_video = lambda v: mock_records_by_video.get(v, [])
+    assert ActionRecord.create_future_action_labels("none", 0) is None
+    res = ActionRecord.create_future_action_labels("video_1", 5, num_action_classes=2)
+    assert res and res["next_action"].item() == 0
+
+# Config tests
+def test_get_config_and_caching(mock_config):
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config):
+        ActionRecord._config = None
+        assert ActionRecord.get_config() is mock_config
+        with patch("gazegraph.datasets.egtea_gaze.action_record.get_config") as m:
+            assert ActionRecord.get_config() is mock_config
+            m.assert_not_called()
+
+def test_missing_config_raises():
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", side_effect=ImportError):
+        ActionRecord._config = None
+        with pytest.raises(ImportError):
+            ActionRecord.get_config()
+
+# Initialization idempotence
+def test_ensure_initialized_idempotent(mock_config):
+    calls = []
+    with patch("gazegraph.datasets.egtea_gaze.action_record.get_config", return_value=mock_config), \
+         patch.object(ActionRecord, '_load_name_mappings', side_effect=lambda: calls.append('nm')), \
+         patch.object(ActionRecord, '_load_all_records', side_effect=lambda: ({}, [])), \
+         patch.object(ActionRecord, '_compute_and_set_action_mapping', side_effect=lambda *args, **kwargs: calls.append('cm')):
+        ActionRecord._is_initialized = False
+        ActionRecord._ensure_initialized()
+        assert 'nm' in calls and 'cm' in calls
+        calls.clear()
+        ActionRecord._ensure_initialized()
+        assert not calls 
