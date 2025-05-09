@@ -82,7 +82,6 @@ def test_predict(model_path, test_data_dir):
     model = YOLOWorldModel.create(
         backend="ultralytics",
         model_path=model_path,
-        conf_threshold=0.05  # Use lower threshold for tests
     )
     
     # Load a test image
@@ -129,8 +128,11 @@ def test_all_yolo_world_images(model_path):
     model = YOLOWorldModel.create(
         backend="ultralytics",
         model_path=model_path,
-        conf_threshold=0.05
+        conf_threshold=0.1,
+        iou_threshold=0.5
     )
+
+    print(f"Using conf_threshold: {model.conf_threshold} and iou_threshold: {model.iou_threshold}")
     
     test_dir = Path("data/tests/yolo-world")
     if not test_dir.exists() or not any(test_dir.iterdir()):
@@ -160,7 +162,9 @@ def test_all_yolo_world_images(model_path):
         # Log results
         print(f"Image: {img_file.name}")
         print(f"Expected: {expected_objects}")
-        print(f"Detected: {list(detected_objects)}")
+        print(f"Detected objects and scores:")
+        for detection in detections:
+            print(f"  {detection['class_name']}: {detection['score']:.3f}")
         print(f"Missing: {list(missing_objects) if missing_objects else 'None'}")
         print()
         
