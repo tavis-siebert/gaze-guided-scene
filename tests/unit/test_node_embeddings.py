@@ -19,7 +19,7 @@ from gazegraph.datasets.egtea_gaze.video_processor import Video
 @pytest.fixture
 def node_embeddings():
     """Fixture for a/NodeEmbeddings instance configured for CPU testing."""
-    return NodeEmbeddings(device="cpu")
+    return NodeEmbeddings(device="cuda" if torch.cuda.is_available() else "cpu")
 
 
 @pytest.fixture
