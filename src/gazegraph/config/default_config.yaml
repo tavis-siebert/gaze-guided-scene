@@ -58,7 +58,7 @@ models:
       ultralytics: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.pt
     image_size: 640
     onnx:
-      conf_threshold: 0.15
+      conf_threshold: 0.1
       iou_threshold: 0.5
     ultralytics:
       conf_threshold: 0.1

@@ -67,7 +67,7 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
             
             # Initialize CLIP model for text embeddings
             self.clip_model = ClipModel(device=self.text_embedding_device)
-            self.clip_model.load()
+            self.clip_model.load(name="ViT-B/32") # onnyx model expects 512 dims
             
             # Get model details
             model_inputs = self.session.get_inputs()
