@@ -27,6 +27,10 @@ class YOLOWorldModel(ABC):
         # Use provided backend or default from config
         actual_backend = backend or config.backend
         
+        # Validate backend before accessing paths
+        if actual_backend.lower() not in ["ultralytics", "onnx"]:
+            raise ValueError(f"Unsupported backend: {actual_backend}")
+        
         # Get model path
         if model_path is None:
             model_path = Path(config.paths[actual_backend])
@@ -35,11 +39,9 @@ class YOLOWorldModel(ABC):
         if actual_backend.lower() == "ultralytics":
             from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
             return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device)
-        elif actual_backend.lower() == "onnx":
+        else:  # must be "onnx" based on validation above
             from gazegraph.models.yolo_world_onnx import YOLOWorldOnnxModel
             return YOLOWorldOnnxModel(model_path, conf_threshold, iou_threshold, device)
-        else:
-            raise ValueError(f"Unsupported backend: {actual_backend}")
     
     def __init__(
         self, 
