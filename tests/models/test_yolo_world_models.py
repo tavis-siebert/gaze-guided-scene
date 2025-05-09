@@ -24,14 +24,14 @@ def yolo_world_model(request, ultralytics_model_path, onnx_model_path):
     return YOLOWorldModel.create(backend=backend, model_path=model_path, device="cpu")
 
 @pytest.mark.unit
-def test_initialization():
+@pytest.mark.parametrize("backend", ["ultralytics", "onnx"])
+def test_initialization(backend):
     """Test model initialization with factory for both backends."""
-    for backend in ["ultralytics", "onnx"]:
-        model = YOLOWorldModel.create(backend=backend, conf_threshold=0.35, iou_threshold=0.7, device="cpu")
-        assert model.conf_threshold == 0.35
-        assert model.iou_threshold == 0.7
-        assert model.device in ["cpu", "0"]  # ONNX uses '0' for GPU but we set CPU
-        assert model.names == []
+    model = YOLOWorldModel.create(backend=backend, conf_threshold=0.35, iou_threshold=0.7, device="cpu")
+    assert model.conf_threshold == 0.35
+    assert model.iou_threshold == 0.7
+    assert model.device in ["cpu", "0"]  # ONNX uses '0' for GPU but we set CPU
+    assert model.names == []
 
 @pytest.mark.unit
 def test_invalid_backend():
