@@ -10,7 +10,10 @@ from unittest.mock import MagicMock
 
 @pytest.fixture
 def mock_config():
-    """Mock configuration with test data paths for datasets."""
+    """
+    Mock configuration with test data paths for datasets.
+    This fixture is used by all dataset tests, including child modules like egtea_gaze.
+    """
     config = MagicMock()
     
     # EGTEA config
