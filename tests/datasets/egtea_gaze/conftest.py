@@ -92,13 +92,3 @@ def setup_mock_files(mock_verb_index_file, mock_noun_index_file, mock_split_file
         os.rmdir("test_annotations")
     except:
         pass
-
-@pytest.fixture
-def mock_config():
-    """Create a mock configuration for testing ActionRecord."""
-    config = MagicMock()
-    config.dataset.egtea.action_annotations = "test_annotations"
-    config.dataset.ego_topo.splits = MagicMock()
-    config.dataset.ego_topo.splits.train = "test_train_split.txt"
-    config.dataset.ego_topo.splits.val = "test_val_split.txt"
-    return config 
