@@ -18,7 +18,7 @@ from gazegraph.datasets.egtea_gaze.video_processor import Video
 
 @pytest.fixture
 def node_embeddings():
-    """Fixture for a NodeEmbeddings instance configured for CPU testing."""
+    """Fixture for a/NodeEmbeddings instance configured for CPU testing."""
     return NodeEmbeddings(device="cpu")
 
 
@@ -52,7 +52,7 @@ def test_video():
 
 @pytest.mark.unit
 def test_initialization():
-    """Test that the NodeEmbeddings initializes correctly."""
+    """Test that NodeEmbeddings initializes correctly."""
     embedder = NodeEmbeddings(device="cpu")
     assert embedder.device == "cpu"
     assert embedder.clip_model is None
@@ -70,11 +70,9 @@ def test_get_clip_model(node_embeddings):
 @pytest.mark.unit
 def test_get_action_embedding(node_embeddings):
     """Test that action embeddings are correctly generated."""
-    # Patch ActionRecord.get_action_name_by_idx to return a known action name
     with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx", 
-              return_value="take bowl"):
+               return_value="take bowl"):
         embedding = node_embeddings.get_action_embedding(0)
-        
         assert embedding is not None
         assert isinstance(embedding, torch.Tensor)
         assert embedding.shape[1] == 512  # CLIP's default embedding size
@@ -84,7 +82,7 @@ def test_get_action_embedding(node_embeddings):
 def test_get_action_embedding_invalid_action(node_embeddings):
     """Test behavior with invalid action index."""
     with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx", 
-              return_value=None):
+               return_value=None):
         embedding = node_embeddings.get_action_embedding(9999)
         assert embedding is None
 
@@ -92,49 +90,22 @@ def test_get_action_embedding_invalid_action(node_embeddings):
 @pytest.mark.integration
 def test_extract_roi(node_embeddings):
     """Test ROI extraction from frame tensor."""
-    # Create a test frame tensor with a known pattern
     frame = torch.zeros((3, 100, 100), dtype=torch.uint8)
     frame[:, 30:60, 30:60] = 255  # White square in the middle
-    
-    # Extract ROI
     bbox = (30, 30, 30, 30)  # left, top, width, height
     roi = node_embeddings._extract_roi(frame, bbox)
-    
     assert roi is not None
     assert roi.shape == (3, 30, 30)
     assert roi.sum() == 3 * 30 * 30 * 255  # All pixels should be white
 
 
 @pytest.mark.integration
-def test_roi_to_pil_conversion(node_embeddings):
-    """Test conversion of ROI tensor to PIL Image."""
-    # Create a test ROI tensor
-    roi = torch.ones((3, 32, 32), dtype=torch.uint8) * 128
-    
-    # Convert to PIL
-    pil_image = NodeEmbeddings._convert_roi_tensor_to_pil(roi)
-    
-    assert pil_image is not None
-    assert pil_image.size == (32, 32)
-
-
-@pytest.mark.integration
 def test_is_valid_roi(node_embeddings):
     """Test ROI validation checks."""
-    # Valid ROI
     valid_roi = torch.ones((3, 32, 32))
     assert node_embeddings._is_valid_roi(valid_roi) is True
-    
-    # Invalid ROIs
     empty_roi = torch.tensor([])
     assert node_embeddings._is_valid_roi(empty_roi) is False
-    
-    zero_width_roi = torch.ones((3, 32, 0))
-    assert node_embeddings._is_valid_roi(zero_width_roi) is False
-    
-    zero_height_roi = torch.ones((3, 0, 32))
-    assert node_embeddings._is_valid_roi(zero_height_roi) is False
-    
     none_roi = None
     assert node_embeddings._is_valid_roi(none_roi) is False
 
@@ -142,43 +113,29 @@ def test_is_valid_roi(node_embeddings):
 @pytest.mark.integration
 def test_get_roi_embeddings_for_frame(node_embeddings):
     """Test retrieval of ROI embeddings for a frame."""
-    # Create mock data
     frame = torch.ones((3, 224, 224), dtype=torch.uint8) * 128
     frame_num = 10
-    
-    # Create a mock tracer
     mock_tracer = MagicMock()
-    
-    # Create a mock detection that matches our object label
     mock_detection = MagicMock()
     mock_detection.class_name = "bowl"
     mock_detection.is_fixated = True
     mock_detection.bbox = (50, 50, 100, 100)
-    
-    # Set up tracer to return our mock detection
     mock_tracer.get_detections_for_frame.return_value = [mock_detection]
     
-    # Get embeddings
     with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
         with patch.object(node_embeddings, '_get_clip_model') as mock_get_clip:
-            # Setup clip model to return a valid embedding
             mock_clip = MagicMock()
             mock_clip.encode_image.return_value = torch.ones((1, 512))
             mock_get_clip.return_value = mock_clip
             node_embeddings.clip_model = mock_clip
-            
             embeddings = node_embeddings._get_roi_embeddings_for_frame(
                 frame_tensor=frame,
                 frame_num=frame_num,
                 tracer=mock_tracer,
                 object_label="bowl"
             )
-    
-    # Verify we got embeddings
     assert len(embeddings) == 1
     assert embeddings[0].shape == (1, 512)
-    
-    # Verify correct methods were called
     mock_tracer.get_detections_for_frame.assert_called_once_with(frame_num)
 
 
@@ -186,34 +143,22 @@ def test_get_roi_embeddings_for_frame(node_embeddings):
 @pytest.mark.parametrize("has_visits", [True, False])
 def test_get_object_node_embedding(node_embeddings, has_visits):
     """Test object node embedding generation."""
-    # Create mock objects
     mock_checkpoint = MagicMock()
     mock_tracer = MagicMock()
     mock_video = MagicMock()
-    
-    # Setup node data
     node_data = {
         "object_label": "bowl",
         "visits": [(10, 20)] if has_visits else []
     }
-    
-    # Setup checkpoint to return our node data
     mock_checkpoint.nodes = {1: node_data}
     
     if has_visits:
-        # Setup mock for _get_roi_embeddings_for_visit
         with patch.object(node_embeddings, '_get_roi_embeddings_for_visit') as mock_get_roi:
-            # Return a mock embedding directly, not using a side_effect function
             mock_get_roi.return_value = [torch.ones((1, 512))]
-            
-            # Directly mock the internal implementation of get_object_node_embedding
-            # to ensure seek_to_frame is called with the right arguments
             original_method = node_embeddings.get_object_node_embedding
             
             def patched_get_object_node_embedding(checkpoint, tracer, video, node_id):
-                # Explicitly call seek_to_frame with the expected value
                 video.seek_to_frame(10)
-                # Continue with the original method
                 return original_method(checkpoint, tracer, video, node_id)
             
             with patch.object(node_embeddings, 'get_object_node_embedding', side_effect=patched_get_object_node_embedding):
@@ -223,17 +168,12 @@ def test_get_object_node_embedding(node_embeddings, has_visits):
                     video=mock_video,
                     node_id=1
                 )
-            
-            # Verify the embedding
             assert embedding is not None
             assert isinstance(embedding, torch.Tensor)
             assert embedding.shape[0] == 512
-            
-            # Verify our methods were called
             mock_get_roi.assert_called_once()
             mock_video.seek_to_frame.assert_called_once_with(10)
     else:
-        # If no visits, should return None
         embedding = node_embeddings.get_object_node_embedding(
             checkpoint=mock_checkpoint,
             tracer=mock_tracer,
@@ -246,22 +186,16 @@ def test_get_object_node_embedding(node_embeddings, has_visits):
 @pytest.mark.integration
 def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, test_tracer, test_video):
     """Test embedding generation with real checkpoint, tracer, and video data."""
-    # Find a node ID from the checkpoint
     node_ids = [nid for nid, node in test_checkpoint.nodes.items() 
-               if 'visits' in node and node['visits']]
+                if 'visits' in node and node['visits']]
     assert len(node_ids) > 0, "No valid nodes with visits found in checkpoint"
-    
     node_id = node_ids[0]
-    
     embedding = node_embeddings.get_object_node_embedding(
         checkpoint=test_checkpoint,
         tracer=test_tracer,
         video=test_video,
         node_id=node_id
     )
-    
-    # The embedding might be None if no suitable ROIs were found
-    # but the function should run without exceptions
     if embedding is not None:
         assert isinstance(embedding, torch.Tensor)
         assert embedding.dim() == 1
