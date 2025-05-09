@@ -212,25 +212,16 @@ class NodeEmbeddings:
     @staticmethod
     def _convert_roi_tensor_to_pil(roi_tensor: torch.Tensor) -> Optional[Image.Image]:
         """Converts a C,H,W roi_tensor to a PIL Image. Expects roi_tensor on any device."""
-        try:
-            roi_numpy_uint8 = roi_tensor.cpu().to(torch.uint8).numpy()
-            channels = roi_numpy_uint8.shape[0]
+        roi_numpy_uint8 = roi_tensor.cpu().to(torch.uint8).numpy()
+        channels = roi_numpy_uint8.shape[0]
 
-            if channels == 3:  # RGB
-                pil_image = Image.fromarray(roi_numpy_uint8.transpose(1, 2, 0))
-            elif channels == 1:  # Grayscale
-                pil_image = Image.fromarray(roi_numpy_uint8.squeeze(0), mode='L')
-            else:
-                logger.warning(
-                    f"Unsupported number of channels ({channels}) in ROI for PIL conversion. Shape: {roi_tensor.shape}"
-                )
-                return None
-            return pil_image
-        except Exception as e:
-            logger.warning(f"Error creating PIL image from ROI tensor (shape: {roi_tensor.shape}): {e}")
-            return None
-            
-    def _extract_roi(self, frame: torch.Tensor, bbox: Tuple[float, float, float, float]) -> Optional[torch.Tensor]:
+        if channels == 3:  # RGB
+            pil_image = Image.fromarray(roi_numpy_uint8.transpose(1, 2, 0))
+        elif channels == 1:  # Grayscale
+            pil_image = Image.fromarray(roi_numpy_uint8.squeeze(0), mode='L')
+        else:
+            raise ValueError(f"Unsupported number of channels ({channels}) in ROI for PIL conversion. Shape: {roi_tensor.shape}")
+        return pil_image
         """
         Extract region of interest from frame using bounding box.
         
