@@ -64,7 +64,7 @@ def test_get_clip_model(node_embeddings):
     clip_model = node_embeddings._get_clip_model()
     assert clip_model is not None
     assert node_embeddings.clip_model is not None
-    assert clip_model.device == "cpu"
+    assert clip_model.device == node_embeddings.device
 
 
 @pytest.mark.unit
