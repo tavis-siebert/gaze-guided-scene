@@ -1,13 +1,15 @@
 """
-Unit tests for YOLOWorldUltralyticsModel.
+Unit tests for YOLOWorld models.
 """
 
 import pytest
 import torch
 import numpy as np
+import os
 from pathlib import Path
 from PIL import Image
 
+from gazegraph.models.yolo_world_model import YOLOWorldModel
 from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
 from gazegraph.config.config_utils import get_config
 
@@ -18,71 +20,119 @@ def model_path():
     return Path(config.models.yolo_world.model_file_ultralytics)
 
 @pytest.fixture
-def yolo_world_ultralytics_model():
-    """Fixture to provide a YOLOWorldUltralyticsModel instance."""
+def yolo_world_model():
+    """Fixture to provide a YOLOWorldModel instance."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = YOLOWorldUltralyticsModel(conf_threshold=0.35, iou_threshold=0.7, device=device)
+    model = YOLOWorldModel.create(
+        backend="ultralytics",
+        conf_threshold=0.05,
+        iou_threshold=0.2,
+        device=device
+    )
     return model
 
 @pytest.mark.unit
 def test_initialization():
-    """Test model initialization."""
-    model = YOLOWorldUltralyticsModel(conf_threshold=0.35, iou_threshold=0.7, device="cpu")
-    assert model.conf_threshold == 0.35
-    assert model.iou_threshold == 0.7
-    assert model.device == "cpu"
-    assert model.model is None
-    assert model.names == []
+    """Test model initialization with factory."""
+    # Test ultralytics backend
+    model_ultralytics = YOLOWorldModel.create(
+        backend="ultralytics",
+        conf_threshold=0.35,
+        iou_threshold=0.7,
+        device="cpu"
+    )
+    assert isinstance(model_ultralytics, YOLOWorldUltralyticsModel)
+    assert model_ultralytics.conf_threshold == 0.35
+    assert model_ultralytics.iou_threshold == 0.7
+    assert model_ultralytics.device == "cpu"
+    assert model_ultralytics.names == []
+    
+    # Test direct initialization of the ultralytics model
+    model_direct = YOLOWorldUltralyticsModel(
+        conf_threshold=0.35,
+        iou_threshold=0.7,
+        device="cpu"
+    )
+    assert model_direct.conf_threshold == 0.35
+    assert model_direct.iou_threshold == 0.7
+    assert model_direct.device == "cpu"
+    assert model_direct.names == []
+    
+    # Test invalid backend
+    with pytest.raises(ValueError):
+        YOLOWorldModel.create(backend="invalid")
 
 @pytest.mark.gpu
-def test_model_loading(yolo_world_ultralytics_model, model_path):
+def test_model_loading(yolo_world_model, model_path):
     """Test model loading."""
     # Skip if model file doesn't exist - this avoids test failures in CI
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
-        
-    yolo_world_ultralytics_model.load_model(model_path)
-    assert yolo_world_ultralytics_model.model is not None
+    
+    # Model should be instantiated but not loaded yet in the fixture
+    assert yolo_world_model.model is None
+    
+    # Load the model
+    model = YOLOWorldModel.create(
+        backend="ultralytics",
+        model_path=model_path,
+        conf_threshold=0.05,
+        iou_threshold=0.2
+    )
+    
+    # Check that model was loaded
+    assert model.model is not None
 
 @pytest.mark.gpu
-def test_set_classes(yolo_world_ultralytics_model, model_path):
+def test_set_classes(model_path):
     """Test setting object classes."""
     # Skip if model file doesn't exist
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
-        
-    yolo_world_ultralytics_model.load_model(model_path)
+    
+    # Create model with path to load immediately
+    model = YOLOWorldModel.create(
+        backend="ultralytics",
+        model_path=model_path,
+        conf_threshold=0.05,
+        iou_threshold=0.2
+    )
     
     class_names = ["apple", "bowl", "microwave"]
-    yolo_world_ultralytics_model.set_classes(class_names)
+    model.set_classes(class_names)
     
-    assert yolo_world_ultralytics_model.names == class_names
+    assert model.names == class_names
 
 @pytest.mark.gpu
-def test_run_inference(yolo_world_ultralytics_model, model_path, test_data_dir):
+def test_predict(model_path, test_data_dir):
     """Test running inference on an image."""
     # Skip if model file doesn't exist
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
-        
-    yolo_world_ultralytics_model.load_model(model_path)
+    
+    # Create and load model
+    model = YOLOWorldModel.create(
+        backend="ultralytics",
+        model_path=model_path,
+        conf_threshold=0.05,
+        iou_threshold=0.2
+    )
     
     # Load a test image
     img_path = test_data_dir / "clip" / "apple.jpg"
     if not img_path.exists():
         pytest.skip(f"Test image not found: {img_path}")
-        
+    
+    # Load image as PIL
     image = Image.open(img_path)
     image_np = np.array(image)
     
-    # Define text labels and object labels
-    text_labels = ["a photo of a apple", "a photo of a bowl", "a photo of a microwave"]
-    obj_labels = {0: "apple", 1: "bowl", 2: "microwave"}
+    # Set class names
+    class_names = ["apple", "bowl", "microwave"]
+    model.set_classes(class_names)
     
-    # Run inference
-    detections = yolo_world_ultralytics_model.run_inference(
-        image_np, text_labels, obj_labels, image_size=640
-    )
+    # Test with numpy array
+    detections = model.predict(image_np, image_size=640)
     
     # Check that we get a list of detections
     assert isinstance(detections, list)
@@ -99,22 +149,34 @@ def test_run_inference(yolo_world_ultralytics_model, model_path, test_data_dir):
             assert isinstance(detection["score"], float)
             assert isinstance(detection["class_id"], int)
             assert isinstance(detection["class_name"], str)
+    
+    # Test with PIL image
+    detections_pil = model.predict(image, image_size=640)
+    assert isinstance(detections_pil, list)
+    
+    # Test with torch tensor
+    # Convert image to tensor
+    image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).float() / 255.0
+    detections_tensor = model.predict(image_tensor, image_size=640)
+    assert isinstance(detections_tensor, list)
 
 @pytest.mark.gpu
-def test_all_yolo_world_images(yolo_world_ultralytics_model, model_path):
+def test_all_yolo_world_images(model_path):
     """Test object detection on all images in the yolo-world directory.
-    
-    This test provides comprehensive diagnostic output but doesn't fail
-    if objects aren't detected - it's meant for examining model performance.
     """
     # Skip if model file doesn't exist
     if not model_path.exists():
         pytest.skip(f"Model file not found: {model_path}")
     
-    # Load the model once for all tests
-    yolo_world_ultralytics_model.load_model(model_path)
-    print(f"Using confidence threshold: {yolo_world_ultralytics_model.conf_threshold}")
-    print(f"Using IoU threshold: {yolo_world_ultralytics_model.iou_threshold}")
+    # Create and load model
+    model = YOLOWorldModel.create(
+        backend="ultralytics",
+        model_path=model_path,
+        conf_threshold=0.05,
+        iou_threshold=0.2
+    )
+    print(f"Using confidence threshold: {model.conf_threshold}")
+    print(f"Using IoU threshold: {model.iou_threshold}")
     
     # Path to the yolo-world test images directory
     test_dir = Path("data/tests/yolo-world")
@@ -145,17 +207,11 @@ def test_all_yolo_world_images(yolo_world_ultralytics_model, model_path):
         expected_objects = get_objects_from_filename(img_file)
         print(f"Objects from filename: {expected_objects}")
         
-        # Create text labels including synonyms
-        text_labels = expected_objects
-        
-        print(f"Using {len(text_labels)} text prompts:")
-        for i, label in enumerate(text_labels):
-            print(f"  {i+1}. {label}")
+        # Set class names and run prediction
+        model.set_classes(expected_objects)
         
         # Run inference
-        detections = yolo_world_ultralytics_model.run_inference(
-            image_np, text_labels, image_size=640
-        )
+        detections = model.predict(image_np, image_size=640)
         
         # Print detailed information about all detections
         print(f"\nDetected {len(detections)} objects:")
@@ -218,7 +274,6 @@ def test_all_yolo_world_images(yolo_world_ultralytics_model, model_path):
         detection_rate = detected_count / total_count if total_count > 0 else 0
         print(f"  - Detection rate: {detected_count}/{total_count} = {detection_rate:.2%}")
     
-    # Print final summary for all images
     print(f"\n\n{'=' * 50}")
     print("OVERALL DETECTION SUMMARY")
     print(f"{'=' * 50}")
@@ -229,5 +284,3 @@ def test_all_yolo_world_images(yolo_world_ultralytics_model, model_path):
         rate = detected / total if total > 0 else 0
         print(f"{filename}: {detected}/{total} objects detected ({rate:.2%})")
     
-    # The test always passes - it's meant for diagnostics
-    assert True 
