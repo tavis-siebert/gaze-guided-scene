@@ -66,7 +66,7 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
             )
             
             # Initialize CLIP model for text embeddings
-            self.clip_model = ClipModel(device=self.text_embedding_device, name="ViT-B/32")
+            self.clip_model = ClipModel(device=self.text_embedding_device)
             self.clip_model.load()
             
             # Get model details
