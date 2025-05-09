@@ -19,7 +19,9 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
         model_path: Optional[Path] = None,
         conf_threshold: Optional[float] = None, 
         iou_threshold: Optional[float] = None,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        use_prefix: Optional[bool] = None,
+        replace_underscores: Optional[bool] = None
     ):
         """Initialize YOLO-World ONNX model."""
         # Initialize attributes that will be set in _load_model
@@ -35,7 +37,7 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
         self.text_embedding_device = "cuda" if self.device == "0" else "cpu"
         
         # Call parent constructor
-        super().__init__(model_path, conf_threshold, iou_threshold, self.device)
+        super().__init__(model_path, conf_threshold, iou_threshold, self.device, use_prefix, replace_underscores)
     
     def _load_model(self, model_path: Path, num_workers: Optional[int] = None) -> None:
         """Load the YOLO-World ONNX model."""

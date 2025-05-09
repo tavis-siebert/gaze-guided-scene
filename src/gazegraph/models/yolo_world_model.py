@@ -19,7 +19,9 @@ class YOLOWorldModel(ABC):
         model_path: Optional[Path] = None,
         conf_threshold: Optional[float] = None,
         iou_threshold: Optional[float] = None,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        use_prefix: Optional[bool] = None,
+        replace_underscores: Optional[bool] = None
     ) -> 'YOLOWorldModel':
         """Factory method to create the appropriate YOLO-World model."""
         config = get_config().models.yolo_world
@@ -38,17 +40,19 @@ class YOLOWorldModel(ABC):
         # Create appropriate model instance
         if actual_backend.lower() == "ultralytics":
             from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
-            return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device)
+            return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores)
         else:  # must be "onnx" based on validation above
             from gazegraph.models.yolo_world_onnx import YOLOWorldOnnxModel
-            return YOLOWorldOnnxModel(model_path, conf_threshold, iou_threshold, device)
+            return YOLOWorldOnnxModel(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores)
     
     def __init__(
         self, 
         model_path: Optional[Path] = None,
         conf_threshold: Optional[float] = None, 
         iou_threshold: Optional[float] = None,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        use_prefix: Optional[bool] = None,
+        replace_underscores: Optional[bool] = None
     ):
         """Initialize the YOLO-World model."""
         config = get_config().models.yolo_world
@@ -60,6 +64,10 @@ class YOLOWorldModel(ABC):
         # Set thresholds (use provided values or defaults from config)
         self.conf_threshold = conf_threshold if conf_threshold is not None else backend_config.conf_threshold
         self.iou_threshold = iou_threshold if iou_threshold is not None else backend_config.iou_threshold
+        
+        # Set text prompt formatting options
+        self.use_prefix = False if use_prefix is None else use_prefix  # Default: no prefix
+        self.replace_underscores = True if replace_underscores is None else replace_underscores  # Default: replace underscores
         
         # Set up device
         self.device = "cuda" if (device is None and torch.cuda.is_available()) else (device or "cpu")
@@ -85,10 +93,29 @@ class YOLOWorldModel(ABC):
         """Load the model from the given path."""
         pass
     
+    def format_class_name(self, class_name: str) -> str:
+        """Format a class name according to the current settings."""
+        formatted_name = class_name
+        
+        # Replace underscores with spaces if enabled
+        if self.replace_underscores:
+            formatted_name = formatted_name.replace('_', ' ')
+            
+        # Add prefix if enabled
+        if self.use_prefix:
+            formatted_name = f"a photo of a {formatted_name}"
+            
+        return formatted_name
+    
+    def format_class_names(self, class_names: List[str]) -> List[str]:
+        """Format a list of class names according to current settings."""
+        return [self.format_class_name(name) for name in class_names]
+    
     def set_classes(self, class_names: List[str]) -> None:
         """Set object classes for the model."""
         self.names = class_names
-        self._update_model_classes(class_names)
+        formatted_class_names = self.format_class_names(class_names)
+        self._update_model_classes(formatted_class_names)
         logger.info(f"Set {len(class_names)} class names")
     
     @abstractmethod
