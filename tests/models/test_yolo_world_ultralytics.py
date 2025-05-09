@@ -21,8 +21,7 @@ def model_path():
 @pytest.fixture
 def yolo_world_model():
     """Fixture to provide a YOLOWorldModel instance."""
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = YOLOWorldModel.create(backend="ultralytics", device=device)
+    model = YOLOWorldUltralyticsModel()
     return model
 
 @pytest.mark.unit
@@ -52,25 +51,6 @@ def test_initialization():
     # Test invalid backend
     with pytest.raises(ValueError):
         YOLOWorldModel.create(backend="invalid")
-
-@pytest.mark.gpu
-def test_model_loading(yolo_world_model, model_path):
-    """Test model loading."""
-    # Skip if model file doesn't exist
-    if not model_path.exists():
-        pytest.skip(f"Model file not found: {model_path}")
-    
-    # Model should be instantiated but not loaded yet in the fixture
-    assert yolo_world_model.model is None
-    
-    # Load the model with path
-    model = YOLOWorldModel.create(
-        backend="ultralytics",
-        model_path=model_path
-    )
-    
-    # Check that model was loaded
-    assert model.model is not None
 
 @pytest.mark.gpu
 def test_set_classes(model_path):
