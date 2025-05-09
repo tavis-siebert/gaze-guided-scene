@@ -222,17 +222,26 @@ class NodeEmbeddings:
         else:
             raise ValueError(f"Unsupported number of channels ({channels}) in ROI for PIL conversion. Shape: {roi_tensor.shape}")
         return pil_image
+
+    def _extract_roi(self, frame: torch.Tensor, bbox: Tuple[float, float, float, float], padding: int = 0) -> Optional[torch.Tensor]:
         """
-        Extract region of interest from frame using bounding box.
+        Extract region of interest from frame using bounding box, with optional padding.
         
         Args:
             frame: Video frame tensor
             bbox: Bounding box coordinates (left, top, width, height)
+            padding: Optional padding in pixels to expand the ROI in all directions
             
         Returns:
             Tensor containing the ROI or None if extraction fails
         """
         left, top, width, height = bbox
+        
+        # Apply padding to expand the bounding box
+        left -= padding
+        top -= padding
+        width += 2 * padding
+        height += 2 * padding
         
         # Ensure bbox is within frame boundaries
         height_limit, width_limit = frame.shape[1:3]
