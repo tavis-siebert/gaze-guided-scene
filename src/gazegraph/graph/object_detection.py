@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gazegraph.models.yolo_world import YOLOWorldModel
+from gazegraph.models.yolo_world_model import YOLOWorldModel
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
     from gazegraph.graph.graph_tracer import GraphTracer
@@ -159,7 +159,7 @@ class ObjectDetector:
         """
         self.obj_labels = obj_labels
         self.labels_to_int = labels_to_int
-        self.clip_labels = [f"{obj}" for obj in self.obj_labels.values()]
+        self.class_names = list(self.obj_labels.values())
         self.tracer = tracer
         self.config = config
         
@@ -179,8 +179,11 @@ class ObjectDetector:
         self.gaze_proximity_threshold = config.graph.fixated_object_detection.thresholds.gaze_proximity
         self.confidence_threshold = config.graph.fixated_object_detection.thresholds.confidence
         
-        logger.info(f"Initializing YOLO-World model: {model_path.name} "
-                    f"(conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")
+        # Backend selection
+        backend = getattr(config.models.yolo_world, "backend", "ultralytics")
+        
+        logger.info(f"Initializing YOLO-World model: {model_path.name} (backend={backend}, "
+                    f"conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")
         
         logger.info(f"Fixation detection with thresholds: "
                   f"stability={self.bbox_stability_threshold}, "
@@ -188,15 +191,19 @@ class ObjectDetector:
                   f"confidence={self.confidence_threshold}, "
                   f"min_fixation_ratio={self.min_fixation_frame_ratio}")
         
-        self.model = YOLOWorldModel(
+        # Get number of processing workers from config
+        num_workers = getattr(config.processing, "n_cores", None)
+        
+        # Create model using factory
+        self.model = YOLOWorldModel.create(
+            backend=backend,
+            model_path=model_path,
             conf_threshold=self.conf_threshold,
             iou_threshold=self.iou_threshold
         )
         
-        # Get number of processing workers from config
-        num_workers = getattr(config.processing, "n_cores", None)
-        self.model.load_model(model_path, num_workers=num_workers)
-        self.model.set_classes(list(self.obj_labels.values()))
+        # Set class names
+        self.model.set_classes(self.class_names)
         
         # State tracking
         self.reset()
@@ -420,7 +427,7 @@ class ObjectDetector:
             List of Detection objects
         """
         # Get raw detections from the model
-        raw_detections = self.model.run_inference(frame, self.clip_labels, self.obj_labels)
+        raw_detections = self.model.predict(frame)
         if not raw_detections:
             return []
             
