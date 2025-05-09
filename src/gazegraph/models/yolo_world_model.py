@@ -21,28 +21,17 @@ class YOLOWorldModel(ABC):
         iou_threshold: Optional[float] = None,
         device: Optional[str] = None
     ) -> 'YOLOWorldModel':
-        """Factory method to create the appropriate YOLO-World model.
-        
-        Args:
-            backend: Backend to use ("ultralytics" or "onnx"). If None, uses config default
-            model_path: Path to the model file
-            conf_threshold: Confidence threshold for detections. If None, uses config default
-            iou_threshold: IoU threshold for NMS. If None, uses config default
-            device: Device to run inference on
-        """
-        # Get configuration values
-        config = get_config()
+        """Factory method to create the appropriate YOLO-World model."""
+        config = get_config().models.yolo_world
         
         # Use provided backend or default from config
-        actual_backend = backend or config.models.yolo_world.backend
+        actual_backend = backend or config.backend
         
-        # Get backend-specific thresholds from config if not provided
-        if conf_threshold is None:
-            conf_threshold = config.models.yolo_world[actual_backend].conf_threshold
+        # Get model path
+        if model_path is None:
+            model_path = Path(config.paths[actual_backend])
         
-        if iou_threshold is None:
-            iou_threshold = config.models.yolo_world[actual_backend].iou_threshold
-            
+        # Create appropriate model instance
         if actual_backend.lower() == "ultralytics":
             from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
             return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device)
@@ -54,30 +43,40 @@ class YOLOWorldModel(ABC):
     
     def __init__(
         self, 
-        model_path: Path,
-        conf_threshold: float = 0.35, 
-        iou_threshold: float = 0.7,
+        model_path: Optional[Path] = None,
+        conf_threshold: Optional[float] = None, 
+        iou_threshold: Optional[float] = None,
         device: Optional[str] = None
     ):
-        """Initialize the YOLO-World model.
+        """Initialize the YOLO-World model."""
+        config = get_config().models.yolo_world
         
-        Args:
-            model_path: Path to the model file
-            conf_threshold: Confidence threshold for detections
-            iou_threshold: IoU threshold for NMS
-            device: Device to run inference on
-        """
-        self.conf_threshold = conf_threshold
-        self.iou_threshold = iou_threshold
-        self._setup_device(device)
+        # Get backend-specific config
+        backend_name = self._get_backend_name()
+        backend_config = getattr(config, backend_name)
+        
+        # Set thresholds (use provided values or defaults from config)
+        self.conf_threshold = conf_threshold if conf_threshold is not None else backend_config.conf_threshold
+        self.iou_threshold = iou_threshold if iou_threshold is not None else backend_config.iou_threshold
+        
+        # Set up device
+        self.device = "cuda" if (device is None and torch.cuda.is_available()) else (device or "cpu")
+        
+        # Initialize state
         self.names = []
         
+        # Load model if path provided
         if model_path:
             self._load_model(model_path)
     
-    def _setup_device(self, device: Optional[str]) -> None:
-        """Set up device for inference."""
-        self.device = "cuda" if (device is None and torch.cuda.is_available()) else (device or "cpu")
+    def _get_backend_name(self) -> str:
+        """Get the backend name for this model implementation."""
+        if self.__class__.__name__ == 'YOLOWorldUltralyticsModel':
+            return 'ultralytics'
+        elif self.__class__.__name__ == 'YOLOWorldOnnxModel':
+            return 'onnx'
+        else:
+            raise ValueError(f"Unknown model class: {self.__class__.__name__}")
     
     @abstractmethod
     def _load_model(self, model_path: Path) -> None:
@@ -141,19 +140,14 @@ class YOLOWorldModel(ABC):
         class_names: Optional[List[str]] = None,
         image_size: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Detect objects in the input image.
-        
-        Args:
-            image: Input image (numpy array, torch tensor, or PIL image)
-            class_names: Optional list of class names to detect
-            image_size: Size to resize the image to for inference. If None, uses config default
-            
-        Returns:
-            List of detections with bbox, score, class_id, and class_name
-        """
+        """Detect objects in the input image."""
         # Set classes if provided
         if class_names and (not self.names or set(class_names) != set(self.names)):
             self.set_classes(class_names)
+            
+        # Get default image size from config if not provided
+        if image_size is None:
+            image_size = get_config().models.yolo_world.image_size
             
         # Preprocess the image to numpy RGB format
         preprocessed_image = self._preprocess_image(image)

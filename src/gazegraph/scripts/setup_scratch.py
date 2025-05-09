@@ -130,15 +130,24 @@ class ScratchDirectories:
         self.tmp_dir = Path(config.directories.scratch.tmp)
         self.ego_topo_dir = Path(config.directories.scratch.ego_topo)
         self.clip_model_dir = Path(config.models.clip.model_dir)
-        self.yolo_world_model_dir = Path(config.models.yolo_world.model_dir)
-        self.yolo_world_model_file = config.models.yolo_world.model_file
+        
+        # YOLO model paths
+        self.yolo_model_dir = Path(self.scratch_egtea_dir) / "yolo_world_model"
+        self.backend = config.models.yolo_world.backend
+        self.yolo_model_paths = {
+            "onnx": self.yolo_model_dir / "yolov8x-worldv2.onnx",
+            "ultralytics": self.yolo_model_dir / "yolov8x-worldv2.pt"
+        }
         
         # URLs
         self.cropped_clips_url = config.external.urls.dropbox_cropped_clips
         self.video_links_url = config.external.urls.dropbox_video_links
         self.ego_topo_repo_url = config.external.urls.ego_topo_repo
         self.clip_model_id = config.models.clip.model_id
-        self.yolo_world_model_url = config.external.urls.yolo_world_model
+        self.yolo_world_model_urls = {
+            "onnx": config.external.urls.yolo_world_model_onnx,
+            "ultralytics": config.external.urls.yolo_world_model_ultralytics
+        }
 
     def create_all(self) -> None:
         """Create all required directories."""
@@ -148,7 +157,7 @@ class ScratchDirectories:
             self.cropped_videos_dir, 
             self.tmp_dir, 
             self.clip_model_dir,
-            self.yolo_world_model_dir
+            self.yolo_model_dir
         ]:
             directory.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created directory: {directory}")
@@ -239,36 +248,20 @@ def setup_clip_model(directories: ScratchDirectories) -> None:
     logger.info(f"CLIP model and processor saved to {model_dir}")
 
 def setup_yolo_world_model(directories: ScratchDirectories) -> None:
-    """Download YOLO-World ONNX model for offline use."""
-    model_dir = directories.yolo_world_model_dir
-    model_dir.mkdir(exist_ok=True)
+    """Download YOLO-World models for both ONNX and Ultralytics backends."""
+    # Create model directory
+    directories.yolo_model_dir.mkdir(exist_ok=True)
     
-    # Extract the original filename from the URL
-    url_path = Path(directories.yolo_world_model_url.split('?')[0])
-    original_filename = url_path.name
-    
-    # If the specified model filename is different from the URL's filename,
-    # log information about the mapping
-    if original_filename != directories.yolo_world_model_file:
-        logger.info(f"Model from {original_filename} will be used as {directories.yolo_world_model_file}")
-    
-    # First check if the configured model file exists
-    target_model_path = model_dir / directories.yolo_world_model_file
-    if target_model_path.exists():
-        logger.info(f"YOLO-World model already exists at {target_model_path}, skipping download...")
-        return
-    
-    # Download with the original filename
-    download_path = model_dir / original_filename
-    
-    logger.info(f"Downloading YOLO-World ONNX model from {directories.yolo_world_model_url}")
-    logger.info(f"Saving to {download_path}")
-    
-    download_from_url(directories.yolo_world_model_url, download_path)
-    
-    if original_filename != directories.yolo_world_model_file and not target_model_path.exists():
-        logger.warning(f"Model filename mismatch: {original_filename} vs {directories.yolo_world_model_file}. Make sure to update the model file name in the config to use the correct model.")
-    logger.info(f"YOLO-World model download complete")
+    # Download models for each backend
+    for backend, model_path in directories.yolo_model_paths.items():
+        if model_path.exists():
+            logger.info(f"YOLO-World {backend} model already exists at {model_path}, skipping download...")
+            continue
+            
+        # Download the model
+        logger.info(f"Downloading YOLO-World {backend} model to {model_path}")
+        download_from_url(directories.yolo_world_model_urls[backend], model_path)
+        logger.info(f"YOLO-World {backend} model download complete")
 
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
