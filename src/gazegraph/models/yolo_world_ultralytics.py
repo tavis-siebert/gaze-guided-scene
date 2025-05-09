@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from ultralytics import YOLOWorld
+import cv2
 
 from gazegraph.logger import get_logger
 from gazegraph.models.yolo_world_model import YOLOWorldModel
@@ -55,6 +56,20 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         if self.model is None:
             raise RuntimeError("Model not loaded")
 
+        # Ensure correct format for Ultralytics: RGB in np.ndarray (HWC format)
+        if isinstance(image, torch.Tensor):
+            # Convert from BCHW (0.0-1.0) to HWC (0-255)
+            image = (image.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+        
+        # For OpenCV format (BGR), convert to RGB
+        if isinstance(image, np.ndarray) and image.ndim == 3 and image.shape[2] == 3:
+            # Check if image is likely in BGR format (from OpenCV)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        image_path = Path("data/tests/out/input_image.jpg")
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(image_path), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+
         # Run inference
         results = self.model.predict(
             source=image,
@@ -68,6 +83,10 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         detections = []
         if results and len(results) > 0:
             result = results[0]
+            result_path = Path("data/tests/out/result.jpg")
+            result_path.parent.mkdir(parents=True, exist_ok=True)
+            result.save(str(result_path))
+            
             if len(result.boxes) > 0:
                 boxes = result.boxes.xyxy.cpu().numpy()
                 scores = result.boxes.conf.cpu().numpy()
