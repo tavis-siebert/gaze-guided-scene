@@ -6,6 +6,7 @@ from ultralytics import YOLOWorld
 
 from gazegraph.logger import get_logger
 from gazegraph.models.yolo_world_model import YOLOWorldModel
+from gazegraph.config.config_utils import get_config
 
 logger = get_logger(__name__)
 
@@ -14,20 +15,34 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
     
     def __init__(
         self, 
-        model_path: Path = None,
-        conf_threshold: float = 0.35, 
-        iou_threshold: float = 0.7,
+        model_path: Optional[Path] = None,
+        conf_threshold: Optional[float] = None, 
+        iou_threshold: Optional[float] = None,
         device: Optional[str] = None
     ):
         """Initialize YOLO-World Ultralytics model.
         
         Args:
             model_path: Path to the model file
-            conf_threshold: Confidence threshold for detections
-            iou_threshold: IoU threshold for NMS
+            conf_threshold: Confidence threshold for detections. If None, uses config default
+            iou_threshold: IoU threshold for NMS. If None, uses config default
             device: Device to run inference on
         """
+        # Initialize model to None before parent constructor
         self.model = None
+        
+        # Get default thresholds from config if not provided
+        if conf_threshold is None or iou_threshold is None:
+            config = get_config()
+            backend_config = config.models.yolo_world.ultralytics
+            
+            if conf_threshold is None:
+                conf_threshold = backend_config.conf_threshold
+                
+            if iou_threshold is None:
+                iou_threshold = backend_config.iou_threshold
+        
+        # Call parent constructor with resolved thresholds
         super().__init__(model_path, conf_threshold, iou_threshold, device)
     
     def _load_model(self, model_path: Path) -> None:
@@ -62,18 +77,23 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         formatted_names = [f"a photo of a {name.replace('_', ' ')}" for name in class_names]
         self.model.set_classes(formatted_names)
     
-    def _run_inference(self, image: np.ndarray, image_size: int = 640) -> List[Dict[str, Any]]:
+    def _run_inference(self, image: np.ndarray, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """Run inference with the Ultralytics model.
         
         Args:
             image: Input image as RGB numpy array
-            image_size: Size to resize the image to for inference
+            image_size: Size to resize the image to for inference. If None, uses config default
             
         Returns:
             List of detections with bbox, score, class_id, and class_name
         """
         if self.model is None:
             raise RuntimeError("Model not loaded")
+        
+        # Use config default for image_size if not provided
+        if image_size is None:
+            config = get_config()
+            image_size = config.models.yolo_world.image_size
 
         # Run inference
         results = self.model.predict(

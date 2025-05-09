@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from PIL import Image
 
 from gazegraph.logger import get_logger
+from gazegraph.config.config_utils import get_config
 
 logger = get_logger(__name__)
 
@@ -14,29 +15,42 @@ class YOLOWorldModel(ABC):
     
     @staticmethod
     def create(
-        backend: str = "ultralytics",
-        model_path: Path = None,
-        conf_threshold: float = 0.35,
-        iou_threshold: float = 0.7,
+        backend: Optional[str] = None,
+        model_path: Optional[Path] = None,
+        conf_threshold: Optional[float] = None,
+        iou_threshold: Optional[float] = None,
         device: Optional[str] = None
     ) -> 'YOLOWorldModel':
         """Factory method to create the appropriate YOLO-World model.
         
         Args:
-            backend: Backend to use ("ultralytics" or "onnx")
+            backend: Backend to use ("ultralytics" or "onnx"). If None, uses config default
             model_path: Path to the model file
-            conf_threshold: Confidence threshold for detections
-            iou_threshold: IoU threshold for NMS
+            conf_threshold: Confidence threshold for detections. If None, uses config default
+            iou_threshold: IoU threshold for NMS. If None, uses config default
             device: Device to run inference on
         """
-        if backend.lower() == "ultralytics":
+        # Get configuration values
+        config = get_config()
+        
+        # Use provided backend or default from config
+        actual_backend = backend or config.models.yolo_world.backend
+        
+        # Get backend-specific thresholds from config if not provided
+        if conf_threshold is None:
+            conf_threshold = config.models.yolo_world[actual_backend].conf_threshold
+        
+        if iou_threshold is None:
+            iou_threshold = config.models.yolo_world[actual_backend].iou_threshold
+            
+        if actual_backend.lower() == "ultralytics":
             from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
             return YOLOWorldUltralyticsModel(model_path, conf_threshold, iou_threshold, device)
-        elif backend.lower() == "onnx":
+        elif actual_backend.lower() == "onnx":
             from gazegraph.models.yolo_world_onnx import YOLOWorldOnnxModel
             return YOLOWorldOnnxModel(model_path, conf_threshold, iou_threshold, device)
         else:
-            raise ValueError(f"Unsupported backend: {backend}")
+            raise ValueError(f"Unsupported backend: {actual_backend}")
     
     def __init__(
         self, 
@@ -117,7 +131,7 @@ class YOLOWorldModel(ABC):
             return image
     
     @abstractmethod
-    def _run_inference(self, image: np.ndarray, image_size: int = 640) -> List[Dict[str, Any]]:
+    def _run_inference(self, image: np.ndarray, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """Run inference with the model-specific implementation."""
         pass
     
@@ -125,14 +139,14 @@ class YOLOWorldModel(ABC):
         self, 
         image: Union[np.ndarray, torch.Tensor, Image.Image], 
         class_names: Optional[List[str]] = None,
-        image_size: int = 640
+        image_size: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Detect objects in the input image.
         
         Args:
             image: Input image (numpy array, torch tensor, or PIL image)
             class_names: Optional list of class names to detect
-            image_size: Size to resize the image to for inference
+            image_size: Size to resize the image to for inference. If None, uses config default
             
         Returns:
             List of detections with bbox, score, class_id, and class_name
