@@ -1,5 +1,5 @@
 """
-Shared test fixtures and test data for various test modules.
+Configuration for model-related tests.
 """
 
 import pytest
@@ -10,20 +10,8 @@ from pathlib import Path
 
 from gazegraph.models.clip import ClipModel
 
-# Get the test resources directory
-TEST_RESOURCES_DIR = Path(__file__).parent
-TEST_DATA_DIR = TEST_RESOURCES_DIR / "data"
-TEST_IMAGES_DIR = TEST_DATA_DIR / "images"
-
-@pytest.fixture
-def test_resources_dir():
-    """Return the path to the test resources directory."""
-    return TEST_RESOURCES_DIR
-
-@pytest.fixture
-def test_data_dir():
-    """Return the path to the test data directory."""
-    return TEST_DATA_DIR
+# Get the test images directory path
+TEST_IMAGES_DIR = Path(__file__).parent.parent.parent / "data" / "tests" / "images"
 
 @pytest.fixture
 def clip_model():
