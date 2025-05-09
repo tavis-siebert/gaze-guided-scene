@@ -75,7 +75,7 @@ def test_get_action_embedding(node_embeddings):
         embedding = node_embeddings.get_action_embedding(0)
         assert embedding is not None
         assert isinstance(embedding, torch.Tensor)
-        assert embedding.shape[1] == 512  # CLIP's default embedding size
+        assert embedding.shape[1] == 768  # We assume CLIP ViT-L/14 model
 
 
 @pytest.mark.unit
@@ -154,7 +154,7 @@ def test_get_object_node_embedding(node_embeddings, has_visits):
     
     if has_visits:
         with patch.object(node_embeddings, '_get_roi_embeddings_for_visit') as mock_get_roi:
-            mock_get_roi.return_value = [torch.ones((1, 512))]
+            mock_get_roi.return_value = [torch.ones((1, 768))]
             original_method = node_embeddings.get_object_node_embedding
             
             def patched_get_object_node_embedding(checkpoint, tracer, video, node_id):
@@ -170,7 +170,7 @@ def test_get_object_node_embedding(node_embeddings, has_visits):
                 )
             assert embedding is not None
             assert isinstance(embedding, torch.Tensor)
-            assert embedding.shape[0] == 512
+            assert embedding.shape[0] == 768  # We assume ViT-L/14 CLIP model
             mock_get_roi.assert_called_once()
             mock_video.seek_to_frame.assert_called_once_with(10)
     else:
@@ -199,7 +199,7 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
     if embedding is not None:
         assert isinstance(embedding, torch.Tensor)
         assert embedding.dim() == 1
-        assert embedding.shape[0] == 512  # CLIP's default embedding size
+        assert embedding.shape[0] == 768  # We assume ViT-L/14 CLIP model
 
 
 @pytest.mark.integration
