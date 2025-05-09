@@ -10,6 +10,7 @@ from collections import defaultdict, Counter
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from PIL import Image
 
 from gazegraph.models.yolo_world_model import YOLOWorldModel
 # Use TYPE_CHECKING to avoid circular imports
@@ -412,8 +413,9 @@ class ObjectDetector:
         Returns:
             List of Detection objects
         """
-        # Get raw detections from the model
-        raw_detections = self.model.predict(frame)
+        # Convert frame tensor to PIL Image and run detection
+        pil_image = Image.fromarray((frame.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8))
+        raw_detections = self.model.predict(pil_image)
         if not raw_detections:
             return []
             

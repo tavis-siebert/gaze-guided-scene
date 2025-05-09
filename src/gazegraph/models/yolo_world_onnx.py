@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from PIL import Image
 import cv2
 import onnxruntime as ort
 from pathlib import Path
@@ -95,16 +96,18 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
         txt_feats /= txt_feats.norm(dim=1, keepdim=True)
         self.class_embeddings = txt_feats.unsqueeze(0)
     
-    def _run_inference(self, image: np.ndarray, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
+    def _run_inference(self, image: Image.Image, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """Run inference with the ONNX model."""
         if self.session is None or self.class_embeddings is None:
             raise RuntimeError("Model not loaded or classes not set")
         
+        if not isinstance(image, Image.Image):
+            raise TypeError(f"YOLOWorldOnnxModel.predict requires PIL.Image.Image, got {type(image)}")
+        image_np = np.array(image)
         # Get original image dimensions
-        h, w = image.shape[:2]
-        
-        # Convert to BGR for OpenCV processing (if input is RGB)
-        image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        h, w = image_np.shape[:2]
+        # Convert to BGR for OpenCV processing
+        image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
         
         # Prepare embeddings (pad if needed)
         embeddings = self.class_embeddings
