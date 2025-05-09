@@ -5,7 +5,6 @@ Unit tests for ClipModel.
 import pytest
 import torch
 from gazegraph.models.clip import ClipModel
-from tests.resources.fixtures import clip_model, test_images
 
 @pytest.mark.unit
 def test_initialization():
@@ -14,12 +13,12 @@ def test_initialization():
     assert model.model is None
     assert model.preprocess is None
 
-@pytest.mark.real_model
+@pytest.mark.gpu
 def test_model_loading(clip_model):
     assert clip_model.model is not None
     assert clip_model.preprocess is not None
 
-@pytest.mark.real_model
+@pytest.mark.gpu
 def test_encode_text(clip_model):
     texts = ["apple", "microwave"]
     encodings = clip_model.encode_text(texts)
@@ -27,14 +26,14 @@ def test_encode_text(clip_model):
     assert all(isinstance(e, torch.Tensor) for e in encodings)
     assert all(e.shape[1] == 512 for e in encodings)
 
-@pytest.mark.real_model
+@pytest.mark.gpu
 def test_encode_image(clip_model, test_images):
     for img in test_images.values():
         encoding = clip_model.encode_image(img)
         assert isinstance(encoding, torch.Tensor)
         assert encoding.shape[1] == 512
 
-@pytest.mark.real_model
+@pytest.mark.gpu
 def test_classify(clip_model, test_images):
     # Gather label candidates from test image names (split on dash)
     labels = []
