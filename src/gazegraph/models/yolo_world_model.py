@@ -1,7 +1,6 @@
 import torch
-import numpy as np
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union, Tuple
+from typing import Dict, List, Any, Optional, Tuple
 from abc import ABC, abstractmethod
 from PIL import Image
 
@@ -123,49 +122,20 @@ class YOLOWorldModel(ABC):
         """Update the model with the new class names."""
         pass
     
-    def _preprocess_image(self, image: Union[np.ndarray, torch.Tensor, Image.Image]) -> np.ndarray:
-        """Convert image to RGB numpy array in HWC format."""
-        # Handle PIL Images
-        if isinstance(image, Image.Image):
-            return np.array(image)
-            
-        # Handle torch tensors
-        elif isinstance(image, torch.Tensor):
-            # Handle batch dimension
-            if image.dim() == 4:
-                image = image[0]
-            
-            # Convert CHW -> HWC if needed
-            if image.dim() == 3 and image.shape[0] in [1, 3, 4]:
-                image = image.permute(1, 2, 0).cpu().numpy()
-            else:
-                image = image.cpu().numpy()
-                
-            # Scale to 0-255 if needed
-            if image.dtype in [np.float32, np.float64] and image.max() <= 1.0:
-                image = (image * 255).astype(np.uint8)
-            
-            return image
-            
-        # Handle numpy arrays
-        elif isinstance(image, np.ndarray):
-            # Convert BGR to RGB if needed (assuming BGR for OpenCV inputs)
-            if image.ndim == 3 and image.shape[2] == 3 and image.dtype == np.uint8:
-                import cv2
-                return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            return image
-        else:
-            logger.warning(f"Unsupported image type: {type(image)}")
-            return image
+    def _preprocess_image(self, image: Image.Image) -> Image.Image:
+        """Ensure input is a PIL Image."""
+        if not isinstance(image, Image.Image):
+            raise TypeError(f"YOLOWorldModel.predict requires PIL.Image.Image, got {type(image)}")
+        return image
     
     @abstractmethod
-    def _run_inference(self, image: np.ndarray, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
+    def _run_inference(self, image: Image.Image, image_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """Run inference with the model-specific implementation."""
         pass
     
     def predict(
         self, 
-        image: Union[np.ndarray, torch.Tensor, Image.Image], 
+        image: Image.Image,
         class_names: Optional[List[str]] = None,
         image_size: Optional[int] = None
     ) -> List[Dict[str, Any]]:

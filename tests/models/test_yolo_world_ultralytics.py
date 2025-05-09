@@ -3,10 +3,8 @@ Unit tests for YOLOWorld models.
 """
 
 import pytest
-import torch
-import numpy as np
-from pathlib import Path
 from PIL import Image
+from pathlib import Path
 
 from gazegraph.models.yolo_world_model import YOLOWorldModel
 from gazegraph.models.yolo_world_ultralytics import YOLOWorldUltralyticsModel
@@ -90,33 +88,24 @@ def test_predict(model_path, test_data_dir):
         pytest.skip(f"Test image not found: {img_path}")
     
     # Load image as PIL
-    image = Image.open(img_path)
-    image_np = np.array(image)
+    image = Image.open(img_path).convert("RGB")
     
     # Set class names
     class_names = ["apple", "bowl", "microwave"]
     model.set_classes(class_names)
     
-    # Run detection with different input types
-    detections_np = model.predict(image_np)
-    detections_pil = model.predict(image)
-    image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).float() / 255.0
-    detections_tensor = model.predict(image_tensor)
-    
-    # Verify detections format
-    for detections in [detections_np, detections_pil, detections_tensor]:
-        assert isinstance(detections, list)
-        if detections:
-            for detection in detections:
-                assert "bbox" in detection
-                assert "score" in detection
-                assert "class_id" in detection
-                assert "class_name" in detection
-                
-                assert isinstance(detection["bbox"], list) and len(detection["bbox"]) == 4
-                assert isinstance(detection["score"], float)
-                assert isinstance(detection["class_id"], int)
-                assert isinstance(detection["class_name"], str)
+    # Run detection on PIL image
+    detections = model.predict(image)
+    assert isinstance(detections, list)
+    for detection in detections:
+        assert "bbox" in detection
+        assert "score" in detection
+        assert "class_id" in detection
+        assert "class_name" in detection
+        assert isinstance(detection["bbox"], list) and len(detection["bbox"]) == 4
+        assert isinstance(detection["score"], float)
+        assert isinstance(detection["class_id"], int)
+        assert isinstance(detection["class_name"], str)
 
 @pytest.mark.gpu
 def test_all_yolo_world_images(model_path):
