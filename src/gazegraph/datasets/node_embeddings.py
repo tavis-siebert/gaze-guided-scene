@@ -16,7 +16,7 @@ from gazegraph.logger import get_logger
 logger = get_logger(__name__)
 
 
-class NodeEmbedder:
+class NodeEmbeddings:
     """
     Handles creation of embeddings for various node types in scene graphs.
     """
@@ -230,7 +230,7 @@ class NodeEmbedder:
             logger.warning(f"Error creating PIL image from ROI tensor (shape: {roi_tensor.shape}): {e}")
             return None
             
-    def _extract_roi(self, frame: torch.Tensor, bbox: Tuple[int, int, int, int]) -> Optional[torch.Tensor]:
+    def _extract_roi(self, frame: torch.Tensor, bbox: Tuple[float, float, float, float]) -> Optional[torch.Tensor]:
         """
         Extract region of interest from frame using bounding box.
         
@@ -241,25 +241,21 @@ class NodeEmbedder:
         Returns:
             Tensor containing the ROI or None if extraction fails
         """
-        try:
-            left, top, width, height = bbox
-            
-            # Ensure bbox is within frame boundaries
-            height_limit, width_limit = frame.shape[1:3]
-            
-            # Clip values to ensure they're within frame boundaries
-            left = max(0, min(left, width_limit - 1))
-            top = max(0, min(top, height_limit - 1))
-            width = min(width, width_limit - left)
-            height = min(height, height_limit - top)
-            
-            right = left + width
-            bottom = top + height
-            
-            # Extract ROI
-            roi = frame[:, top:bottom, left:right]
-            
-            return roi
-        except Exception as e:
-            logger.warning(f"ROI extraction failed: {e}")
-            return None 
+        left, top, width, height = bbox
+        
+        # Ensure bbox is within frame boundaries
+        height_limit, width_limit = frame.shape[1:3]
+        
+        # Convert to integers and clip values to ensure they're within frame boundaries
+        left = max(0, min(int(left), width_limit - 1))
+        top = max(0, min(int(top), height_limit - 1))
+        width = min(int(width), width_limit - left)
+        height = min(int(height), height_limit - top)
+        
+        right = left + width
+        bottom = top + height
+        
+        # Extract ROI
+        roi = frame[:, top:bottom, left:right]
+        
+        return roi
