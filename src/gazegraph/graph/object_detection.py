@@ -424,8 +424,8 @@ class ObjectDetector:
             left, top, width, height = detection['bbox']
             
             # Check if gaze intersects with this object
-            padding = 10
-            is_fixated = (left <= gaze_x <= left + width + padding and top <= gaze_y <= top + height + padding)
+            margin = self.config.graph.bbox_margin
+            is_fixated = (left - margin <= gaze_x <= left + width + margin and top - margin <= gaze_y <= top + height + margin)
             
             # Create a new detection object
             detection_obj = Detection(

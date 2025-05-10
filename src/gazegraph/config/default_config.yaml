@@ -99,6 +99,7 @@ graph:
   # Basic fixation parameters
   fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
   min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
+  bbox_margin: 25 # Number of pixels to increase bounding boxes for detecting gaze intersection
 
   fixated_object_detection:
     # Weights for different components of fixation score
