@@ -49,6 +49,10 @@ def setup_parser() -> argparse.ArgumentParser:
                             help="Device to use for processing (default: gpu)")
     train_parser.add_argument("--task", type=str, choices=["future_actions", "next_action"],
                             required=True, help="Task to train the model on")
+    train_parser.add_argument("--node-feature-type", type=str, 
+                            choices=["one-hot", "roi-embeddings", "object-label-embeddings"],
+                            default="one-hot",
+                            help="Type of node features to use (default: one-hot)")
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
@@ -141,8 +145,9 @@ def main():
         task = None
         try:
             TaskClass = get_task(args.task)
-            task = TaskClass(config, device)
-            logger.info("Starting training process")
+            # Pass node feature type to the task
+            task = TaskClass(config, device, node_feature_type=args.node_feature_type)
+            logger.info(f"Starting training process with node feature type: {args.node_feature_type}")
             task.train()
             logger.info("Training completed successfully")
         except Exception as e:
