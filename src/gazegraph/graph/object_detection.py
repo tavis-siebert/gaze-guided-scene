@@ -222,11 +222,10 @@ class ObjectDetector:
             detections = self._perform_detection(frame, gaze_x, gaze_y, frame_idx)
             found_fixated_objects = any(d.is_fixated for d in detections)
             
+            self.all_detections.extend(detections)
+
             if found_fixated_objects:
                 self.fixated_objects_found = True
-                
-                # Store detections for fixation calculation
-                self.all_detections.extend(detections)
                 
                 # Store gaze points for advanced fixation analysis
                 self.gaze_points.append((gaze_x, gaze_y, frame_idx))
@@ -257,14 +256,8 @@ class ObjectDetector:
                 
                 self._log_fixated_objects(frame_idx, detections)
                 
-                # Log to tracer if available
-                if self.tracer and detections:
-                    detection_dicts = [d.to_dict() for d in detections]
-                    self.tracer.log_yolo_objects_detected(frame_idx, detection_dicts)
-            
-            # Store new detections after logging
-            if not found_fixated_objects:
-                self.all_detections.extend(detections)
+            detection_dicts = [d.to_dict() for d in detections]
+            self.tracer.log_yolo_objects_detected(frame_idx, detection_dicts)
             
             self.total_frames += 1
             
