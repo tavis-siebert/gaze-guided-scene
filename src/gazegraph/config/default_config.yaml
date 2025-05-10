@@ -108,8 +108,8 @@ gaze:
 graph:
   fixated_object_detection:
     # Basic fixation parameters
-    min_fixation_frame_threshold: 0 # Mininum number of frames an object must be fixated on during the fixation period
-    min_fixation_frame_ratio: 0.75  # Minimum fraction of frames an object must be fixated on during the fixation period
+    min_fixation_frame_threshold: 4 # Mininum number of frames an object must be fixated on during the fixation period
+    min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period, relative to the total number of frames any object was fixated
     bbox_margin: 10 # Number of pixels to increase bounding boxes for detecting gaze intersection
 
     # Weights for different components of fixation score

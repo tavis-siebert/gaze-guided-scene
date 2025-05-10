@@ -266,8 +266,6 @@ class ObjectDetector:
             if not found_fixated_objects:
                 self.all_detections.extend(detections)
             
-            self.total_frames += 1
-            
         except Exception as e:
             logger.warning(f"[Frame {frame_idx}] Object detection failed: {str(e)}")
             import traceback
@@ -295,6 +293,8 @@ class ObjectDetector:
             'total_considered': 0,
             'passed_all': 0
         }
+
+        total_frames_any_object_fixated = len(set(d.frame_idx for d in self.all_detections if d.is_fixated))
         
         for obj_name in unique_objects:
             # Get all fixated detections for this object
@@ -317,7 +317,7 @@ class ObjectDetector:
                 continue
 
             # Compute fixation ratio
-            fixation_ratio = fixation_frames / max(self.total_frames, 1)
+            fixation_ratio = fixation_frames / max(total_frames_any_object_fixated, 1)
             components['fixation_ratio'] = fixation_ratio
             
             # Apply minimum fixation threshold
@@ -488,7 +488,6 @@ class ObjectDetector:
         self.fixated_objects_found = False
         self.all_detections = []
         self.gaze_points = []
-        self.total_frames = 0
         self.fixation_scores = {}
         
         # Statistics for filtered objects
