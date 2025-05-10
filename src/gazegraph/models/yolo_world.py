@@ -99,7 +99,7 @@ class YOLOWorldModel:
             raise RuntimeError("Model not loaded. Call load_model() first.")
                 
         def clean_label(class_name: str) -> str:
-          no_prefix = class_name.replace("a picture of a ", "").replace("a photo of a ", "")
+          no_prefix = class_name.replace("a picture of a ", "").replace("a photo of a ", "") # Yolo World seems to perform better without prefix
           no_underscores = no_prefix.replace("_", " ")
           return no_underscores.strip()
 
