@@ -214,8 +214,17 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         Returns:
             ROI embedding tensor
         """
-        # Check if we already have a cached embedding for this node
-        cache_key = (checkpoint.video_name, node_id)
+        node_data = checkpoint.nodes.get(node_id)
+        if not node_data:
+            logger.warning(f"Node ID {node_id} not found in checkpoint")
+            return torch.zeros(self.embedding_dim)
+            
+        # Create a cache key that includes node state information
+        # We use the visits list and frame number to ensure we don't use stale embeddings
+        # when a node's state has changed (e.g., new visits added)
+        visits_hash = hash(tuple(tuple(visit) for visit in node_data["visits"]))
+        cache_key = (checkpoint.video_name, node_id, visits_hash)
+        
         if cache_key in self.roi_embedding_cache:
             return self.roi_embedding_cache[cache_key]
         
@@ -315,7 +324,10 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         
         object_label = node_data["object_label"]
         
-        # Check if we already have a cached embedding for this label
+        # For label embeddings, we can safely cache by object_label since the embedding
+        # depends only on the label text, not on the node's state or visits
+        # This is different from ROI embeddings which depend on the visual content
+        # from the node's visits
         if object_label in self.label_embedding_cache:
             return self.label_embedding_cache[object_label]
         
