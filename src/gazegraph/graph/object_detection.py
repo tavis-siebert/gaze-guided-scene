@@ -12,7 +12,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from PIL import Image
 
-from gazegraph.models.yolo_world_model import YOLOWorldModel
+from gazegraph.models.yolo_world import YOLOWorldModel
+
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
     from gazegraph.graph.graph_tracer import GraphTracer
@@ -181,22 +182,21 @@ class ObjectDetector:
                   f"confidence={self.confidence_threshold}, "
                   f"min_fixation_ratio={self.min_fixation_frame_ratio}")
         
-        # Create model using factory
-        self.model = YOLOWorldModel.create(
-            backend=backend,
-            model_path=model_path
+        # Set up model
+        self.model = YOLOWorldModel(
+            conf_threshold=self.config.models.yolo_world.onnx.conf_threshold,
+            iou_threshold=self.config.models.yolo_world.onnx.iou_threshold
         )
-        
-        # Cache model's thresholds for internal use
-        self.conf_threshold = self.model.conf_threshold
-        self.iou_threshold = self.model.iou_threshold
+        num_workers = getattr(config.processing, "n_cores", None)
+        self.model.load_model(model_path, num_workers)
+        self.model.set_classes(self.class_names)
         
         # Set class names
         self.model.set_classes(self.class_names)
         
         # State tracking
         self.reset()
-    
+
     def detect_objects(
         self, 
         frame: torch.Tensor, 
@@ -413,9 +413,8 @@ class ObjectDetector:
         Returns:
             List of Detection objects
         """
-        # Convert frame tensor to PIL Image and run detection
-        pil_image = Image.fromarray((frame.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8))
-        raw_detections = self.model.predict(pil_image)
+        # Get raw detections from the model
+        raw_detections = self.model.run_inference(frame, self.class_names, self.obj_labels)
         if not raw_detections:
             return []
             
