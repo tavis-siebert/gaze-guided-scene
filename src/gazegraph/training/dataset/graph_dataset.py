@@ -281,8 +281,7 @@ class GraphDataset(Dataset):
             self.logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
             return None
             
-        tracer = GraphTracer()
-        tracer.load_from_file(str(trace_path))
+        tracer = GraphTracer(trace_path.parent, video_name, enabled=False)
         
         # Cache the tracer
         self.tracer_cache[video_name] = tracer
@@ -312,7 +311,7 @@ class GraphDataset(Dataset):
             self.logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
             return None
             
-        video = Video(str(video_path))
+        video = Video(video_name)
         
         # Cache the video
         self.video_cache[video_name] = video
