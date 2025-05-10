@@ -160,6 +160,7 @@ class ObjectDetector:
         backend = config.models.yolo_world.backend
         
         # Fixation parameters
+        self.min_fixation_frame_threshold = config.graph.min_fixation_frame_threshold
         self.min_fixation_frame_ratio = config.graph.min_fixation_frame_ratio
         self.bbox_stability_weight = config.graph.fixated_object_detection.weights.bbox_stability
         self.gaze_proximity_weight = config.graph.fixated_object_detection.weights.gaze_proximity
@@ -308,8 +309,13 @@ class ObjectDetector:
             # Initialize component scores dict
             components = {}
                 
-            # Compute fixation ratio
+            # Apply absolute minimum fixation threshold
             fixation_frames = len(set(d.frame_idx for d in obj_detections))
+            if fixation_frames < self.min_fixation_frame_threshold:
+                logger.debug(f"Object {obj_name} filtered out: fixation frames {fixation_frames} < threshold {self.min_fixation_frame_threshold}")
+                continue
+
+            # Compute fixation ratio
             fixation_ratio = fixation_frames / max(self.total_frames, 1)
             components['fixation_ratio'] = fixation_ratio
             
