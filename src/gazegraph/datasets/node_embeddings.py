@@ -57,7 +57,7 @@ class NodeEmbeddings:
             
         # Get text embedding
         clip_model = self._get_clip_model()
-        embedding = clip_model.encode_text([action_name])[0]  # List of 1 tensor -> single tensor
+        embedding = clip_model.encode_texts([action_name])[0]  # List of 1 tensor -> single tensor
         
         return embedding
         
@@ -131,10 +131,13 @@ class NodeEmbeddings:
         visit_start: int,
         visit_end: int
     ) -> List[torch.Tensor]:
-        """Processes all frames within a single visit and collects ROI embeddings."""
-        collected_roi_embeddings = []
+        """Processes all frames within a single visit and collects ROI embedding only from the frame with highest detection confidence."""
         video.seek_to_frame(visit_start)
         current_frame_num = visit_start
+
+        best_detection = None
+        best_detection_score = float('-inf')
+        best_detection_frame_tensor = None
 
         try:
             while current_frame_num <= visit_end:
@@ -145,21 +148,36 @@ class NodeEmbeddings:
                         f"Reached end of video stream while processing visit {visit_start}-{visit_end} "
                         f"for '{object_label}' at frame {current_frame_num}."
                     )
-                    break  # Exit while loop for this visit
-                
+                    break
+
                 frame_tensor = frame_dict['data']
-                
-                frame_roi_embeddings = self._get_roi_embeddings_for_frame(
-                    frame_tensor, current_frame_num, tracer, object_label
-                )
-                collected_roi_embeddings.extend(frame_roi_embeddings)
-                
+                detections = tracer.get_detections_for_frame(current_frame_num)
+                for det in detections:
+                    if det.class_name == object_label and det.is_fixated:
+                        if det.score > best_detection_score:
+                            best_detection_score = det.score
+                            best_detection = det
+                            best_detection_frame_tensor = frame_tensor
                 current_frame_num += 1
         except Exception as e:
             logger.warning(
                 f"Error during frame iteration for visit {visit_start}-{visit_end} "
                 f"for '{object_label}': {e}"
             )
+        # Only extract embedding for best detection (if any)
+        collected_roi_embeddings = []
+        if best_detection is not None and best_detection_frame_tensor is not None:
+            roi_tensor = self._extract_roi(best_detection_frame_tensor, best_detection.bbox)
+            if self._is_valid_roi(roi_tensor):
+                pil_image = self._convert_roi_tensor_to_pil(roi_tensor)
+                if pil_image is not None:
+                    try:
+                        roi_embedding = self.clip_model.encode_image(pil_image)  # (1, D)
+                        collected_roi_embeddings.append(roi_embedding)
+                    except Exception as e:
+                        logger.warning(
+                            f"CLIP encoding failed for ROI in best detection frame for '{object_label}' (bbox: {best_detection.bbox}): {e}"
+                        )
         return collected_roi_embeddings
 
     def _is_valid_roi(self, roi_tensor: torch.Tensor) -> bool:
