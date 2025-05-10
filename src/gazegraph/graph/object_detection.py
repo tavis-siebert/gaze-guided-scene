@@ -424,7 +424,8 @@ class ObjectDetector:
             left, top, width, height = detection['bbox']
             
             # Check if gaze intersects with this object
-            is_fixated = (left <= gaze_x <= left + width and top <= gaze_y <= top + height)
+            padding = 10
+            is_fixated = (left <= gaze_x <= left + width + padding and top <= gaze_y <= top + height + padding)
             
             # Create a new detection object
             detection_obj = Detection(
