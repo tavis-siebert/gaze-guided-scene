@@ -132,7 +132,7 @@ class GazeProcessor:
         
         # Handle UNKNOWN gaze points by interpolation
         for i in range(len(processed_data)):
-            if int(processed_data[i, 2]) == GazeType.UNKNOWN:
+            if int(processed_data[i, 2]) in (GazeType.UNKNOWN, GazeType.UNTRACKED, GazeType.TRUNCATED):
                 interp = self._interpolate_gaze(i)
                 if interp is not None:
                     processed_data[i, 0] = interp[0]
