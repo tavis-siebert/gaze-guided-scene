@@ -37,7 +37,7 @@ class ClipModel:
             download_root=download_root
         )
         
-    def encode_text(self, texts: List[str]) -> List[torch.Tensor]:
+    def encode_texts(self, texts: List[str]) -> List[torch.Tensor]:
         """Encode text inputs using CLIP.
         
         Args:
@@ -90,15 +90,15 @@ class ClipModel:
         if self.model is None:
             self.load()
 
-        if isinstance(image, Image.Image):
-            image_tensor = self.preprocess(image).unsqueeze(0).to(self.device)
-        else:
-            image_tensor = image.to(self.device)
+        image_features = self.encode_image(image)
+        text_features_list = self.encode_texts(labels)
+        text_features = torch.cat(text_features_list, dim=0)
 
-        text_tokens = clip.tokenize(labels).to(self.device)
-
-        with torch.no_grad():
-            logits_per_image, _ = self.model(image_tensor, text_tokens)
+        image_features = image_features / image_features.norm(dim=1, keepdim=True)
+        text_features = text_features / text_features.norm(dim=1, keepdim=True)
+        
+        logit_scale = self.model.logit_scale.exp()
+        logits_per_image = logit_scale * image_features @ text_features.t()
 
         scores = logits_per_image[0].tolist()
         best_index = int(logits_per_image.argmax(dim=1)[0])
