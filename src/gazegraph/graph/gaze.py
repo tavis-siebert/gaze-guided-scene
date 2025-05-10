@@ -59,21 +59,20 @@ class GazeProcessor:
             config: Configuration dictionary
             gaze_data: Array of gaze data points, each with x, y, type
         """
-        self.fixation_threshold = config.config.gaze.fixation_window_threshold
+        self.fixation_threshold = config.gaze.fixation_window_threshold
         self.gaze_data = gaze_data
         self.current_idx = 0
         self.consecutive_fixations = 0  # Counter for consecutive fixations
         
         # Parameters for spatial stability detection - with fallback values
-        self.spatial_window_size = config.config.gaze.spatial_window_size
-        self.spatial_distance_threshold = config.config.gaze.spatial_distance_threshold
-        self.reclassify_saccades = config.config.gaze.reclassify_saccades
+        self.spatial_window_size = config.gaze.spatial_window_size
+        self.spatial_distance_threshold = config.gaze.spatial_distance_threshold
+        self.reclassify_saccades = config.gaze.reclassify_saccades
         
         # Buffer for recent gaze points (for spatial stability analysis)
         self.gaze_buffer = deque(maxlen=self.spatial_window_size)
         
-        # Pre-process and smooth the gaze data if configured
-        if getattr(config.graph, 'preprocess_gaze', True):
+        if config.gaze.preprocess_gaze:
             self._preprocess_gaze_data()
     
     def _preprocess_gaze_data(self) -> None:
