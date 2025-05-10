@@ -218,6 +218,9 @@ class GraphDataset(Dataset):
                 if (labels := closest.get_future_action_labels(closest.frame_number, self.metadata)) is not None:
                     selected_checkpoints.append(closest)
                     self.sample_tuples.append((closest, labels))
+
+        # Ensure sample tuples are sorted by increasing frame number
+        self.sample_tuples.sort(key=lambda x: x[0].frame_number)
     
     def len(self) -> int:
         """Get the number of samples in the dataset."""
