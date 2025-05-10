@@ -71,6 +71,7 @@ class GazeProcessor:
         
         # Buffer for recent gaze points (for spatial stability analysis)
         self.gaze_buffer = deque(maxlen=self.spatial_window_size)
+        self.unknown_neighbor_distance = config.gaze.unknown_neighbor_distance
         
         if config.gaze.preprocess_gaze:
             self._preprocess_gaze_data()
@@ -129,8 +130,44 @@ class GazeProcessor:
                 if dist_to_prev < self.spatial_distance_threshold and dist_to_next < self.spatial_distance_threshold:
                     processed_data[i, 2] = GazeType.SMOOTHED_FIXATION
         
+        # Handle UNKNOWN gaze points by interpolation
+        for i in range(len(processed_data)):
+            if int(processed_data[i, 2]) == GazeType.UNKNOWN:
+                interp = self._interpolate_gaze(i)
+                if interp is not None:
+                    processed_data[i, 0] = interp[0]
+                    processed_data[i, 1] = interp[1]
+                    processed_data[i, 2] = interp[2]
+        
         # Update the internal gaze data with the processed version
         self.gaze_data = processed_data
+    
+    def _interpolate_gaze(self, idx: int) -> Optional[Tuple[float, float, int]]:
+        """Interpolate gaze position and type for UNKNOWN at idx."""
+        n = len(self.gaze_data)
+        prev_idx, next_idx = idx - 1, idx + 1
+        # Find previous valid
+        while prev_idx >= 0 and int(self.gaze_data[prev_idx, 2]) in (GazeType.UNTRACKED, GazeType.TRUNCATED, GazeType.UNKNOWN):
+            prev_idx -= 1
+        # Find next valid
+        while next_idx < n and int(self.gaze_data[next_idx, 2]) in (GazeType.UNTRACKED, GazeType.TRUNCATED, GazeType.UNKNOWN):
+            next_idx += 1
+        if prev_idx < 0 or next_idx >= n:
+            return None
+        prev = self.gaze_data[prev_idx]
+        next = self.gaze_data[next_idx]
+        # Interpolate position
+        alpha = (idx - prev_idx) / (next_idx - prev_idx)
+        x = prev[0] + alpha * (next[0] - prev[0])
+        y = prev[1] + alpha * (next[1] - prev[1])
+        # Decide type
+        prev_type, next_type = int(prev[2]), int(next[2])
+        dist = np.linalg.norm(prev[:2] - next[:2])
+        if (prev_type == GazeType.SACCADE and next_type == GazeType.SACCADE) or dist > self.unknown_neighbor_distance:
+            interp_type = GazeType.SACCADE
+        else:
+            interp_type = GazeType.FIXATION
+        return (x, y, interp_type)
     
     def __iter__(self) -> 'GazeProcessor':
         """Make the processor iterable to process gaze points."""
