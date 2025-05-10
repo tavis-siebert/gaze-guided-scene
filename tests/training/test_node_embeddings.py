@@ -203,7 +203,7 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
 
 
 @pytest.mark.integration
-def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer, test_video, sample_data_path):
+def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer, test_video):
     """Test that the best detection in the visit range is (mostly) correctly classified (top 3)."""
     id_to_name, _ = ActionRecord.get_noun_label_mappings()
     object_labels = list(id_to_name.values())
