@@ -8,7 +8,9 @@ def create_dataloader(
     root_dir: str,
     split: str = "train",
     task_mode: str = "future_actions",
-    config=None
+    config=None,
+    node_feature_type: str = "one-hot",
+    device: str = "cuda"
 ) -> DataLoader:
     """Create a PyG DataLoader for graph data.
     
@@ -33,7 +35,9 @@ def create_dataloader(
         task_mode=task_mode,
         node_drop_p=node_drop_p,
         max_droppable=max_droppable,
-        config=config
+        config=config,
+        node_feature_type=node_feature_type,
+        device=device
     )
     
     return DataLoader(

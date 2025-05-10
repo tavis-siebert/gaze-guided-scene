@@ -1,7 +1,7 @@
 import random
 import torch
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict, Any
 from torch_geometric.data import Data, Dataset
 from tqdm import tqdm
 import numpy as np
@@ -32,7 +32,9 @@ class GraphDataset(Dataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        config=None
+        config=None,
+        node_feature_type: str = "one-hot",
+        device: str = "cuda"
     ):
         """Initialize the dataset.
         
@@ -63,6 +65,18 @@ class GraphDataset(Dataset):
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p
         self.max_droppable = max_droppable
+        self.device = device
+        
+        # Initialize node feature extractor
+        self.node_feature_type = node_feature_type
+        self.node_feature_extractor = get_node_feature_extractor(node_feature_type, device=device)
+        
+        # For ROI embeddings, we need to set up additional context
+        self.tracer_cache = {}
+        self.video_cache = {}
+        
+        # We don't initialize video and tracer objects here
+        # They will be initialized on-demand when processing each checkpoint
         
         # Find all graph checkpoint files
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
@@ -240,6 +254,67 @@ class GraphDataset(Dataset):
                 
         return data
     
+    def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint):
+        """Get the appropriate GraphTracer for a checkpoint.
+        
+        Args:
+            checkpoint: GraphCheckpoint object
+            
+        Returns:
+            GraphTracer object for the checkpoint
+        """
+        from graph.graph_tracer import GraphTracer
+        from pathlib import Path
+        
+        video_name = checkpoint.video_name
+        
+        # Return cached tracer if available
+        if video_name in self.tracer_cache:
+            return self.tracer_cache[video_name]
+        
+        # Initialize a new tracer
+        trace_path = Path(self.config.directories.traces) / f"{video_name}_trace.jsonl"
+        if not trace_path.exists():
+            self.logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
+            return None
+            
+        tracer = GraphTracer()
+        tracer.load_from_file(str(trace_path))
+        
+        # Cache the tracer
+        self.tracer_cache[video_name] = tracer
+        return tracer
+        
+    def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint):
+        """Get the appropriate Video processor for a checkpoint.
+        
+        Args:
+            checkpoint: GraphCheckpoint object
+            
+        Returns:
+            Video object for the checkpoint
+        """
+        from datasets.egtea_gaze.video_processor import Video
+        from pathlib import Path
+        
+        video_name = checkpoint.video_name
+        
+        # Return cached video if available
+        if video_name in self.video_cache:
+            return self.video_cache[video_name]
+        
+        # Initialize a new video processor
+        video_path = Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4"
+        if not video_path.exists():
+            self.logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
+            return None
+            
+        video = Video(str(video_path))
+        
+        # Cache the video
+        self.video_cache[video_name] = video
+        return video
+    
     def _extract_node_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
         """Extract node features from a checkpoint.
         
@@ -249,53 +324,18 @@ class GraphDataset(Dataset):
         Returns:
             Tensor of node features
         """
-        features_list = []
-        for node_id, node_data in checkpoint.nodes.items():
-            # Extract basic node information
-            total_frames_visited = sum(end - start for start, end in node_data["visits"])
-            num_visits = len(node_data["visits"])
+        # If using ROI embeddings, set the context for the current checkpoint
+        if self.node_feature_type == "roi-embeddings" and hasattr(self.node_feature_extractor, "set_context"):
+            tracer = self._get_tracer_for_checkpoint(checkpoint)
+            video = self._get_video_for_checkpoint(checkpoint)
             
-            first_visit_frame = node_data["visits"][0][0] if node_data["visits"] else 0
-            last_visit_frame = node_data["visits"][-1][1] if node_data["visits"] else 0
-            
-            # Normalize temporal features
-            first_frame_normalized = first_visit_frame / checkpoint.non_black_frame_count
-            last_frame_normalized = last_visit_frame / checkpoint.non_black_frame_count
-            frame_fraction = checkpoint.frame_number / checkpoint.video_length
-            
-            # Create temporal features tensor
-            temporal_features = torch.tensor([
-                total_frames_visited,
-                num_visits,
-                first_frame_normalized,
-                last_frame_normalized,
-                frame_fraction
-            ])
-            
-            # Normalize first feature (total frames visited)
-            if checkpoint.non_black_frame_count > 0:
-                temporal_features[0] /= checkpoint.non_black_frame_count
-                
-            # Create one-hot encoding for object class
-            class_idx = checkpoint.labels_to_int.get(node_data["object_label"], 0)
-            one_hot = torch.zeros(checkpoint.num_object_classes)
-            one_hot[class_idx] = 1
-            
-            # Combine features
-            node_features = torch.cat([temporal_features, one_hot])
-            features_list.append(node_features)
+            if tracer and video:
+                self.node_feature_extractor.set_context(tracer, video)
+            else:
+                self.logger.warning(f"Could not set ROI embedding context for checkpoint {checkpoint.video_name}")
         
-        if not features_list:
-            return torch.tensor([])
-            
-        # Stack all node features
-        node_features_tensor = torch.stack(features_list)
-        
-        # Further normalization for visit count if needed
-        if node_features_tensor[:, 1].max() > 0:
-            node_features_tensor[:, 1] /= node_features_tensor[:, 1].max()
-            
-        return node_features_tensor
+        # Use the node feature extractor to get the features
+        return self.node_feature_extractor.extract_features(checkpoint)
     
     def _extract_edge_features(self, checkpoint: GraphCheckpoint) -> Tuple[torch.Tensor, torch.Tensor]:
         """Extract edge indices and attributes from a checkpoint.

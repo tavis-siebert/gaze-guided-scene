@@ -7,8 +7,8 @@ from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 
 class FutureActionsTask(BaseTask):
-    def __init__(self, config, device):
-        super().__init__(config, device, "future_actions")
+    def __init__(self, config, device, node_feature_type="one-hot"):
+        super().__init__(config, device, "future_actions", node_feature_type)
         self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
         
         self.metadata = VideoMetadata(config)
