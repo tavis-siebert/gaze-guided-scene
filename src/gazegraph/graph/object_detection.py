@@ -162,8 +162,8 @@ class ObjectDetector:
         backend = config.models.yolo_world.backend
         
         # Fixation parameters
-        self.min_fixation_frame_threshold = config.graph.min_fixation_frame_threshold
-        self.min_fixation_frame_ratio = config.graph.min_fixation_frame_ratio
+        self.min_fixation_frame_threshold = config.graph.fixated_object_detection.min_fixation_frame_threshold
+        self.min_fixation_frame_ratio = config.graph.fixated_object_detection.min_fixation_frame_ratio
         self.bbox_stability_weight = config.graph.fixated_object_detection.weights.bbox_stability
         self.gaze_proximity_weight = config.graph.fixated_object_detection.weights.gaze_proximity
         self.confidence_weight = config.graph.fixated_object_detection.weights.confidence
@@ -423,7 +423,7 @@ class ObjectDetector:
             left, top, width, height = detection['bbox']
             
             # Check if gaze intersects with this object
-            margin = self.config.graph.bbox_margin
+            margin = self.config.graph.fixated_object_detection.bbox_margin
             is_fixated = (left - margin <= gaze_x <= left + width + margin and top - margin <= gaze_y <= top + height + margin)
             
             # Create a new detection object

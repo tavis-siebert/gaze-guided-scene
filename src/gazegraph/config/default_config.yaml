@@ -94,15 +94,21 @@ processing:
   n_cores: 2
   dataloader_workers: 2
 
+# Gaze preprocessing settings 
+gaze:
+  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
+  reclassify_saccades: False # Whether to convert spatially stable saccades into fixations
+  spatial_window_size: 3 # Number of frames used to compute spatial stability
+  spatial_distance_threshold: 0.05 # Max median distance allowed for spatial stability
+  
 # Graph and fixation detection settings
 graph:
-  # Basic fixation parameters
-  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
-  min_fixation_frame_threshold: 0 # Mininum number of frames an object must be fixated on during the fixation period
-  min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
-  bbox_margin: 10 # Number of pixels to increase bounding boxes for detecting gaze intersection
-
   fixated_object_detection:
+    # Basic fixation parameters
+    min_fixation_frame_threshold: 0 # Mininum number of frames an object must be fixated on during the fixation period
+    min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period
+    bbox_margin: 10 # Number of pixels to increase bounding boxes for detecting gaze intersection
+
     # Weights for different components of fixation score
     weights:
       # Weight for detection duration (higher gives more importance to objects fixated for longer periods)
