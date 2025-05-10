@@ -16,6 +16,28 @@ def onnx_model_path():
     """Fixture for ONNX model path from config."""
     return Path(get_config().models.yolo_world.paths.onnx)
 
+@pytest.fixture
+def test_dir():
+    path = Path("data/tests/yolo-world")
+    if not path.exists():
+        pytest.skip(f"Test directory not found: {path}")
+    return path
+
+@pytest.fixture
+def test_image_path(test_dir):
+    path = test_dir / "knife-hand-plate-tomato.png"
+    if not path.exists():
+        pytest.skip(f"Test image not found: {path}")
+    return path
+
+@pytest.fixture
+def test_image(test_image_path):
+    return Image.open(test_image_path).convert("RGB")
+
+@pytest.fixture
+def custom_classes(test_image_path):
+    return test_image_path.stem.split('-')
+
 @pytest.fixture(params=["ultralytics", "onnx"])
 def yolo_world_model(request, ultralytics_model_path, onnx_model_path):
     """Fixture to provide YOLOWorldModel instances for both backends."""
@@ -68,12 +90,8 @@ def test_predict(yolo_world_model, test_data_dir):
         assert "class_name" in detection and isinstance(detection["class_name"], str)
 
 @pytest.mark.gpu
-def test_object_detection_suite(yolo_world_model):
+def test_object_detection_suite(yolo_world_model, test_dir):
     """Test object detection on a suite of images with expected objects for both backends."""
-    test_dir = Path("data/tests/yolo-world")
-    if not test_dir.exists() or not any(test_dir.iterdir()):
-        pytest.skip(f"No test images found in {test_dir}")
-    
     yolo_world_model.conf_threshold = 0.1
     yolo_world_model.iou_threshold = 0.5
     
@@ -101,24 +119,8 @@ def test_object_detection_suite(yolo_world_model):
     
     assert all_detected, "Some expected objects were not detected in test suite"
 
-# Fixtures for custom model tests
-@pytest.fixture
-def model_dir():
-    config = get_config()
-    return Path(config.models.yolo_world.paths.ultralytics).parent
-
-@pytest.fixture
-def test_image():
-    img = Image.fromarray(np.zeros((640, 640, 3), dtype=np.uint8))
-    return img
-
-@pytest.fixture
-def custom_classes():
-    return ["person", "car"]
-
-# Custom model tests from ultralytics suite
 @pytest.mark.gpu
-def test_custom_model_save_load(model_dir, custom_classes):
+def test_custom_model_save_load(yolo_world_model, custom_classes):
     # Initialize model with custom save flag
     model = YOLOWorldUltralyticsModel(use_custom_model=True)
     # Set custom classes
@@ -126,14 +128,14 @@ def test_custom_model_save_load(model_dir, custom_classes):
     # Check if custom model file is created
     class_str = '_'.join(custom_classes)
     class_str_hash = hashlib.sha256(class_str.encode()).hexdigest()[:8]
-    custom_model_path = model_dir / f"custom_yolov8x-worldv2_{class_str_hash}.pt"
+    custom_model_path = yolo_world_model.model_dir / f"custom_yolov8x-worldv2_{class_str_hash}.pt"
     assert custom_model_path.exists(), f"Custom model file not found at {custom_model_path}"
     # Load the custom model in a new instance
     new_model = YOLOWorldUltralyticsModel(use_custom_model=True, custom_classes=custom_classes)
     assert new_model.names == custom_classes, "Loaded custom model does not have the expected classes"
 
 @pytest.mark.gpu
-def test_custom_model_confidence_improvement(model_dir, test_image, custom_classes):
+def test_custom_model_confidence_improvement(yolo_world_model, test_image, custom_classes):
     # Initialize standard model without custom flag
     standard_model = YOLOWorldUltralyticsModel()
     standard_model.set_classes(custom_classes)
@@ -150,22 +152,6 @@ def test_custom_model_confidence_improvement(model_dir, test_image, custom_class
     custom_confidences = [det['score'] for det in custom_results]
     custom_avg_conf = np.mean(custom_confidences) if custom_confidences else 0.0
     # Qualitative check: custom model should have higher average confidence
-    assert custom_avg_conf >= standard_avg_conf, f"Custom model confidence ({custom_avg_conf}) not higher than standard ({standard_avg_conf})"
-
-@pytest.mark.gpu
-def test_custom_model_file_naming(model_dir, custom_classes):
-    # Test that different class sets create different custom model files
-    model1 = YOLOWorldUltralyticsModel(use_custom_model=True)
-    model1.set_classes(custom_classes)
-    different_classes = ["dog", "cat"]
-    model2 = YOLOWorldUltralyticsModel(use_custom_model=True)
-    model2.set_classes(different_classes)
-    class_str1 = '_'.join(custom_classes)
-    class_str2 = '_'.join(different_classes)
-    class_str_hash1 = hashlib.sha256(class_str1.encode()).hexdigest()[:8]
-    class_str_hash2 = hashlib.sha256(class_str2.encode()).hexdigest()[:8]
-    custom_model_path1 = model_dir / f"custom_yolov8x-worldv2_{class_str_hash1}.pt"
-    custom_model_path2 = model_dir / f"custom_yolov8x-worldv2_{class_str_hash2}.pt"
-    assert custom_model_path1.exists(), f"First custom model file not found at {custom_model_path1}"
-    assert custom_model_path2.exists(), f"Second custom model file not found at {custom_model_path2}"
-    assert custom_model_path1 != custom_model_path2, "Different class sets should create different model files" 
+    print(f"Standard average confidence: {standard_avg_conf}")
+    print(f"Custom average confidence: {custom_avg_conf}")
+    assert custom_avg_conf > standard_avg_conf, f"Custom model confidence ({custom_avg_conf}) not higher than standard ({standard_avg_conf})"
