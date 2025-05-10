@@ -15,7 +15,7 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
     """YOLO-World model using Ultralytics backend."""
     
     def __init__(
-        self, 
+        self,
         model_path: Optional[Path] = None,
         conf_threshold: Optional[float] = None, 
         iou_threshold: Optional[float] = None,
@@ -23,7 +23,9 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
         use_prefix: Optional[bool] = None,
         replace_underscores: Optional[bool] = None,
         use_custom_model: bool = False,
-        custom_classes: Optional[List[str]] = None
+        custom_classes: Optional[List[str]] = None,
+        agnostic_nms: bool = True,
+        verbose: bool = True
     ):
         """Initialize YOLO-World Ultralytics model with optional custom model saving/loading.
 
@@ -36,11 +38,15 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
             replace_underscores: Whether to replace underscores with spaces in class names.
             use_custom_model: Flag to enable saving/loading a custom model with specific classes.
             custom_classes: List of custom classes to load with the custom model.
+            agnostic_nms: Whether to use agnostic NMS.
+            verbose: Whether to print verbose output.
         """
         # Initialize model to None before parent constructor
         self.model = None
         self.use_custom_model = use_custom_model
         self.custom_model_path = None
+        self.agnostic_nms = agnostic_nms
+        self.verbose = verbose
         
         # Call parent constructor which handles all config
         super().__init__(model_path, conf_threshold, iou_threshold, device, use_prefix, replace_underscores)
@@ -121,7 +127,9 @@ class YOLOWorldUltralyticsModel(YOLOWorldModel):
             imgsz=image_size,
             conf=self.conf_threshold,
             iou=self.iou_threshold,
-            device=self.device
+            device=self.device,
+            agnostic_nms=self.agnostic_nms,
+            verbose=self.verbose
         )
         
         # Process results
