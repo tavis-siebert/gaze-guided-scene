@@ -11,8 +11,8 @@ import random
 from typing import Dict, List, Tuple
 import numpy as np
 
-from graph.checkpoint_manager import GraphCheckpoint
-from datasets.egtea_gaze.video_metadata import VideoMetadata
+from gazegraph.graph.checkpoint_manager import GraphCheckpoint
+from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 
 
 def get_samples(

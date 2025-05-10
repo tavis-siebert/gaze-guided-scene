@@ -1,7 +1,7 @@
 from typing import List
 from torch_geometric.loader import DataLoader
 
-from training.dataset.graph_dataset import GraphDataset
+from gazegraph.training.dataset.graph_dataset import GraphDataset
 
 
 def create_dataloader(

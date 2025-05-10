@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from training.tasks.base_task import BaseTask
-from training.evaluation.metrics import confusion_matrix, mAP
-from datasets.egtea_gaze.action_record import ActionRecord
-from datasets.egtea_gaze.video_metadata import VideoMetadata
+from gazegraph.training.tasks.base_task import BaseTask
+from gazegraph.training.evaluation.metrics import confusion_matrix, mAP
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
+from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 
 class FutureActionsTask(BaseTask):
     def __init__(self, config, device):

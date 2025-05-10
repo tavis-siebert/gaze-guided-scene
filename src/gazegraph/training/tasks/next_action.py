@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from training.evaluation.metrics import accuracy
-from training.tasks.base_task import BaseTask
+from gazegraph.training.evaluation.metrics import accuracy
+from gazegraph.training.tasks.base_task import BaseTask
 
 class NextActionTask(BaseTask):
     def __init__(self, config, device):
