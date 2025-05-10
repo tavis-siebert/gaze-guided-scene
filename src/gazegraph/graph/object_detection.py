@@ -20,6 +20,7 @@ from gazegraph.graph.gaze import GazePoint
 from gazegraph.config.config_utils import DotDict
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 @dataclass
 class ScoreComponents:
