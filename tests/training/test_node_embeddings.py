@@ -141,8 +141,8 @@ def test_get_roi_embeddings_for_frame(node_embeddings):
 
 @pytest.mark.integration
 @pytest.mark.parametrize("has_visits", [True, False])
-def test_get_object_node_embedding(node_embeddings, has_visits):
-    """Test object node embedding generation."""
+def test_get_object_node_embedding_roi(node_embeddings, has_visits):
+    """Test object node embedding generation (ROI-based)."""
     mock_checkpoint = MagicMock()
     mock_tracer = MagicMock()
     mock_video = MagicMock()
@@ -155,14 +155,9 @@ def test_get_object_node_embedding(node_embeddings, has_visits):
     if has_visits:
         with patch.object(node_embeddings, '_get_roi_embeddings_for_visit') as mock_get_roi:
             mock_get_roi.return_value = [torch.ones((1, 768))]
-            original_method = node_embeddings.get_object_node_embedding
-            
-            def patched_get_object_node_embedding(checkpoint, tracer, video, node_id):
-                video.seek_to_frame(10)
-                return original_method(checkpoint, tracer, video, node_id)
-            
-            with patch.object(node_embeddings, 'get_object_node_embedding', side_effect=patched_get_object_node_embedding):
-                embedding = node_embeddings.get_object_node_embedding(
+            with patch.object(node_embeddings, '_get_clip_model') as mock_clip:
+                mock_clip.return_value = MagicMock()
+                embedding = node_embeddings.get_object_node_embedding_roi(
                     checkpoint=mock_checkpoint,
                     tracer=mock_tracer,
                     video=mock_video,
@@ -174,13 +169,52 @@ def test_get_object_node_embedding(node_embeddings, has_visits):
             mock_get_roi.assert_called_once()
             mock_video.seek_to_frame.assert_called_once_with(10)
     else:
-        embedding = node_embeddings.get_object_node_embedding(
+        embedding = node_embeddings.get_object_node_embedding_roi(
             checkpoint=mock_checkpoint,
             tracer=mock_tracer,
             video=mock_video,
             node_id=1
         )
         assert embedding is None
+
+
+@pytest.mark.unit
+def test_get_object_node_embedding_label(node_embeddings):
+    """Test object node embedding generation (label-based)."""
+    mock_checkpoint = MagicMock()
+    node_data = {
+        "object_label": "bowl",
+        "visits": [(10, 20)]
+    }
+    mock_checkpoint.nodes = {1: node_data}
+    with patch.object(node_embeddings, '_get_clip_model') as mock_clip:
+        mock_model = MagicMock()
+        mock_model.encode_texts.return_value = [torch.ones((1, 768))]
+        mock_clip.return_value = mock_model
+        embedding = node_embeddings.get_object_node_embedding_label(
+            checkpoint=mock_checkpoint,
+            node_id=1
+        )
+    assert embedding is not None
+    assert isinstance(embedding, torch.Tensor)
+    assert embedding.shape[1] == 768  # Should match CLIP output shape
+
+    # Test missing label
+    node_data_no_label = {"object_label": "", "visits": [(10, 20)]}
+    mock_checkpoint.nodes = {2: node_data_no_label}
+    embedding = node_embeddings.get_object_node_embedding_label(
+        checkpoint=mock_checkpoint,
+        node_id=2
+    )
+    assert embedding is None
+
+    # Test missing node
+    mock_checkpoint.nodes = {}
+    embedding = node_embeddings.get_object_node_embedding_label(
+        checkpoint=mock_checkpoint,
+        node_id=3
+    )
+    assert embedding is None
 
 
 @pytest.mark.integration
@@ -190,7 +224,7 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
                 if 'visits' in node and node['visits']]
     assert len(node_ids) > 0, "No valid nodes with visits found in checkpoint"
     node_id = node_ids[0]
-    embedding = node_embeddings.get_object_node_embedding(
+    embedding = node_embeddings.get_object_node_embedding_roi(
         checkpoint=test_checkpoint,
         tracer=test_tracer,
         video=test_video,
