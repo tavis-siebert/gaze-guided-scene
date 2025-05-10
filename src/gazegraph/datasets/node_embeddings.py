@@ -61,7 +61,7 @@ class NodeEmbeddings:
         
         return embedding
         
-    def get_object_node_embedding(
+    def get_object_node_embedding_roi(
         self,
         checkpoint: GraphCheckpoint,
         tracer: GraphTracer,
@@ -70,7 +70,7 @@ class NodeEmbeddings:
     ) -> Optional[torch.Tensor]:
         """
         Generate object embedding for a node by averaging embeddings of ROIs
-        from all visits to the node.
+        from all visits to the node. (ROI-based visual embedding)
 
         Args:
             checkpoint: Graph checkpoint containing node information
@@ -122,6 +122,37 @@ class NodeEmbeddings:
             f"from {len(all_visit_embeddings)} visits"
         )
         return final_node_embedding
+
+
+    def get_object_node_embedding_label(
+        self,
+        checkpoint: GraphCheckpoint,
+        node_id: int
+    ) -> Optional[torch.Tensor]:
+        """
+        Generate object embedding for a node using only its label and CLIP text encoding.
+        This produces a semantic embedding based solely on the node's label.
+
+        Args:
+            checkpoint: Graph checkpoint containing node information
+            node_id: ID of the node to generate embeddings for
+
+        Returns:
+            Text-based embedding tensor for the node or None if node/label not found
+        """
+        node_data = checkpoint.nodes.get(node_id)
+        if not node_data:
+            logger.warning(f"Node ID {node_id} not found in checkpoint")
+            return None
+        object_label = node_data["object_label"]
+        if not object_label:
+            logger.warning(f"Node {node_id} has no object_label")
+            return None
+        clip_model = self._get_clip_model()
+        embedding = clip_model.encode_texts([object_label])[0]  # List of 1 tensor -> single tensor
+        logger.info(f"Generated label-based embedding for node {node_id} ('{object_label}')")
+        return embedding
+
 
     def _get_roi_embeddings_for_visit(
         self,
