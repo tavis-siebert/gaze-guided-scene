@@ -19,9 +19,9 @@ def test_model_loading(clip_model):
     assert clip_model.preprocess is not None
 
 @pytest.mark.gpu
-def test_encode_text(clip_model):
+def test_encode_texts(clip_model):
     texts = ["apple", "microwave"]
-    encodings = clip_model.encode_text(texts)
+    encodings = clip_model.encode_texts(texts)
     assert len(encodings) == 2
     assert all(isinstance(e, torch.Tensor) for e in encodings)
     assert all(e.shape[1] == 768 for e in encodings)
