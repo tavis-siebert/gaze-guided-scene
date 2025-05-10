@@ -97,7 +97,7 @@ processing:
 # Gaze preprocessing settings 
 gaze:
   preprocess_gaze: True # Whether to proprecess the gaze data
-  fixation_window_threshold: 3  # Minimum number of consecutive fixation frames to treat as a true fixation
+  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
   reclassify_saccades: False # Whether to convert spatially stable saccades into fixations
   spatial_window_size: 3 # Number of frames used to compute spatial stability
   spatial_distance_threshold: 0.05 # Max median distance allowed for spatial stability
