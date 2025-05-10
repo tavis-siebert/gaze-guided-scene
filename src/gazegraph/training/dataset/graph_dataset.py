@@ -6,10 +6,16 @@ from torch_geometric.data import Data, Dataset
 from tqdm import tqdm
 import numpy as np
 
-from graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
-from datasets.egtea_gaze.video_metadata import VideoMetadata
-from training.dataset.augmentations import node_dropping
-from training.dataset.sampling import get_samples
+from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
+from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
+from gazegraph.training.dataset.augmentations import node_dropping
+from gazegraph.training.dataset.sampling import get_samples
+from gazegraph.training.dataset.node_features import NodeFeatureExtractor, get_node_feature_extractor
+from gazegraph.graph.graph_tracer import GraphTracer
+from gazegraph.datasets.egtea_gaze.video_processor import Video
+from gazegraph.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class GraphDataset(Dataset):
