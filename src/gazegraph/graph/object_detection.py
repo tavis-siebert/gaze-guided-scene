@@ -146,15 +146,12 @@ class ObjectDetector:
     def __init__(
         self, 
         model_path: Path,
-        obj_labels: Dict[int, str],
-        labels_to_int: Dict[str, int],
+        class_id_to_name: Dict[int, str],
         config: DotDict,
         tracer: Optional['GraphTracer'] = None
     ):
         """Initialize the object detector."""
-        self.obj_labels = obj_labels
-        self.labels_to_int = labels_to_int
-        self.class_names = list(self.obj_labels.values())
+        self.class_id_to_name = class_id_to_name
         self.tracer = tracer
         self.config = config
         
@@ -189,10 +186,8 @@ class ObjectDetector:
         )
         num_workers = getattr(config.processing, "n_cores", None)
         self.model.load_model(model_path, num_workers)
-        self.model.set_classes(self.class_names)
-        
-        # Set class names
-        self.model.set_classes(self.class_names)
+        self.classes = list(self.class_id_to_name.values())
+        self.model.set_classes(self.classes)
         
         # State tracking
         self.reset()
@@ -421,7 +416,7 @@ class ObjectDetector:
             List of Detection objects
         """
         # Get raw detections from the model
-        raw_detections = self.model.run_inference(frame, self.class_names, self.obj_labels)
+        raw_detections = self.model.run_inference(frame)
         if not raw_detections:
             return []
             
