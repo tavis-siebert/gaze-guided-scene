@@ -5,6 +5,7 @@ import cv2
 import onnxruntime as ort
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+
 from gazegraph.logger import get_logger
 from gazegraph.models.onnx_utils import make_session_options
 from gazegraph.models.clip import ClipModel
