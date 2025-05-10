@@ -16,7 +16,9 @@ from gazegraph.datasets.egtea_gaze.constants import (
     GAZE_TYPE_TRUNCATED
 )
 from gazegraph.config.config_utils import DotDict
+from gazegraph.logger import get_logger
 
+logger = get_logger(__name__)
 
 class GazeType(IntEnum):
     """Enum for gaze types, extended from constants."""
