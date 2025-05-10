@@ -93,31 +93,34 @@ class YOLOWorldModel:
             logger.error(f"Failed to load YOLO-World model: {e}")
             raise
     
-    def set_classes(self, class_names: List[str]) -> None:
+    def set_classes(self, classes: List[str]) -> None:
         """Set object classes for the model."""
         if self.session is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
-        
-        self.names = class_names
-        self.class_embeddings = self.text_embedder(class_names)
-        logger.info(f"Set {len(class_names)} class names for YOLO-World")
+                
+        def clean_label(class_name: str) -> str:
+          no_prefix = class_name.replace("a picture of a ", "").replace("a photo of a ", "")
+          no_underscores = no_prefix.replace("_", " ")
+          return no_underscores.strip()
+
+        self.classes = classes
+        processed_classes = [clean_label(class_name) for class_name in classes]
+
+        self.class_embeddings = self.text_embedder(processed_classes)
+        logger.info(f"Set {len(self.classes)} class names for YOLO-World")
     
     def run_inference(
         self, 
-        frame: torch.Tensor, 
-        text_labels: List[str],
-        obj_labels: Dict[int, str],
+        frame: torch.Tensor,
         image_size: int = 640
     ) -> List[Dict[str, Any]]:
         """Run YOLO-World inference on an image frame."""
         if self.session is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
-        # Set classes if not already set
-        if not self.names:
-            class_names = [label.replace("a picture of a ", "") for label in text_labels]
-            self.set_classes(class_names)
-        
+        if self.classes is None:
+            raise RuntimeError("Classes not set. Call set_classes() first.")
+
         # Prepare input image
         if isinstance(frame, torch.Tensor):
             image = frame.permute(1, 2, 0).cpu().numpy() if frame.shape[0] == 3 else frame.cpu().numpy()
@@ -142,19 +145,6 @@ class YOLOWorldModel:
         input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB) / 255.0
         input_img = input_img.transpose(2, 0, 1)
         input_img = np.expand_dims(input_img, 0).astype(np.float32)
-        
-        # Save output names to data/test/out/yolo_world_onnx_output_names.json
-        with open("data/tests/out/yolo_world_onnx_output_names.json", "w") as f:
-            json.dump(self.output_names, f)
-
-        # use different way to save input_img as a tensor (json)
-        input_img_tensor = torch.from_numpy(input_img).unsqueeze(0).float()
-        with open("data/tests/out/yolo_world_onnx_input.json", "w") as f:
-            json.dump(input_img_tensor.tolist(), f)
-
-        # save embeddings to data/test/out/yolo_world_onnx_embeddings.json
-        with open("data/tests/out/yolo_world_onnx_embeddings.json", "w") as f:
-            json.dump(embeddings.cpu().numpy().tolist(), f)
 
         # Run inference
         outputs = self.session.run(
@@ -223,6 +213,6 @@ class YOLOWorldModel:
                 "bbox": [x - width/2, y - height/2, width, height],
                 "score": float(scores[idx]),
                 "class_id": int(class_ids[idx]),
-                "class_name": self.names[class_ids[idx]]
+                "class_name": self.classes[int(class_ids[idx])]
             })
         return detections 
