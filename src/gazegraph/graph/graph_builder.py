@@ -124,7 +124,7 @@ class GraphBuilder:
         
         # Create scene graph
         self.scene_graph = Graph(
-            labels_to_int=self.metadata.labels_to_int,
+            object_labels_to_id=self.metadata.object_labels_to_id,
 
             video_length=self.video.length
         )

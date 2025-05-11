@@ -195,12 +195,12 @@ def mock_detector(mock_config):
         mock_model_class.create.return_value = mock_model
         
         obj_labels = {0: "cup", 1: "bowl", 2: "spoon"}
-        labels_to_int = {"cup": 0, "bowl": 1, "spoon": 2}
+        object_labels_to_id = {"cup": 0, "bowl": 1, "spoon": 2}
         
         detector = ObjectDetector(
             model_path=Path("dummy/path"),
             obj_labels=obj_labels,
-            labels_to_int=labels_to_int,
+            object_labels_to_id=object_labels_to_id,
             config=mock_config,
             tracer=None
         )

@@ -28,7 +28,7 @@ class TestNodeFeatureExtractors:
                 "visits": [(15, 25)]
             }
         }
-        checkpoint.labels_to_int = {"cup": 0, "bowl": 1}
+        checkpoint.object_labels_to_id = {"cup": 0, "bowl": 1}
         checkpoint.num_object_classes = 2
         checkpoint.non_black_frame_count = 100
         checkpoint.frame_number = 50
