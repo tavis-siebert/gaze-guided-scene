@@ -162,8 +162,7 @@ class Node:
         current_frame: int,
         non_black_frame_count: int,
         timestamp_fraction: float,
-        labels_to_int: Dict[str, int],
-        num_object_classes: int
+        labels_to_int: Dict[str, int]
     ) -> torch.Tensor:
         """
         Get features for this node as a tensor, with normalization for machine learning.
@@ -195,7 +194,7 @@ class Node:
         ])
         
         class_idx = labels_to_int.get(features["object_label"], 0)
-        one_hot = torch.zeros(num_object_classes)
+        one_hot = torch.zeros(len(labels_to_int))
         one_hot[class_idx] = 1
         
         return torch.cat([temporal_features, one_hot])
