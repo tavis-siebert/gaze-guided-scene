@@ -43,7 +43,9 @@ class NodeFeatureExtractor(ABC):
         node_data = checkpoint.nodes.get(node_id)
         if not node_data:
             logger.warning(f"Node ID {node_id} not found in checkpoint")
-            return torch.zeros(5)  # Return zeros for missing nodes
+            # Get the device from the instance if available, otherwise use CPU
+            device = getattr(self, 'device', 'cpu')
+            return torch.zeros(5, device=device)  # Return zeros for missing nodes
         
         # Extract basic node information
         total_frames_visited = sum(end - start for start, end in node_data["visits"])
@@ -57,14 +59,17 @@ class NodeFeatureExtractor(ABC):
         last_frame_normalized = last_visit_frame / checkpoint.non_black_frame_count
         frame_fraction = checkpoint.frame_number / checkpoint.video_length
         
-        # Create temporal features tensor
+        # Get the device from the instance if available, otherwise use CPU
+        device = getattr(self, 'device', 'cpu')
+        
+        # Create temporal features tensor on the appropriate device
         temporal_features = torch.tensor([
             total_frames_visited,
             num_visits,
             first_frame_normalized,
             last_frame_normalized,
             frame_fraction
-        ])
+        ], device=device)
         
         # Normalize first feature (total frames visited)
         if checkpoint.non_black_frame_count > 0:
@@ -134,22 +139,25 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
         Returns:
             Tensor of node features
         """
+        # Get device from temporal features if available
+        device = getattr(self, 'device', 'cpu')
+        
         features_list = []
         for node_id, node_data in checkpoint.nodes.items():
             # Get temporal features
             temporal_features = self._extract_temporal_features(checkpoint, node_id)
                 
-            # Create one-hot encoding for object class
+            # Create one-hot encoding for object class on the same device as temporal features
             class_idx = checkpoint.labels_to_int.get(node_data["object_label"], 0)
-            one_hot = torch.zeros(checkpoint.num_object_classes)
+            one_hot = torch.zeros(checkpoint.num_object_classes, device=temporal_features.device)
             one_hot[class_idx] = 1
             
-            # Combine features
+            # Combine features (now guaranteed to be on the same device)
             node_features = torch.cat([temporal_features, one_hot])
             features_list.append(node_features)
         
         if not features_list:
-            return torch.tensor([])
+            return torch.tensor([], device=device)
             
         # Stack all node features
         node_features_tensor = torch.stack(features_list)
@@ -263,12 +271,17 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             # Get ROI embedding for the node
             roi_embedding = self._get_roi_embedding(checkpoint, node_id)
             
+            # Ensure both tensors are on the same device
+            if temporal_features.device != roi_embedding.device:
+                # Move to the device of roi_embedding (likely CUDA)
+                temporal_features = temporal_features.to(roi_embedding.device)
+            
             # Combine features
             node_features = torch.cat([temporal_features, roi_embedding])
             features_list.append(node_features)
         
         if not features_list:
-            return torch.tensor([])
+            return torch.tensor([], device=self.device)
             
         # Stack all node features
         node_features_tensor = torch.stack(features_list)
@@ -363,12 +376,17 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             # Get label embedding for the node
             label_embedding = self._get_label_embedding(checkpoint, node_id)
             
+            # Ensure both tensors are on the same device
+            if temporal_features.device != label_embedding.device:
+                # Move to the device of label_embedding (likely CUDA)
+                temporal_features = temporal_features.to(label_embedding.device)
+            
             # Combine features
             node_features = torch.cat([temporal_features, label_embedding])
             features_list.append(node_features)
         
         if not features_list:
-            return torch.tensor([])
+            return torch.tensor([], device=self.device)
             
         # Stack all node features
         node_features_tensor = torch.stack(features_list)
