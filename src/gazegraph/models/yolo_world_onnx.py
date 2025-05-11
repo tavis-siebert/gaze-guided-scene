@@ -90,7 +90,7 @@ class YOLOWorldOnnxModel(YOLOWorldModel):
             raise RuntimeError("Model not loaded")
         
         # Convert class names to embeddings with CLIP
-        txt_feats = self.clip_model.encode_text(class_names)
+        txt_feats = self.clip_model.encode_texts(class_names)
         
         # Process the embeddings
         txt_feats = torch.cat(txt_feats, dim=0)
