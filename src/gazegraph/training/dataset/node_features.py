@@ -159,8 +159,8 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
             temporal_features = self._extract_temporal_features(checkpoint, node_id)
                 
             # Create one-hot encoding for object class on the same device as temporal features
-            class_idx = checkpoint.labels_to_int.get(node_data["object_label"], 0)
-            one_hot = torch.zeros(len(checkpoint.labels_to_int), device=temporal_features.device)
+            class_idx = checkpoint.object_labels_to_id.get(node_data["object_label"], 0)
+            one_hot = torch.zeros(len(checkpoint.object_labels_to_id), device=temporal_features.device)
             one_hot[class_idx] = 1
             
             # Combine features (now guaranteed to be on the same device)
