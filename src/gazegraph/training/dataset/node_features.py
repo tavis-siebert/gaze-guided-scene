@@ -208,9 +208,6 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         self.tracer = None
         self.video = None
         
-        # Cache for ROI embeddings - keyed by (video_name, node_id)
-        self.roi_embedding_cache = {}
-        
     def set_context(self, tracer: GraphTracer | None, video: Video | None):
         """
         Set the context for ROI embedding extraction.
@@ -226,12 +223,11 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
     
     def _get_roi_embedding(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
         """
-        Get ROI embedding for a node, using cache if available.
+        Get ROI embedding for a node. Delegates caching to NodeEmbeddings.
         
         Args:
             checkpoint: GraphCheckpoint object
             node_id: ID of the node
-            
         Returns:
             ROI embedding tensor
         """
@@ -239,28 +235,12 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         if not node_data:
             logger.warning(f"Node ID {node_id} not found in checkpoint")
             return torch.zeros(self.embedding_dim)
-            
-        # Create a cache key that includes node state information
-        # We use the visits list and frame number to ensure we don't use stale embeddings
-        # when a node's state has changed (e.g., new visits added)
-        visits_hash = hash(tuple(tuple(visit) for visit in node_data["visits"]))
-        cache_key = (checkpoint.video_name, node_id, visits_hash)
-        
-        if cache_key in self.roi_embedding_cache:
-            return self.roi_embedding_cache[cache_key]
-        
-        # Get new embedding
+        # Get embedding (caching is handled in NodeEmbeddings)
         roi_embedding = self.node_embeddings.get_object_node_embedding_roi(
             checkpoint, self.tracer, self.video, node_id
         )
-        
-        # If ROI embedding is not available, use zeros
         if roi_embedding is None:
             roi_embedding = torch.zeros(self.embedding_dim)
-        
-        # Cache the embedding
-        self.roi_embedding_cache[cache_key] = roi_embedding
-        
         return roi_embedding
     
     def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
