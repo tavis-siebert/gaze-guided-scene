@@ -50,8 +50,7 @@ class GraphDataset(Dataset):
         self.device = device
         self.node_feature_type = node_feature_type
         self.node_feature_extractor = get_node_feature_extractor(node_feature_type, device=device)
-        self.tracer_cache = {}
-        self.video_cache = {}
+
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         self.sample_tuples: List[Tuple[GraphCheckpoint, dict]] = []
         for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
@@ -125,26 +124,20 @@ class GraphDataset(Dataset):
 
     def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint):
         video_name = checkpoint.video_name
-        if video_name in self.tracer_cache:
-            return self.tracer_cache[video_name]
         trace_path = Path(self.config.directories.traces) / f"{video_name}_trace.jsonl"
         if not trace_path.exists():
             logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
             return None
         tracer = GraphTracer(trace_path.parent, video_name, enabled=False)
-        self.tracer_cache[video_name] = tracer
         return tracer
 
     def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint):
         video_name = checkpoint.video_name
-        if video_name in self.video_cache:
-            return self.video_cache[video_name]
         video_path = Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4"
         if not video_path.exists():
             logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
             return None
         video = Video(video_name)
-        self.video_cache[video_name] = video
         return video
 
     def _extract_node_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
