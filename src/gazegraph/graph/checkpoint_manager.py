@@ -52,6 +52,9 @@ class GraphCheckpoint:
             context: Shared context data (must include video_name, object_labels_to_id, video_length)
         """
         required_keys = ["video_name", "object_labels_to_id", "video_length"]
+        # Rename for backward compatibility
+        if "labels_to_int" in context:
+            context["object_labels_to_id"] = context.pop("labels_to_int")
         missing = [k for k in required_keys if k not in context or context[k] is None]
         if missing:
             raise ValueError(f"Missing required context keys for GraphCheckpoint: {missing}")
@@ -63,7 +66,6 @@ class GraphCheckpoint:
             non_black_frame_count=data["non_black_frame_count"],
             video_name=context["video_name"],
             object_labels_to_id=context["object_labels_to_id"],
-
             video_length=context["video_length"],
         )
 
