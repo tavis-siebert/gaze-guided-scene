@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple, Union, Dict, Any
 from torch_geometric.data import Data, Dataset
 from tqdm import tqdm
 import numpy as np
+from bisect import bisect_right
 
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
@@ -230,9 +231,6 @@ class GraphDataset(Dataset):
                 if (labels := closest.get_future_action_labels(closest.frame_number, self.metadata)) is not None:
                     selected_checkpoints.append(closest)
                     self.sample_tuples.append((closest, labels))
-
-        # Ensure sample tuples are sorted by increasing frame number
-        self.sample_tuples.sort(key=lambda x: x[0].frame_number)
     
     def len(self) -> int:
         """Get the number of samples in the dataset."""
