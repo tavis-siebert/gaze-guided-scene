@@ -38,7 +38,6 @@ class NodeEmbeddings:
         if self.clip_model is None:
             logger.info(f"Initializing CLIP model on {self.device}")
             self.clip_model = ClipModel(device=self.device)
-            self.clip_model.load()
         return self.clip_model
         
     def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:

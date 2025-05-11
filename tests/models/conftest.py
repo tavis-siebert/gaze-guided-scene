@@ -18,7 +18,6 @@ def clip_model():
     """Fixture to provide a CLIP model instance for tests."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = ClipModel(device=device)
-    model.load()
     return model
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import torch
 import clip
-from typing import List
+from typing import List, Tuple
 from PIL import Image
 
 from gazegraph.logger import get_logger
@@ -10,31 +10,24 @@ logger = get_logger(__name__)
 class ClipModel:
     """Wrapper for CLIP model providing text and image encoding capabilities."""
     
-    def __init__(self, device: str | None = None):
+    def __init__(self, name: str = "ViT-L/14", jit: bool = False, download_root: str | None = None, device: str | None = None):
         """Initialize CLIP model.
-        
-        Args:
-            device: Device to run model on
-        """
-        self.device = device if device else "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = None
-        self.preprocess = None
-
-    def load(self, name: str = "ViT-L/14", jit: bool = False, download_root: str | None = None) -> None:
-        """Load CLIP model and preprocessor.
         
         Args:
             name: Model name or checkpoint path
             jit: Whether to load JIT optimized model
             download_root: Path to download model files
+            device: Device to run model on
         """
+        self.name = name
+        self.device = device if device else "cuda" if torch.cuda.is_available() else "cpu"
         self.model, self.preprocess = clip.load(
             name=name,
             device=self.device,
             jit=jit,
             download_root=download_root # type: ignore
         )
-        
+
     def encode_texts(self, texts: List[str]) -> List[torch.Tensor]:
         """Encode text inputs using CLIP.
         
@@ -43,10 +36,7 @@ class ClipModel:
             
         Returns:
             List of text embeddings as tensors
-        """
-        if self.model is None:
-            self.load()
-            
+        """            
         text_tokens = clip.tokenize(texts).to(self.device)
 
         with torch.no_grad():
@@ -54,7 +44,7 @@ class ClipModel:
             
         return text_features
         
-    def encode_image(self, image: Union[Image.Image, torch.Tensor]) -> torch.Tensor:
+    def encode_image(self, image: Image.Image | torch.Tensor) -> torch.Tensor:
         """Encode image input using CLIP.
         
         Args:
@@ -62,10 +52,7 @@ class ClipModel:
             
         Returns:
             Image embedding tensor
-        """
-        if self.model is None:
-            self.load()
-            
+        """ 
         if isinstance(image, Image.Image):
             image = self.preprocess(image).unsqueeze(0).to(self.device)
             
@@ -74,7 +61,7 @@ class ClipModel:
             
         return image_features
 
-    def classify(self, labels: List[str], image: Union[Image.Image, torch.Tensor]) -> Tuple[List[float], str]:
+    def classify(self, labels: List[str], image: Image.Image | torch.Tensor) -> Tuple[List[float], str]:
         """Classify an image by computing similarity scores against provided labels.
 
         Args:
@@ -84,10 +71,7 @@ class ClipModel:
         Returns:
             A tuple of (scores, best_label) where scores is a list of similarity scores 
             corresponding to labels and best_label is the label with the highest score.
-        """
-        if self.model is None:
-            self.load()
-
+        """        
         image_features = self.encode_image(image)
         text_features_list = self.encode_texts(labels)
         text_features = torch.cat(text_features_list, dim=0)
