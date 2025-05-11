@@ -4,8 +4,8 @@ from gazegraph.training.evaluation.metrics import accuracy
 from gazegraph.training.tasks.base_task import BaseTask
 
 class NextActionTask(BaseTask):
-    def __init__(self, config, device, node_feature_type="one-hot"):
-        super().__init__(config, device, "next_action", node_feature_type)
+    def __init__(self, config, device, node_feature_type="one-hot", load_cached=False):
+        super().__init__(config, device, "next_action", node_feature_type, load_cached)
         self.criterion = nn.CrossEntropyLoss(reduction='sum')
     
     def compute_loss(self, output, y):
