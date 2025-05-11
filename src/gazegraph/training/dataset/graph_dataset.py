@@ -57,11 +57,6 @@ class GraphDataset(Dataset):
         for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
             self._load_and_collect_samples(file_path)
         super().__init__(root=str(self.root_dir), transform=transform, pre_transform=pre_transform, pre_filter=pre_filter)
-
-        
-        # Initialize PyG Dataset
-        super().__init__(root=str(self.root_dir), transform=transform, 
-                         pre_transform=pre_transform, pre_filter=pre_filter)
     
     def _load_and_collect_samples(self, file_path: Path):
         video_name = Path(file_path).stem.split('_')[0]
@@ -115,7 +110,6 @@ class GraphDataset(Dataset):
         """Get the number of samples in the dataset."""
         return len(self.sample_tuples)
 
-
     def get(self, idx: int) -> Data:
         """Get a single graph data object."""
         checkpoint, action_labels = self.sample_tuples[idx]
@@ -129,118 +123,47 @@ class GraphDataset(Dataset):
                 data = augmented_data
         return data
 
-    
     def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint):
-        """Get the appropriate GraphTracer for a checkpoint.
-        
-        Args:
-            checkpoint: GraphCheckpoint object
-            
-        Returns:
-            GraphTracer object for the checkpoint
-        """
-        from graph.graph_tracer import GraphTracer
-        from pathlib import Path
-        
         video_name = checkpoint.video_name
-        
-        # Return cached tracer if available
         if video_name in self.tracer_cache:
             return self.tracer_cache[video_name]
-        
-        # Initialize a new tracer
         trace_path = Path(self.config.directories.traces) / f"{video_name}_trace.jsonl"
         if not trace_path.exists():
-            self.logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
+            logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
             return None
-            
         tracer = GraphTracer(trace_path.parent, video_name, enabled=False)
-        
-        # Cache the tracer
         self.tracer_cache[video_name] = tracer
         return tracer
-        
+
     def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint):
-        """Get the appropriate Video processor for a checkpoint.
-        
-        Args:
-            checkpoint: GraphCheckpoint object
-            
-        Returns:
-            Video object for the checkpoint
-        """
-        from datasets.egtea_gaze.video_processor import Video
-        from pathlib import Path
-        
         video_name = checkpoint.video_name
-        
-        # Return cached video if available
         if video_name in self.video_cache:
             return self.video_cache[video_name]
-        
-        # Initialize a new video processor
         video_path = Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4"
         if not video_path.exists():
-            self.logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
+            logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
             return None
-            
         video = Video(video_name)
-        
-        # Cache the video
         self.video_cache[video_name] = video
         return video
-    
+
     def _extract_node_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
-        """Extract node features from a checkpoint.
-        
-        Args:
-            checkpoint: GraphCheckpoint object
-            
-        Returns:
-            Tensor of node features
-        """
-        # If using ROI embeddings, set the context for the current checkpoint
         if self.node_feature_type == "roi-embeddings" and hasattr(self.node_feature_extractor, "set_context"):
             tracer = self._get_tracer_for_checkpoint(checkpoint)
             video = self._get_video_for_checkpoint(checkpoint)
-            
             if tracer and video:
                 self.node_feature_extractor.set_context(tracer, video)
             else:
-                self.logger.warning(f"Could not set ROI embedding context for checkpoint {checkpoint.video_name}")
-        
-        # Use the node feature extractor to get the features
+                logger.warning(f"Could not set ROI embedding context for checkpoint {checkpoint.video_name}")
         return self.node_feature_extractor.extract_features(checkpoint)
-    
+
     def _extract_edge_features(self, checkpoint: GraphCheckpoint) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Extract edge indices and attributes from a checkpoint.
-        
-        Args:
-            checkpoint: GraphCheckpoint object
-            
-        Returns:
-            Tuple of (edge_indices, edge_attributes)
-        """
         if not checkpoint.edges:
-            # No edges, return empty tensors
             return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1))
-            
-        # Collect edge data
-        edge_list = []
-        edge_attrs = []
-        
-        for edge in checkpoint.edges:
-            edge_list.append((edge["source_id"], edge["target_id"]))
-            
-            # Edge attribute is angle
-            edge_attrs.append([edge.get("angle", 0.0)])
-            
-        # Convert to tensors
+        edge_list = [(e["source_id"], e["target_id"]) for e in checkpoint.edges]
+        edge_attrs = [[e.get("angle", 0.0)] for e in checkpoint.edges]
         edge_index = torch.tensor(edge_list, dtype=torch.long).t()
         edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
-        
-        # Normalize edge attributes if needed
         if edge_attr.shape[0] > 0 and edge_attr.max() > 0:
             edge_attr = edge_attr / (edge_attr.max() + 1e-8)
-            
-        return edge_index, edge_attr 
+        return edge_index, edge_attr
