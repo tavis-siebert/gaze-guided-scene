@@ -1,11 +1,9 @@
 import pytest
 import torch
-import numpy as np
 from unittest.mock import MagicMock, patch
 
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
 from gazegraph.training.dataset.node_features import (
-    NodeFeatureExtractor,
     OneHotNodeFeatureExtractor,
     ROIEmbeddingNodeFeatureExtractor,
     ObjectLabelEmbeddingNodeFeatureExtractor,
