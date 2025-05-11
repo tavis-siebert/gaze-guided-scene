@@ -211,9 +211,21 @@ class GraphDataset(Dataset):
             
             # Find the closest checkpoint to each target frame
             selected_checkpoints = []
+
+            # Create a dictionary of checkpoints for quick lookup
+            checkpoint_dict = {cp.frame_number: cp for cp in all_checkpoints}
+
+            # Get sorted list of checkpoint frames
+            checkpoint_frames = sorted(checkpoint_dict.keys())
+
+            # For each target frame, get closest checkpoint <= target frame
             for target_frame in timestamp_frames:
-                closest = min(all_checkpoints, 
-                              key=lambda cp: abs(cp.frame_number - target_frame))
+                # Find the index of the first checkpoint frame greater than target frame
+                idx = bisect_right(checkpoint_frames, target_frame)
+                if idx == 0:
+                    closest = checkpoint_dict[checkpoint_frames[0]]
+                else:
+                    closest = checkpoint_dict[checkpoint_frames[idx - 1]]
                 
                 if (labels := closest.get_future_action_labels(closest.frame_number, self.metadata)) is not None:
                     selected_checkpoints.append(closest)
