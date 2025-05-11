@@ -29,16 +29,9 @@ class NodeEmbeddings:
             device: Device to run models on ("cuda" or "cpu")
         """
         self.device = device
-        self.clip_model = self._get_clip_model()
+        self.clip_model = ClipModel(device=self.device)
         # Cache for ROI embeddings per visit: (video_name, object_label, visit_start, visit_end) -> list of tensors
         self._roi_visit_embedding_cache: Dict[Tuple[str, str, int, int], List[torch.Tensor]] = {}
-        
-    def _get_clip_model(self) -> ClipModel:
-        """Get or initialize the text embedding model."""
-        if self.clip_model is None:
-            logger.info(f"Initializing CLIP model on {self.device}")
-            self.clip_model = ClipModel(device=self.device)
-        return self.clip_model
         
     def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:
         """
@@ -50,16 +43,12 @@ class NodeEmbeddings:
         Returns:
             Tensor containing the action embedding, or None if the action is not found
         """
-        # Get action name
         action_name = ActionRecord.get_action_name_by_idx(action_idx)
         if action_name is None:
             logger.warning(f"Action index {action_idx} not found in action mapping")
             return None
             
-        # Get text embedding
-        clip_model = self._get_clip_model()
-        embedding = clip_model.encode_texts([action_name])[0]  # List of 1 tensor -> single tensor
-        
+        embedding = self.clip_model.encode_texts([action_name])[0]
         return embedding
         
     def get_object_node_embedding_roi(
