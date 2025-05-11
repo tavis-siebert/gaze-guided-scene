@@ -122,6 +122,17 @@ class NodeFeatureExtractor(ABC):
         """
         pass
 
+    @abstractmethod
+    def set_context(self, tracer: GraphTracer | None, video: Video | None):
+        """
+        Set the context for node feature extraction.
+        
+        Args:
+            tracer: GraphTracer object
+            video: Video object
+        """
+        pass
+
 
 class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using one-hot encoding for object classes."""
@@ -200,14 +211,16 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         # Cache for ROI embeddings - keyed by (video_name, node_id)
         self.roi_embedding_cache = {}
         
-    def set_context(self, tracer: GraphTracer, video: Video):
+    def set_context(self, tracer: GraphTracer | None, video: Video | None):
         """
         Set the context for ROI embedding extraction.
         
         Args:
-            tracer: Graph tracer to retrieve detections
-            video: Video processor for frame access
+            tracer: GraphTracer object
+            video: Video object
         """
+        if tracer is None or video is None:
+            raise ValueError("Tracer and video must be provided to ROI embedding node feature extractor")
         self.tracer = tracer
         self.video = video
     

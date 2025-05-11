@@ -158,7 +158,7 @@ class GraphDataset(Dataset):
             tracer = self._get_tracer_for_checkpoint(checkpoint)
             video = self._get_video_for_checkpoint(checkpoint)
             if tracer and video:
-                self.node_feature_extractor.set_context(tracer, video)
+                self.node_feature_extractor.set_context(tracer=tracer, video=video)
             else:
                 logger.warning(f"Could not set ROI embedding context for checkpoint {checkpoint.video_name}")
         return self.node_feature_extractor.extract_features(checkpoint)
