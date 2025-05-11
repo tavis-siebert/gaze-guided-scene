@@ -1,7 +1,7 @@
 import random
 import torch
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, Dict, Any
+from typing import List, Optional, Tuple
 from torch_geometric.data import Data, Dataset
 from tqdm import tqdm
 import numpy as np
@@ -11,7 +11,7 @@ from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManage
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 from gazegraph.training.dataset.augmentations import node_dropping
 from gazegraph.training.dataset.sampling import get_samples
-from gazegraph.training.dataset.node_features import NodeFeatureExtractor, get_node_feature_extractor
+from gazegraph.training.dataset.node_features import get_node_feature_extractor
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.logger import get_logger
@@ -123,7 +123,7 @@ class GraphDataset(Dataset):
                 data = augmented_data
         return data
 
-    def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint):
+    def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint) -> GraphTracer | None:
         video_name = checkpoint.video_name
         if not self.config or not hasattr(self.config, 'directories') or not hasattr(self.config.directories, 'traces'):
             logger.warning("Config or directories.traces missing; cannot load trace file.")
@@ -135,7 +135,7 @@ class GraphDataset(Dataset):
         tracer = GraphTracer(trace_path.parent, video_name, enabled=False)
         return tracer
 
-    def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint):
+    def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint) -> Video | None:
         video_name = checkpoint.video_name
         if not self.config or not hasattr(self.config, 'dataset') or not hasattr(self.config.dataset, 'egtea') or not hasattr(self.config.dataset.egtea, 'raw_videos'):
             logger.warning("Config or dataset.egtea.raw_videos missing; cannot load video file.")
