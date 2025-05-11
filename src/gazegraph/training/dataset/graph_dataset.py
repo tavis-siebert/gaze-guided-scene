@@ -26,7 +26,7 @@ class GraphDataset(Dataset):
         self,
         root_dir: str,
         split: str = "train",
-        val_timestamps: List[float] = None,
+        val_timestamps: Optional[List[float]] = None,
         task_mode: str = "future_actions",
         node_drop_p: float = 0.0,
         max_droppable: int = 0,
@@ -41,7 +41,9 @@ class GraphDataset(Dataset):
         self.split = split
         self.config = config
         self.metadata = VideoMetadata(config)
-        self.val_timestamps = getattr(config.training, 'val_timestamps', None)
+        if not config or not hasattr(config, 'training') or not hasattr(config.training, 'val_timestamps'):
+            raise ValueError("Config or config.training.val_timestamps missing")
+        self.val_timestamps = config.training.val_timestamps
         if self.val_timestamps is None:
             raise ValueError("No validation timestamps provided")
         self.task_mode = task_mode
@@ -75,7 +77,9 @@ class GraphDataset(Dataset):
         return checkpoints
 
     def _add_train_samples(self, checkpoints: List[GraphCheckpoint], video_name: str):
-        sampling_cfg = getattr(self.config.dataset, 'sampling', None) if self.config else None
+        sampling_cfg = None
+        if self.config and hasattr(self.config, 'dataset') and hasattr(self.config.dataset, 'sampling'):
+            sampling_cfg = self.config.dataset.sampling
         if sampling_cfg:
             if getattr(sampling_cfg, 'random_seed', None) is not None:
                 random.seed(sampling_cfg.random_seed)
@@ -117,13 +121,19 @@ class GraphDataset(Dataset):
         y = action_labels[self.task_mode]
         data = Data(x=node_features, edge_index=edge_index, edge_attr=edge_attr, y=y)
         if self.node_drop_p > 0 and random.random() < self.node_drop_p:
-            augmented_data = node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
+            if data.x is not None and data.edge_index is not None and data.edge_attr is not None:
+                augmented_data = node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
+            else:
+                augmented_data = None
             if augmented_data is not None:
                 data = augmented_data
         return data
 
     def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint):
         video_name = checkpoint.video_name
+        if not self.config or not hasattr(self.config, 'directories') or not hasattr(self.config.directories, 'traces'):
+            logger.warning("Config or directories.traces missing; cannot load trace file.")
+            return None
         trace_path = Path(self.config.directories.traces) / f"{video_name}_trace.jsonl"
         if not trace_path.exists():
             logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
@@ -133,6 +143,9 @@ class GraphDataset(Dataset):
 
     def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint):
         video_name = checkpoint.video_name
+        if not self.config or not hasattr(self.config, 'dataset') or not hasattr(self.config.dataset, 'egtea') or not hasattr(self.config.dataset.egtea, 'raw_videos'):
+            logger.warning("Config or dataset.egtea.raw_videos missing; cannot load video file.")
+            return None
         video_path = Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4"
         if not video_path.exists():
             logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
