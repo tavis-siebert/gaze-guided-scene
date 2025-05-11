@@ -24,12 +24,11 @@ logger = get_logger(__name__)
 class Graph:
     """A scene graph representing objects and their spatial relationships."""
     
-    def __init__(self, labels_to_int: Dict[str, int] = None, num_object_classes: int = 0, video_length: int = 0):
+    def __init__(self, labels_to_int: Dict[str, int] = None, video_length: int = 0):
         """Initialize an empty graph with a root node.
         
         Args:
             labels_to_int: Mapping from object labels to class indices
-            num_object_classes: Number of object classes
             video_length: Total length of the video
         """
         self.root = Node(id=-1, object_label='root')
@@ -41,9 +40,13 @@ class Graph:
         self.tracer = None
         
         self.labels_to_int = labels_to_int or {}
-        self.num_object_classes = num_object_classes
         self.video_length = video_length
-        
+
+    @property
+    def num_object_classes(self) -> int:
+        """Return the number of object classes (computed from labels_to_int)."""
+        return len(self.labels_to_int)
+
     def get_all_nodes(self) -> List[Node]:
         """Get all nodes in the graph including the root.
         
