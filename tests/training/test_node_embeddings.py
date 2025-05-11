@@ -7,7 +7,6 @@ import torch
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from PIL import Image
-import numpy as np  
 
 from gazegraph.datasets.node_embeddings import NodeEmbeddings
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
@@ -17,9 +16,13 @@ from gazegraph.datasets.egtea_gaze.video_processor import Video
 
 
 @pytest.fixture
-def node_embeddings():
+def device():
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+@pytest.fixture
+def node_embeddings(device):
     """Fixture for a/NodeEmbeddings instance configured for CPU testing."""
-    return NodeEmbeddings(device="cuda" if torch.cuda.is_available() else "cpu")
+    return NodeEmbeddings(device=device)
 
 
 @pytest.fixture
@@ -51,22 +54,21 @@ def test_video():
 
 
 @pytest.mark.unit
-def test_initialization():
+def test_initialization(node_embeddings, device):
     """Test that NodeEmbeddings initializes correctly."""
-    embedder = NodeEmbeddings(device="cpu")
-    assert embedder.device == "cpu"
-    assert embedder.clip_model is None
+    assert node_embeddings.device == device
+    assert node_embeddings.clip_model is not None
 
 
 @pytest.mark.unit
 def test_get_clip_model(node_embeddings):
     """Test that the CLIP model is initialized properly."""
-    clip_model = node_embeddings._get_clip_model()
+    clip_model = node_embeddings.clip_model
     assert clip_model is not None
-    assert node_embeddings.clip_model is not None
     assert clip_model.device == node_embeddings.device
 
 
+@pytest.mark.gpu
 @pytest.mark.unit
 def test_get_action_embedding(node_embeddings):
     """Test that action embeddings are correctly generated."""
@@ -87,7 +89,7 @@ def test_get_action_embedding_invalid_action(node_embeddings):
         assert embedding is None
 
 
-@pytest.mark.integration
+@pytest.mark.unit
 def test_extract_roi(node_embeddings):
     """Test ROI extraction from frame tensor."""
     frame = torch.zeros((3, 100, 100), dtype=torch.uint8)
@@ -99,7 +101,7 @@ def test_extract_roi(node_embeddings):
     assert roi.sum() == 3 * 30 * 30 * 255  # All pixels should be white
 
 
-@pytest.mark.integration
+@pytest.mark.unit
 def test_is_valid_roi(node_embeddings):
     """Test ROI validation checks."""
     valid_roi = torch.ones((3, 32, 32))
@@ -110,6 +112,7 @@ def test_is_valid_roi(node_embeddings):
     assert node_embeddings._is_valid_roi(none_roi) is False
 
 
+@pytest.mark.gpu
 @pytest.mark.integration
 def test_get_roi_embeddings_for_frame(node_embeddings):
     """Test retrieval of ROI embeddings for a frame."""
@@ -139,9 +142,9 @@ def test_get_roi_embeddings_for_frame(node_embeddings):
     mock_tracer.get_detections_for_frame.assert_called_once_with(frame_num)
 
 
-def test_roi_embeddings_cache_behavior():
+@pytest.mark.integration
+def test_roi_embeddings_cache_behavior(node_embeddings):
     """Test that ROI embeddings are cached per (video_name, object_label, visit_start, visit_end)."""
-    node_embeddings = NodeEmbeddings(device="cpu")
     mock_video = MagicMock()
     mock_video.video_name = "vid1"
     mock_tracer = MagicMock()
@@ -195,6 +198,7 @@ def test_roi_embeddings_cache_behavior():
             assert is_different, "Different visit range should not return identical embeddings"
 
 @pytest.mark.integration
+@pytest.mark.gpu
 @pytest.mark.parametrize("has_visits", [True, False])
 def test_get_object_node_embedding_roi(node_embeddings, has_visits):
     """Test object node embedding generation (ROI-based)."""
@@ -233,6 +237,7 @@ def test_get_object_node_embedding_roi(node_embeddings, has_visits):
 
 
 @pytest.mark.unit
+@pytest.mark.gpu
 def test_get_object_node_embedding_label(node_embeddings):
     """Test object node embedding generation (label-based)."""
     mock_checkpoint = MagicMock()
@@ -272,6 +277,7 @@ def test_get_object_node_embedding_label(node_embeddings):
 
 
 @pytest.mark.integration
+@pytest.mark.gpu
 def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, test_tracer, test_video):
     """Test embedding generation with real checkpoint, tracer, and video data."""
     node_ids = [nid for nid, node in test_checkpoint.nodes.items() 
@@ -291,6 +297,7 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
 
 
 @pytest.mark.integration
+@pytest.mark.gpu
 def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer, test_video):
     """Test that the best detection in the visit range is (mostly) correctly classified (top 3)."""
     id_to_name, _ = ActionRecord.get_noun_label_mappings()
