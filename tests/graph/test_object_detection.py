@@ -194,13 +194,11 @@ def mock_detector(mock_config):
         mock_model.iou_threshold = 0.5
         mock_model_class.create.return_value = mock_model
         
-        obj_labels = {0: "cup", 1: "bowl", 2: "spoon"}
-        object_labels_to_id = {"cup": 0, "bowl": 1, "spoon": 2}
+        class_id_to_name = {0: "cup", 1: "bowl", 2: "spoon"}
         
         detector = ObjectDetector(
             model_path=Path("dummy/path"),
-            obj_labels=obj_labels,
-            object_labels_to_id=object_labels_to_id,
+            class_id_to_name=class_id_to_name,
             config=mock_config,
             tracer=None
         )
