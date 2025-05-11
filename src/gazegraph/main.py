@@ -2,9 +2,13 @@
 import argparse
 import sys
 import os
+import torch.multiprocessing as mp
 from pathlib import Path
 from dotenv import load_dotenv
 import logging
+
+# Set multiprocessing start method to 'spawn' to avoid CUDA issues in forked processes
+mp.set_start_method('spawn', force=True)
 
 from gazegraph.config.config_utils import load_config, DotDict
 from gazegraph.logger import get_logger, configure_root_logger
