@@ -135,8 +135,8 @@ def test_custom_model_save_load(yolo_world_model, custom_classes):
     assert new_model.names == custom_classes, "Loaded custom model does not have the expected classes"
 
 @pytest.mark.gpu
-@pytest.skip("Custom model does not seem to have any (positive) effect on accuracy or speed")
 def test_custom_model_confidence_improvement(yolo_world_model, test_image, custom_classes):
+    pytest.skip("Custom model does not seem to have any (positive) effect on accuracy or speed")
     # Initialize standard model without custom flag
     standard_model = YOLOWorldUltralyticsModel()
     standard_model.set_classes(custom_classes)
