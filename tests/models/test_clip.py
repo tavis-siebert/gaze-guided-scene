@@ -10,8 +10,9 @@ from gazegraph.models.clip import ClipModel
 def test_initialization():
     model = ClipModel(device="cpu")
     assert model.device == "cpu"
-    assert model.model is None
-    assert model.preprocess is None
+    assert model.name == "ViT-L/14"
+    assert model.model is not None
+    assert model.preprocess is not None
 
 @pytest.mark.gpu
 def test_model_loading(clip_model):
