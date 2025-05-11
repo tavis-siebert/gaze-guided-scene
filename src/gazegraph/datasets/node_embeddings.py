@@ -3,7 +3,7 @@ Node embedding module for creating semantic embeddings of graph nodes.
 """
 
 import torch
-from typing import Optional, Dict, List, Union, Tuple
+from typing import Optional, Dict, List, Tuple
 from PIL import Image
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
@@ -29,7 +29,7 @@ class NodeEmbeddings:
             device: Device to run models on ("cuda" or "cpu")
         """
         self.device = device
-        self.clip_model = None
+        self.clip_model = self._get_clip_model()
         # Cache for ROI embeddings per visit: (video_name, object_label, visit_start, visit_end) -> list of tensors
         self._roi_visit_embedding_cache: Dict[Tuple[str, str, int, int], List[torch.Tensor]] = {}
         
@@ -95,8 +95,6 @@ class NodeEmbeddings:
             logger.warning(f"Node {node_id} ('{object_label}') has no visits")
             return None
 
-        self._get_clip_model() # Ensures self.clip_model is initialized
-
         all_visit_embeddings = []
         for visit_start, visit_end in visits:
             # Process each visit and collect ROI embeddings from that visit
@@ -150,8 +148,7 @@ class NodeEmbeddings:
         if not object_label:
             logger.warning(f"Node {node_id} has no object_label")
             return None
-        clip_model = self._get_clip_model()
-        embedding = clip_model.encode_texts([object_label])[0]  # List of 1 tensor -> single tensor
+        embedding = self.clip_model.encode_texts([object_label])[0]  # List of 1 tensor -> single tensor
         logger.info(f"Generated label-based embedding for node {node_id} ('{object_label}')")
         return embedding
 
@@ -169,51 +166,53 @@ class NodeEmbeddings:
         if cache_key in self._roi_visit_embedding_cache:
             return self._roi_visit_embedding_cache[cache_key]
 
-        video.seek_to_frame(visit_start)
-        current_frame_num = visit_start
-
         best_detection = None
         best_detection_score = float('-inf')
         best_detection_frame_tensor = None
-
+        
         try:
-            while current_frame_num <= visit_end:
-                try:
-                    frame_dict = next(video.stream)
-                except StopIteration:
-                    logger.debug(
-                        f"Reached end of video stream while processing visit {visit_start}-{visit_end} "
-                        f"for '{object_label}' at frame {current_frame_num}."
-                    )
-                    break
-
-                frame_tensor = frame_dict['data']
-                detections = tracer.get_detections_for_frame(current_frame_num)
-                for det in detections:
-                    if det.class_name == object_label and det.is_fixated:
-                        if det.score > best_detection_score:
-                            best_detection_score = det.score
-                            best_detection = det
-                            best_detection_frame_tensor = frame_tensor
-                current_frame_num += 1
+            video.seek_to_frame(visit_start)
         except Exception as e:
-            logger.warning(
-                f"Error during frame iteration for visit {visit_start}-{visit_end} "
+            logger.error(
+                f"Error seeking to frame {visit_start} for visit {visit_start}-{visit_end} "
                 f"for '{object_label}': {e}"
             )
+            return []
+            
+        current_frame_num = visit_start
+
+        # Process frames in the visit range
+        while current_frame_num <= visit_end:
+            try:
+                frame_dict = next(video.stream)
+            except StopIteration:
+                logger.error(
+                    f"Reached end of video stream while processing visit {visit_start}-{visit_end} "
+                    f"for '{object_label}' at frame {current_frame_num}."
+                )
+                break
+                
+            frame_tensor = frame_dict['data']
+            detections = tracer.get_detections_for_frame(current_frame_num)
+            
+            # Find best detection in this frame
+            for det in detections:
+                if det.class_name == object_label and det.is_fixated:
+                    if det.score > best_detection_score:
+                        best_detection_score = det.score
+                        best_detection = det
+                        best_detection_frame_tensor = frame_tensor
+            current_frame_num += 1
+        
         collected_roi_embeddings = []
         if best_detection is not None and best_detection_frame_tensor is not None:
             roi_tensor = self._extract_roi(best_detection_frame_tensor, best_detection.bbox)
             if self._is_valid_roi(roi_tensor):
                 pil_image = self._convert_roi_tensor_to_pil(roi_tensor)
-                if pil_image is not None:
-                    try:
-                        roi_embedding = self.clip_model.encode_image(pil_image)  # (1, D)
-                        collected_roi_embeddings.append(roi_embedding)
-                    except Exception as e:
-                        logger.warning(
-                            f"CLIP encoding failed for ROI in best detection frame for '{object_label}' (bbox: {best_detection.bbox}): {e}"
-                        )
+                roi_embedding = self.clip_model.encode_image(pil_image)  # (1, D)
+                collected_roi_embeddings.append(roi_embedding)
+        
+        # Cache and return results
         self._roi_visit_embedding_cache[cache_key] = collected_roi_embeddings
         return collected_roi_embeddings
 
@@ -248,24 +247,12 @@ class NodeEmbeddings:
                 continue
             
             pil_image = self._convert_roi_tensor_to_pil(roi_tensor)
-            if pil_image is None:
-                continue
-            
-            try:
-                # self.clip_model is guaranteed to be initialized
-                roi_embedding = self.clip_model.encode_image(pil_image) # Returns (1, D)
-                frame_s_roi_embeddings.append(roi_embedding)
-            except Exception as e:
-                logger.warning(
-                    f"CLIP encoding failed for ROI in frame {frame_num} for '{object_label}' "
-                    f"(bbox: {detection.bbox}): {e}"
-                )
-                continue
-                
+            roi_embedding = self.clip_model.encode_image(pil_image)
+            frame_s_roi_embeddings.append(roi_embedding)
         return frame_s_roi_embeddings
 
     @staticmethod
-    def _convert_roi_tensor_to_pil(roi_tensor: torch.Tensor) -> Optional[Image.Image]:
+    def _convert_roi_tensor_to_pil(roi_tensor: torch.Tensor) -> Image.Image:
         """Converts a C,H,W roi_tensor to a PIL Image. Expects roi_tensor on any device."""
         roi_numpy_uint8 = roi_tensor.cpu().to(torch.uint8).numpy()
         channels = roi_numpy_uint8.shape[0]
@@ -278,7 +265,7 @@ class NodeEmbeddings:
             raise ValueError(f"Unsupported number of channels ({channels}) in ROI for PIL conversion. Shape: {roi_tensor.shape}")
         return pil_image
 
-    def _extract_roi(self, frame: torch.Tensor, bbox: Tuple[float, float, float, float], padding: int = 0) -> Optional[torch.Tensor]:
+    def _extract_roi(self, frame: torch.Tensor, bbox: Tuple[float, float, float, float], padding: int = 0) -> torch.Tensor:
         """
         Extract region of interest from frame using bounding box, with optional padding.
         
@@ -288,7 +275,7 @@ class NodeEmbeddings:
             padding: Optional padding in pixels to expand the ROI in all directions
             
         Returns:
-            Tensor containing the ROI or None if extraction fails
+            Tensor containing the ROI
         """
         left, top, width, height = bbox
         
