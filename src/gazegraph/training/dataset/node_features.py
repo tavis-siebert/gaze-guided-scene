@@ -122,7 +122,6 @@ class NodeFeatureExtractor(ABC):
         """
         pass
 
-    @abstractmethod
     def set_context(self, tracer: GraphTracer | None, video: Video | None):
         """
         Set the context for node feature extraction.
@@ -131,14 +130,12 @@ class NodeFeatureExtractor(ABC):
             tracer: GraphTracer object
             video: Video object
         """
-        pass
+        self.tracer = tracer
+        self.video = video
 
 
 class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using one-hot encoding for object classes."""
-    
-    def __init__(self):
-        super().__init__()
     
     def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
         """
