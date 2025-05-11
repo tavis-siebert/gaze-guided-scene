@@ -163,12 +163,22 @@ def mock_config():
     config = DotDict({
         "models": {
             "yolo_world": {
-                "backend": "torch"
-            }
+                "backend": "onnx",
+                "onnx": {
+                    "conf_threshold": 0.15,
+                    "iou_threshold": 0.5
+                },
+                "ultralytics": {
+                    "conf_threshold": 0.15,
+                    "iou_threshold": 0.5
+                }
+            },
         },
         "graph": {
-            "min_fixation_frame_ratio": 0.3,
             "fixated_object_detection": {
+                "min_fixation_frame_threshold": 4,
+                "min_fixation_frame_ratio": 0.3,
+                "bbox_margin": 10,
                 "weights": {
                     "bbox_stability": 0.3,
                     "gaze_proximity": 0.3,
@@ -181,6 +191,9 @@ def mock_config():
                     "confidence": 0.6
                 }
             }
+        },
+        "processing": {
+            "n_cores": 2
         }
     })
     return config
@@ -190,7 +203,7 @@ def mock_config():
 def mock_detector(mock_config):
     with patch("gazegraph.graph.object_detection.YOLOWorldModel") as mock_model_class:
         mock_model = MagicMock()
-        mock_model.conf_threshold = 0.6
+        mock_model.conf_threshold = 0.15
         mock_model.iou_threshold = 0.5
         mock_model_class.create.return_value = mock_model
         
@@ -208,7 +221,7 @@ def mock_detector(mock_config):
 
 class TestObjectDetector:
     def test_init(self, mock_detector, mock_config):
-        assert mock_detector.min_fixation_frame_ratio == mock_config.graph.min_fixation_frame_ratio
+        assert mock_detector.min_fixation_frame_ratio == mock_config.graph.fixated_object_detection.min_fixation_frame_ratio
         assert mock_detector.bbox_stability_weight == mock_config.graph.fixated_object_detection.weights.bbox_stability
         assert mock_detector.gaze_proximity_weight == mock_config.graph.fixated_object_detection.weights.gaze_proximity
         assert mock_detector.confidence_weight == mock_config.graph.fixated_object_detection.weights.confidence
