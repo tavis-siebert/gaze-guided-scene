@@ -21,7 +21,7 @@ def device():
 
 @pytest.fixture
 def node_embeddings(device):
-    """Fixture for a/NodeEmbeddings instance configured for CPU testing."""
+    """Fixture for a NodeEmbeddings instance configured for testing."""
     return NodeEmbeddings(device=device)
 
 
