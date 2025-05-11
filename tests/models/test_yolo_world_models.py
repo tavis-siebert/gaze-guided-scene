@@ -120,7 +120,7 @@ def test_object_detection_suite(yolo_world_model, test_dir):
     assert all_detected, "Some expected objects were not detected in test suite"
 
 @pytest.mark.gpu
-def test_custom_model_save_load(yolo_world_model, custom_classes):
+def test_custom_model_save_load(custom_classes, ultralytics_model_path):
     # Initialize model with custom save flag
     model = YOLOWorldUltralyticsModel(use_custom_model=True)
     # Set custom classes
@@ -128,7 +128,8 @@ def test_custom_model_save_load(yolo_world_model, custom_classes):
     # Check if custom model file is created
     class_str = '_'.join(custom_classes)
     class_str_hash = hashlib.sha256(class_str.encode()).hexdigest()[:8]
-    custom_model_path = yolo_world_model.model_dir / f"custom_yolov8x-worldv2_{class_str_hash}.pt"
+    model_dir = ultralytics_model_path.parent
+    custom_model_path = model_dir / f"custom_yolov8x-worldv2_{class_str_hash}.pt"
     assert custom_model_path.exists(), f"Custom model file not found at {custom_model_path}"
     # Load the custom model in a new instance
     new_model = YOLOWorldUltralyticsModel(use_custom_model=True, custom_classes=custom_classes)
