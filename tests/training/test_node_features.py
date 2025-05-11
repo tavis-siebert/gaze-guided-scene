@@ -122,7 +122,7 @@ class TestNodeFeatureExtractors:
             mock_checkpoint, 1
         )
 
-    def test_get_node_feature_extractor(self, mock_checkpoint):
+    def test_get_node_feature_extractor(self):
         """Test the factory function for node feature extractors"""
         # Test one-hot extractor
         extractor = get_node_feature_extractor("one-hot")
