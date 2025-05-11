@@ -14,13 +14,14 @@ from logger import get_logger
 from pathlib import Path
 
 class BaseTask:
-    def __init__(self, config, device, task_name, node_feature_type="one-hot"):
+    def __init__(self, config, device, task_name, node_feature_type="one-hot", load_cached=False):
         self.task = task_name
         self.device = device
         self.config = config
         self.num_classes = config.training.num_classes
         self.logger = get_logger(__name__)
         self.node_feature_type = node_feature_type
+        self.load_cached = load_cached
         
         self.logger.info(f"Using node feature type: {node_feature_type}")
         
@@ -84,7 +85,8 @@ class BaseTask:
             task_mode=self.task,
             config=self.config,
             node_feature_type=self.node_feature_type,
-            device=self.device
+            device=self.device,
+            load_cached=self.load_cached
         )
         
         # Create validation loader
@@ -94,7 +96,8 @@ class BaseTask:
             task_mode=self.task,
             config=self.config,
             node_feature_type=self.node_feature_type,
-            device=self.device
+            device=self.device,
+            load_cached=self.load_cached
         )
         
         # Extract dimensions from data

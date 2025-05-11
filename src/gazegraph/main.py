@@ -57,6 +57,8 @@ def setup_parser() -> argparse.ArgumentParser:
                             choices=["one-hot", "roi-embeddings", "object-label-embeddings"],
                             default="one-hot",
                             help="Type of node features to use (default: one-hot)")
+    train_parser.add_argument("--load-cached", action="store_true",
+                            help="Load cached GraphDataset from files in data/datasets/")
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
@@ -150,8 +152,10 @@ def main():
         try:
             TaskClass = get_task(args.task)
             # Pass node feature type to the task
-            task = TaskClass(config, device, node_feature_type=args.node_feature_type)
+            task = TaskClass(config, device, node_feature_type=args.node_feature_type, load_cached=args.load_cached)
             logger.info(f"Starting training process with node feature type: {args.node_feature_type}")
+            if args.load_cached:
+                logger.info("Using cached GraphDataset from files")
             task.train()
             logger.info("Training completed successfully")
         except Exception as e:
