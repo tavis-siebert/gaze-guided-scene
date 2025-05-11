@@ -1,8 +1,6 @@
 import torch
 import clip
-from pathlib import Path
-from typing import Dict, List, Optional, Union, Callable, Tuple
-from transformers import CLIPProcessor, CLIPModel as HFCLIPModel
+from typing import List
 from PIL import Image
 
 from gazegraph.logger import get_logger
@@ -12,17 +10,17 @@ logger = get_logger(__name__)
 class ClipModel:
     """Wrapper for CLIP model providing text and image encoding capabilities."""
     
-    def __init__(self, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"):
+    def __init__(self, device: str | None = None):
         """Initialize CLIP model.
         
         Args:
             device: Device to run model on
         """
-        self.device = device
+        self.device = device if device else "cuda" if torch.cuda.is_available() else "cpu"
         self.model = None
         self.preprocess = None
 
-    def load(self, name: str = "ViT-L/14", jit: bool = False, download_root: str = None) -> None:
+    def load(self, name: str = "ViT-L/14", jit: bool = False, download_root: str | None = None) -> None:
         """Load CLIP model and preprocessor.
         
         Args:
@@ -34,7 +32,7 @@ class ClipModel:
             name=name,
             device=self.device,
             jit=jit,
-            download_root=download_root
+            download_root=download_root # type: ignore
         )
         
     def encode_texts(self, texts: List[str]) -> List[torch.Tensor]:
