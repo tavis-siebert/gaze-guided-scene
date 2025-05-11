@@ -148,7 +148,8 @@ class GraphDataset(Dataset):
         return video
 
     def _extract_node_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
-        if self.node_feature_type == "roi-embeddings" and hasattr(self.node_feature_extractor, "set_context"):
+        logger.info(f"Extracting node features for checkpoint {checkpoint.video_name} at frame {checkpoint.frame_number}")
+        if self.node_feature_type == "roi-embeddings":
             tracer = self._get_tracer_for_checkpoint(checkpoint)
             video = self._get_video_for_checkpoint(checkpoint)
             if tracer and video:
