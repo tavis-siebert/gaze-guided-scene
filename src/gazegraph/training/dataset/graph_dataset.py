@@ -52,7 +52,6 @@ class GraphDataset(Dataset):
         self.device = device
         self.node_feature_type = node_feature_type
         self.node_feature_extractor = get_node_feature_extractor(node_feature_type, device=device)
-
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         self.sample_tuples: List[Tuple[GraphCheckpoint, dict]] = []
         for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
@@ -61,20 +60,11 @@ class GraphDataset(Dataset):
     
     def _load_and_collect_samples(self, file_path: Path):
         video_name = Path(file_path).stem.split('_')[0]
-        checkpoints = self._load_checkpoints(file_path, video_name)
+        checkpoints = CheckpointManager.load_checkpoints(str(file_path))
         if self.split == "val":
             self._add_val_samples(checkpoints)
         else:
             self._add_train_samples(checkpoints, video_name)
-
-    def _load_checkpoints(self, file_path: Path, video_name: str) -> List[GraphCheckpoint]:
-        checkpoints = CheckpointManager.load_checkpoints(str(file_path))
-        for cp in checkpoints:
-            if not hasattr(cp, 'video_length') or cp.video_length is None:
-                cp.video_length = self.metadata.get_video_length(video_name)
-            if not hasattr(cp, 'video_name') or cp.video_name is None:
-                cp.video_name = video_name
-        return checkpoints
 
     def _add_train_samples(self, checkpoints: List[GraphCheckpoint], video_name: str):
         sampling_cfg = None
