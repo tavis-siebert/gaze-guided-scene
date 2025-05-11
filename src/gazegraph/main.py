@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import argparse
-import sys
 import os
-import torch.multiprocessing as mp
 from pathlib import Path
 from dotenv import load_dotenv
-import logging
 
 from gazegraph.config.config_utils import load_config
 from gazegraph.logger import get_logger, configure_root_logger
