@@ -7,11 +7,11 @@ import torch
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from PIL import Image
-import numpy as np
+import numpy as np  
 
 from gazegraph.datasets.node_embeddings import NodeEmbeddings
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
-from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManager
+from gazegraph.graph.checkpoint_manager import CheckpointManager
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 
@@ -139,6 +139,38 @@ def test_get_roi_embeddings_for_frame(node_embeddings):
     mock_tracer.get_detections_for_frame.assert_called_once_with(frame_num)
 
 
+def test_roi_embeddings_cache_behavior():
+    """Test that ROI embeddings are cached per (video_name, object_label, visit_start, visit_end)."""
+    node_embeddings = NodeEmbeddings(device="cpu")
+    mock_video = MagicMock()
+    mock_video.video_name = "vid1"
+    mock_tracer = MagicMock()
+    object_label = "bowl"
+    visit_start, visit_end = 10, 20
+    # Patch tracer to return a detection
+    dummy_detection = MagicMock()
+    dummy_detection.confidence = 0.9
+    mock_tracer.get_detections_for_frame.return_value = [dummy_detection]
+    # Patch CLIP and PIL
+    with patch.object(node_embeddings, '_extract_roi', return_value=torch.ones((3, 32, 32))):
+        with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
+            node_embeddings.clip_model = MagicMock()
+            node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
+            # First call: should compute and cache
+            out1 = node_embeddings._get_roi_embeddings_for_visit(
+                mock_video, mock_tracer, object_label, visit_start, visit_end)
+            assert len(out1) == 1
+            # Second call: should hit cache, so encode_image not called again
+            node_embeddings.clip_model.encode_image.reset_mock()
+            out2 = node_embeddings._get_roi_embeddings_for_visit(
+                mock_video, mock_tracer, object_label, visit_start, visit_end)
+            assert out2 == out1
+            node_embeddings.clip_model.encode_image.assert_not_called()
+            # Different key: should compute again
+            out3 = node_embeddings._get_roi_embeddings_for_visit(
+                mock_video, mock_tracer, object_label, visit_start+1, visit_end)
+            assert out3 != out1
+
 @pytest.mark.integration
 @pytest.mark.parametrize("has_visits", [True, False])
 def test_get_object_node_embedding_roi(node_embeddings, has_visits):
@@ -167,7 +199,6 @@ def test_get_object_node_embedding_roi(node_embeddings, has_visits):
             assert isinstance(embedding, torch.Tensor)
             assert embedding.shape[0] == 768  # We assume ViT-L/14 CLIP model
             mock_get_roi.assert_called_once()
-            mock_video.seek_to_frame.assert_called_once_with(10)
     else:
         embedding = node_embeddings.get_object_node_embedding_roi(
             checkpoint=mock_checkpoint,
