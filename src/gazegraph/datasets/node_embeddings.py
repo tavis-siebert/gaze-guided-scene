@@ -30,6 +30,8 @@ class NodeEmbeddings:
         """
         self.device = device
         self.clip_model = None
+        # Cache for ROI embeddings per visit: (video_name, object_label, visit_start, visit_end) -> list of tensors
+        self._roi_visit_embedding_cache: Dict[Tuple[str, str, int, int], List[torch.Tensor]] = {}
         
     def _get_clip_model(self) -> ClipModel:
         """Get or initialize the text embedding model."""
@@ -162,7 +164,11 @@ class NodeEmbeddings:
         visit_start: int,
         visit_end: int
     ) -> List[torch.Tensor]:
-        """Processes all frames within a single visit and collects ROI embedding only from the frame with highest detection confidence."""
+        """Processes all frames within a single visit and collects ROI embedding only from the frame with highest detection confidence. Caches by (video_name, object_label, visit_start, visit_end)."""
+        cache_key = (video.video_name, object_label, visit_start, visit_end)
+        if cache_key in self._roi_visit_embedding_cache:
+            return self._roi_visit_embedding_cache[cache_key]
+
         video.seek_to_frame(visit_start)
         current_frame_num = visit_start
 
@@ -195,7 +201,6 @@ class NodeEmbeddings:
                 f"Error during frame iteration for visit {visit_start}-{visit_end} "
                 f"for '{object_label}': {e}"
             )
-        # Only extract embedding for best detection (if any)
         collected_roi_embeddings = []
         if best_detection is not None and best_detection_frame_tensor is not None:
             roi_tensor = self._extract_roi(best_detection_frame_tensor, best_detection.bbox)
@@ -209,6 +214,7 @@ class NodeEmbeddings:
                         logger.warning(
                             f"CLIP encoding failed for ROI in best detection frame for '{object_label}' (bbox: {best_detection.bbox}): {e}"
                         )
+        self._roi_visit_embedding_cache[cache_key] = collected_roi_embeddings
         return collected_roi_embeddings
 
     def _is_valid_roi(self, roi_tensor: torch.Tensor) -> bool:
