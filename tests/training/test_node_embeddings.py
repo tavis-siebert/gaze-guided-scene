@@ -147,29 +147,52 @@ def test_roi_embeddings_cache_behavior():
     mock_tracer = MagicMock()
     object_label = "bowl"
     visit_start, visit_end = 10, 20
-    # Patch tracer to return a detection
+    
+    # Create a properly configured mock detection
     dummy_detection = MagicMock()
+    dummy_detection.class_name = object_label  # Match the object label
+    dummy_detection.is_fixated = True
     dummy_detection.confidence = 0.9
+    dummy_detection.score = 0.9
+    dummy_detection.bbox = (0, 0, 32, 32)  # Add a bbox attribute
+    
+    # Configure the tracer to return our detection
     mock_tracer.get_detections_for_frame.return_value = [dummy_detection]
-    # Patch CLIP and PIL
+    
+    # Patch methods to avoid actual image processing
     with patch.object(node_embeddings, '_extract_roi', return_value=torch.ones((3, 32, 32))):
         with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
+            # Configure CLIP model mock
             node_embeddings.clip_model = MagicMock()
             node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
+            
             # First call: should compute and cache
             out1 = node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start, visit_end)
-            assert len(out1) == 1
+            assert len(out1) == 1, "First call should return one embedding"
+            
             # Second call: should hit cache, so encode_image not called again
             node_embeddings.clip_model.encode_image.reset_mock()
             out2 = node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start, visit_end)
-            assert out2 == out1
+            assert out2 == out1, "Second call should return same embeddings from cache"
             node_embeddings.clip_model.encode_image.assert_not_called()
-            # Different key: should compute again
+            
+            # Different key: should compute again with a different result
+            # Create a new mock for the second call to ensure different results
+            node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512)) * 2  # Different value
             out3 = node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start+1, visit_end)
-            assert out3 != out1
+            
+            # Compare tensors properly - can't directly compare tensor lists with !=
+            assert len(out3) == len(out1), "Output lists should have the same length"
+            # Check that at least one tensor element is different
+            is_different = False
+            for t1, t3 in zip(out1, out3):
+                if not torch.allclose(t1, t3):
+                    is_different = True
+                    break
+            assert is_different, "Different visit range should not return identical embeddings"
 
 @pytest.mark.integration
 @pytest.mark.parametrize("has_visits", [True, False])
