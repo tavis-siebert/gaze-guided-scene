@@ -162,7 +162,7 @@ class Node:
         current_frame: int,
         non_black_frame_count: int,
         timestamp_fraction: float,
-        object_labels_to_id: Dict[str, int]
+        object_label_to_id: Dict[str, int]
     ) -> torch.Tensor:
         """
         Get features for this node as a tensor, with normalization for machine learning.
@@ -172,7 +172,7 @@ class Node:
             current_frame: Current frame number
             non_black_frame_count: Number of non-black frames processed
             timestamp_fraction: Fraction of video at current timestamp
-            object_labels_to_id: Mapping from object labels to class indices
+            object_label_to_id: Mapping from object labels to class indices
             num_object_classes: Number of object classes
             
         Returns:
@@ -193,8 +193,8 @@ class Node:
             timestamp_fraction
         ])
         
-        class_idx = object_labels_to_id.get(features["object_label"], 0)
-        one_hot = torch.zeros(len(object_labels_to_id))
+        class_idx = object_label_to_id.get(features["object_label"], 0)
+        one_hot = torch.zeros(len(object_label_to_id))
         one_hot[class_idx] = 1
         
         return torch.cat([temporal_features, one_hot])

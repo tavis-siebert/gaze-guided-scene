@@ -122,7 +122,7 @@ class Video:
 
     def get_labels_to_int(self) -> Dict[str, int]:
         """Get mapping from object label to class index."""
-        return self.metadata.object_labels_to_id
+        return self.metadata.object_label_to_id
     
     def get_action_names(self) -> Dict[int, str]:
         """Get mapping from action indices to human-readable names."""

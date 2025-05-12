@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 class GraphCheckpoint:
     """Encapsulates graph state at a specific timestamp.
 
-    All context attributes (video_name, object_labels_to_id, video_length) are required for correct operation.
+    All context attributes (video_name, object_label_to_id, video_length) are required for correct operation.
     """
     # Graph structure
     nodes: Dict[int, Dict]
@@ -24,13 +24,13 @@ class GraphCheckpoint:
     
     # Shared video context - always required
     video_name: str
-    object_labels_to_id: Dict[str, int]
+    object_label_to_id: Dict[str, int]
     video_length: int
 
     @property
     def num_object_classes(self) -> int:
-        """Return the number of object classes (computed from object_labels_to_id)."""
-        return len(self.object_labels_to_id)
+        """Return the number of object classes (computed from object_label_to_id)."""
+        return len(self.object_label_to_id)
 
     
     def to_dict(self) -> Dict:
@@ -49,12 +49,12 @@ class GraphCheckpoint:
         
         Args:
             data: Dictionary with checkpoint data
-            context: Shared context data (must include video_name, object_labels_to_id, video_length)
+            context: Shared context data (must include video_name, object_label_to_id, video_length)
         """
-        required_keys = ["video_name", "object_labels_to_id", "video_length"]
+        required_keys = ["video_name", "object_label_to_id", "video_length"]
         # Rename for backward compatibility
         if "labels_to_int" in context:
-            context["object_labels_to_id"] = context.pop("labels_to_int")
+            context["object_label_to_id"] = context.pop("labels_to_int")
         missing = [k for k in required_keys if k not in context or context[k] is None]
         if missing:
             raise ValueError(f"Missing required context keys for GraphCheckpoint: {missing}")
@@ -65,7 +65,7 @@ class GraphCheckpoint:
             frame_number=data["frame_number"],
             non_black_frame_count=data["non_black_frame_count"],
             video_name=context["video_name"],
-            object_labels_to_id=context["object_labels_to_id"],
+            object_label_to_id=context["object_label_to_id"],
             video_length=context["video_length"],
         )
 
@@ -171,7 +171,7 @@ class CheckpointManager:
             frame_number=frame_num,
             non_black_frame_count=non_black_frame_count,
             video_name=self.video_name,
-            object_labels_to_id=self.graph.object_labels_to_id,
+            object_label_to_id=self.graph.object_label_to_id,
             video_length=self.graph.video_length
         )
         
@@ -221,7 +221,7 @@ class CheckpointManager:
             frame_number=frame_num,
             non_black_frame_count=non_black_frame_count,
             video_name=self.video_name,
-            object_labels_to_id=self.graph.object_labels_to_id,
+            object_label_to_id=self.graph.object_label_to_id,
 
             video_length=self.graph.video_length
         )
@@ -249,7 +249,7 @@ class CheckpointManager:
             first_checkpoint = self.checkpoints[0]
             context = {
                 "video_name": self.video_name,
-                "object_labels_to_id": first_checkpoint.object_labels_to_id,
+                "object_label_to_id": first_checkpoint.object_label_to_id,
                 "video_length": first_checkpoint.video_length
             }
         else:

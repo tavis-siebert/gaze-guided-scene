@@ -55,7 +55,7 @@ def convert_checkpoint_file(input_path: Path, output_path: Path) -> bool:
         first_checkpoint = checkpoints[0]
         context = {
             "video_name": video_name,
-            "object_labels_to_id": first_checkpoint.object_labels_to_id,
+            "object_label_to_id": first_checkpoint.object_label_to_id,
             "num_object_classes": first_checkpoint.num_object_classes,
             "video_length": first_checkpoint.video_length
         }
