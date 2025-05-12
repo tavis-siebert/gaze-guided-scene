@@ -376,10 +376,24 @@ class ActionRecord:
         return list(cls._noun_id_to_name.values())
     
     @classmethod
+    def get_past_action_records(cls, video_name: str, current_frame: int) -> list:
+        """Get all action records for a video up to and including the current frame, sorted by start_frame."""
+        cls._ensure_initialized()
+        records = cls.get_records_for_video(video_name)
+        return sorted([r for r in records if r.start_frame <= current_frame and r.action_idx is not None], key=lambda r: r.start_frame)
+
+    @classmethod
+    def get_future_action_records(cls, video_name: str, current_frame: int) -> list:
+        """Get all action records for a video after the current frame, sorted by start_frame."""
+        cls._ensure_initialized()
+        records = cls.get_records_for_video(video_name)
+        return sorted([r for r in records if r.start_frame > current_frame and r.action_idx is not None], key=lambda r: r.start_frame)
+
+    @classmethod
     def create_future_action_labels(cls, 
                                     video_name: str, 
                                     current_frame: int,
-                                    num_action_classes: int = None) -> Optional[Dict[str, torch.Tensor]]:
+                                ) -> Dict[str, torch.Tensor]:
         """Create action label tensors for future actions.
         
         Args:
@@ -394,32 +408,15 @@ class ActionRecord:
             - 'future_actions_ordered': Ordered tensor of future action classes
         """
         cls._ensure_initialized()
-        
-        records = cls.get_records_for_video(video_name)
-        if not records:
-            return None
-            
-        if num_action_classes is None:
-            num_action_classes = len(cls._action_to_idx)
-        
-        past_records = [record for record in records if record.end_frame <= current_frame]
-        future_records = [record for record in records if record.start_frame > current_frame]
-        future_records = sorted(future_records, key=lambda record: record.start_frame)
-        
-        future_actions = [
-            record.action_idx
-            for record in future_records if record.action_idx is not None
-        ]
-        
+        num_action_classes = len(cls._action_to_idx)
+        future_records = cls.get_future_action_records(video_name, current_frame)
+        future_actions = [record.action_idx for record in future_records if record.action_idx is not None]
         if not future_actions:
-            return None
-            
+            return {}
         next_action_label = torch.tensor(future_actions[0], dtype=torch.long)
         future_action_labels_ordered = torch.tensor(future_actions, dtype=torch.long)
-        
         future_action_labels = torch.zeros(num_action_classes, dtype=torch.long)
         future_action_labels[list(set(future_actions))] = 1
-        
         return {
             'next_action': next_action_label,
             'future_actions': future_action_labels,
