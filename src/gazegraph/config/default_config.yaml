@@ -5,7 +5,7 @@ base:
 
 # Data directories
 directories:
-  data_dir: ${base.repo_root}/data
+  data_dir: ${base.scratch_dir}/data
   egtea: ${directories.data_dir}/egtea_gaze
   graphs: ${directories.data_dir}/graphs
   traces: ${directories.data_dir}/traces
