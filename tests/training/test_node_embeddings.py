@@ -4,6 +4,7 @@ Unit tests for the NodeEmbeddings class.
 
 import pytest
 import torch
+import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from PIL import Image
@@ -13,6 +14,7 @@ from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.graph.checkpoint_manager import CheckpointManager
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
+from gazegraph.config.config_utils import get_config
 
 
 @pytest.fixture
@@ -22,7 +24,8 @@ def device():
 @pytest.fixture
 def node_embeddings(device):
     """Fixture for a NodeEmbeddings instance configured for testing."""
-    return NodeEmbeddings(device=device)
+    # Disable prepopulation for most tests to avoid unnecessary computation
+    return NodeEmbeddings(device=device, prepopulate_caches=False)
 
 
 @pytest.fixture
@@ -403,3 +406,131 @@ def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer,
     accuracy = correct_count / total_count
     print(f"Accuracy: {accuracy}")
     assert accuracy > 0.5, f"Accuracy is too low: {accuracy}"
+
+
+@pytest.fixture
+def cleanup_cache_files():
+    """Fixture to clean up cache files before and after tests."""
+    # Get cache paths from config
+    config = get_config()
+    object_path = Path(config.dataset.embeddings_cache.object_label_embedding_path)
+    action_path = Path(config.dataset.embeddings_cache.action_label_embedding_path)
+    
+    # Remove cache files before test if they exist
+    if object_path.exists():
+        object_path.unlink()
+    if action_path.exists():
+        action_path.unlink()
+    
+    yield
+    
+    # Clean up after test
+    if object_path.exists():
+        object_path.unlink()
+    if action_path.exists():
+        action_path.unlink()
+
+
+@pytest.mark.unit
+def test_prepopulate_caches(device, cleanup_cache_files):
+    """Test that caches are prepopulated with all noun and action labels."""
+    # Mock the ActionRecord methods
+    mock_noun_names = ["bowl", "spoon", "cup"]
+    mock_action_names = {0: "take bowl", 1: "put spoon", 2: "wash cup"}
+    
+    with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_noun_names", return_value=mock_noun_names), \
+         patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_names", return_value=mock_action_names):
+        
+        # Create mock clip model that returns predictable embeddings
+        mock_clip_model = MagicMock()
+        mock_clip_model.encode_texts.side_effect = lambda texts: [torch.ones((1, 768)) * i for i, _ in enumerate(texts)]
+        
+        with patch("gazegraph.models.clip.ClipModel", return_value=mock_clip_model):
+            # Initialize with prepopulate_caches=True
+            node_embeddings = NodeEmbeddings(device=device, prepopulate_caches=True)
+            
+            # Check that caches were populated
+            assert len(node_embeddings._object_label_embedding_cache) == len(mock_noun_names)
+            assert len(node_embeddings._action_label_embedding_cache) == len(mock_action_names)
+            
+            # Check that cache files were created
+            assert node_embeddings.object_label_embedding_path.exists()
+            assert node_embeddings.action_label_embedding_path.exists()
+
+
+@pytest.mark.unit
+def test_load_caches(device, cleanup_cache_files):
+    """Test that caches are loaded from files if they exist."""
+    # Get config for paths
+    config = get_config()
+    object_path = Path(config.dataset.embeddings_cache.object_label_embedding_path)
+    action_path = Path(config.dataset.embeddings_cache.action_label_embedding_path)
+    
+    # Create mock cache data
+    mock_object_cache = {"bowl": torch.ones((1, 768)), "spoon": torch.ones((1, 768)) * 2}
+    mock_action_cache = {"take bowl": torch.ones((1, 768)) * 3, "put spoon": torch.ones((1, 768)) * 4}
+    
+    # Create cache directory if it doesn't exist
+    os.makedirs(object_path.parent, exist_ok=True)
+    
+    # Save mock caches to files
+    torch.save(mock_object_cache, object_path)
+    torch.save(mock_action_cache, action_path)
+    
+    # Initialize with prepopulate_caches=False to test only loading
+    node_embeddings = NodeEmbeddings(device=device, prepopulate_caches=False)
+    
+    # Check that caches were loaded correctly
+    assert len(node_embeddings._object_label_embedding_cache) == len(mock_object_cache)
+    assert len(node_embeddings._action_label_embedding_cache) == len(mock_action_cache)
+    
+    # Check that the loaded embeddings match the mock data
+    for label, embedding in mock_object_cache.items():
+        assert label in node_embeddings._object_label_embedding_cache
+        assert torch.allclose(node_embeddings._object_label_embedding_cache[label], embedding)
+    
+    for label, embedding in mock_action_cache.items():
+        assert label in node_embeddings._action_label_embedding_cache
+        assert torch.allclose(node_embeddings._action_label_embedding_cache[label], embedding)
+
+
+@pytest.mark.unit
+def test_prepopulate_and_load_caches_integration(device, cleanup_cache_files):
+    """Test the full cycle of prepopulating, saving, and loading caches."""
+    # Mock the ActionRecord methods
+    mock_noun_names = ["bowl", "spoon", "cup"]
+    mock_action_names = {0: "take bowl", 1: "put spoon", 2: "wash cup"}
+    
+    with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_noun_names", return_value=mock_noun_names), \
+         patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_names", return_value=mock_action_names):
+        
+        # First instance: prepopulate and save caches
+        first_instance = NodeEmbeddings(device=device, prepopulate_caches=True)
+        
+        # Check that cache files were created
+        assert first_instance.object_label_embedding_path.exists()
+        assert first_instance.action_label_embedding_path.exists()
+        
+        # Store the original cache contents for comparison
+        original_object_cache = first_instance._object_label_embedding_cache.copy()
+        original_action_cache = first_instance._action_label_embedding_cache.copy()
+        
+        # Second instance: should load from cache files
+        # Mock the methods to return empty values to ensure we're loading from cache
+        with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_noun_names", return_value=[]), \
+             patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_names", return_value={}):
+            
+            second_instance = NodeEmbeddings(device=device, prepopulate_caches=True)
+            
+            # Check that caches were loaded correctly
+            assert len(second_instance._object_label_embedding_cache) == len(original_object_cache)
+            assert len(second_instance._action_label_embedding_cache) == len(original_action_cache)
+            
+            # Check that the loaded embeddings match the original data
+            for label, embedding in original_object_cache.items():
+                assert label in second_instance._object_label_embedding_cache
+                assert torch.allclose(second_instance._object_label_embedding_cache[label], embedding)
+            
+            for label, embedding in original_action_cache.items():
+                assert label in second_instance._action_label_embedding_cache
+                assert torch.allclose(second_instance._action_label_embedding_cache[label], embedding)

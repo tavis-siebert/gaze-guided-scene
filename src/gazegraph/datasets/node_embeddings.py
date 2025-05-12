@@ -2,15 +2,18 @@
 Node embedding module for creating semantic embeddings of graph nodes.
 """
 
+import os
 import torch
 from typing import Optional, Dict, List, Tuple
 from PIL import Image
+from pathlib import Path
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.models.clip import ClipModel
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
+from gazegraph.config.config_utils import get_config
 from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
@@ -21,21 +24,35 @@ class NodeEmbeddings:
     Handles creation of embeddings for various node types in scene graphs.
     """
     
-    def __init__(self, device: str = "cuda"):
+    def __init__(self, device: str = "cuda", prepopulate_caches: bool = True):
         """
         Initialize the node embedder.
         
         Args:
             device: Device to run models on ("cuda" or "cpu")
+            prepopulate_caches: Whether to prepopulate the embedding caches
         """
         self.device = device
         self.clip_model = ClipModel(device=self.device)
+        self.config = get_config()
+        
+        # Get cache paths from config
+        self.object_label_embedding_path = Path(self.config.dataset.embeddings_cache.object_label_embedding_path)
+        self.action_label_embedding_path = Path(self.config.dataset.embeddings_cache.action_label_embedding_path)
+        
         # Cache for ROI embeddings per visit: (video_name, object_label, visit_start, visit_end) -> list of tensors
         self._roi_visit_embedding_cache: Dict[Tuple[str, str, int, int], List[torch.Tensor]] = {}
         # Cache for object label embeddings: object_label -> tensor
         self._object_label_embedding_cache: Dict[str, torch.Tensor] = {}
         # Cache for action label embeddings: action_label -> tensor
         self._action_label_embedding_cache: Dict[str, torch.Tensor] = {}
+        
+        # Try to load caches from files first
+        self._load_caches()
+        
+        # Prepopulate caches if requested and not already loaded
+        if prepopulate_caches and (not self._object_label_embedding_cache or not self._action_label_embedding_cache):
+            self._prepopulate_caches()
         
     def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:
         """
@@ -312,3 +329,98 @@ class NodeEmbeddings:
         roi = frame[:, top:bottom, left:right]
         
         return roi
+        
+    def _prepopulate_caches(self) -> None:
+        """
+        Prepopulate the object and action label embedding caches using all available labels.
+        This improves performance by avoiding repeated encoding of the same labels.
+        """
+        logger.info("Prepopulating embedding caches...")
+        
+        # Prepopulate object label embeddings cache
+        noun_labels = ActionRecord.get_noun_names()
+        if noun_labels:
+            logger.info(f"Prepopulating object label embeddings for {len(noun_labels)} nouns")
+            for noun_label in noun_labels:
+                if noun_label not in self._object_label_embedding_cache:
+                    # Format the label for CLIP ("a photo of a [noun]")
+                    formatted_label = f"a photo of a {noun_label.replace('_', ' ')}"
+                    embedding = self.clip_model.encode_texts([formatted_label])[0]
+                    self._object_label_embedding_cache[noun_label] = embedding
+            logger.info(f"Completed prepopulating {len(self._object_label_embedding_cache)} object label embeddings")
+            
+            # Save the object label embeddings cache
+            self._save_object_label_embeddings_cache()
+        else:
+            logger.warning("No noun labels found for prepopulating object label embeddings cache")
+        
+        # Prepopulate action label embeddings cache
+        action_names = ActionRecord.get_action_names()
+        if action_names:
+            logger.info(f"Prepopulating action label embeddings for {len(action_names)} actions")
+            for action_idx, action_name in action_names.items():
+                if action_name not in self._action_label_embedding_cache:
+                    embedding = self.clip_model.encode_texts([action_name])[0]
+                    self._action_label_embedding_cache[action_name] = embedding
+            logger.info(f"Completed prepopulating {len(self._action_label_embedding_cache)} action label embeddings")
+            
+            # Save the action label embeddings cache
+            self._save_action_label_embeddings_cache()
+        else:
+            logger.warning("No action names found for prepopulating action label embeddings cache")
+    
+    def _save_object_label_embeddings_cache(self) -> None:
+        """
+        Save the object label embeddings cache to a file.
+        """
+        if not self._object_label_embedding_cache:
+            logger.warning("Object label embeddings cache is empty, nothing to save")
+            return
+            
+        # Create directory if it doesn't exist
+        os.makedirs(self.object_label_embedding_path.parent, exist_ok=True)
+        
+        try:
+            torch.save(self._object_label_embedding_cache, self.object_label_embedding_path)
+            logger.info(f"Saved object label embeddings cache to {self.object_label_embedding_path}")
+        except Exception as e:
+            logger.error(f"Failed to save object label embeddings cache: {e}")
+    
+    def _save_action_label_embeddings_cache(self) -> None:
+        """
+        Save the action label embeddings cache to a file.
+        """
+        if not self._action_label_embedding_cache:
+            logger.warning("Action label embeddings cache is empty, nothing to save")
+            return
+            
+        # Create directory if it doesn't exist
+        os.makedirs(self.action_label_embedding_path.parent, exist_ok=True)
+        
+        try:
+            torch.save(self._action_label_embedding_cache, self.action_label_embedding_path)
+            logger.info(f"Saved action label embeddings cache to {self.action_label_embedding_path}")
+        except Exception as e:
+            logger.error(f"Failed to save action label embeddings cache: {e}")
+    
+    def _load_caches(self) -> None:
+        """
+        Load the object and action label embedding caches from files if they exist.
+        """
+        # Load object label embeddings cache
+        if self.object_label_embedding_path.exists():
+            try:
+                self._object_label_embedding_cache = torch.load(self.object_label_embedding_path)
+                logger.info(f"Loaded {len(self._object_label_embedding_cache)} object label embeddings from cache file")
+            except Exception as e:
+                logger.error(f"Failed to load object label embeddings cache: {e}")
+                self._object_label_embedding_cache = {}
+        
+        # Load action label embeddings cache
+        if self.action_label_embedding_path.exists():
+            try:
+                self._action_label_embedding_cache = torch.load(self.action_label_embedding_path)
+                logger.info(f"Loaded {len(self._action_label_embedding_cache)} action label embeddings from cache file")
+            except Exception as e:
+                logger.error(f"Failed to load action label embeddings cache: {e}")
+                self._action_label_embedding_cache = {}
