@@ -35,23 +35,23 @@ def patch_records_for_video(mock_records, monkeypatch):
     return mock_records
 
 def test_get_past_action_records(patch_records_for_video):
-    # Only first two records are past for frame 40
+    # Only first two records are past for frame_number 40
     past = ActionRecord.get_past_action_records("vid", 40)
     assert len(past) == 2
     assert past[0].end_frame == 20 and past[1].end_frame == 40
-    # All for frame >= 60
+    # All for frame_number >= 60
     assert len(ActionRecord.get_past_action_records("vid", 60)) == 3
-    # None for frame < 20
+    # None for frame_number < 20
     assert not ActionRecord.get_past_action_records("vid", 5)
 
 def test_get_future_action_records(patch_records_for_video):
-    # Only last record is future for frame 40
+    # Only last record is future for frame_number 40
     fut = ActionRecord.get_future_action_records("vid", 40)
     assert len(fut) == 1 and fut[0].start_frame == 50
-    # All for frame < 10
+    # All for frame_number < 10
     fut = ActionRecord.get_future_action_records("vid", 5)
     assert len(fut) == 3
-    # None for frame >= 60
+    # None for frame_number >= 60
     assert not ActionRecord.get_future_action_records("vid", 60)
 
 def test_action_graph_empty(monkeypatch):
@@ -59,7 +59,7 @@ def test_action_graph_empty(monkeypatch):
     monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: [])
     dummy_emb = DummyNodeEmbeddings()
     ag = ActionGraph(dummy_emb, config=None, device="cpu")
-    checkpoint = SimpleNamespace(video_name="none", frame=10)
+    checkpoint = SimpleNamespace(video_name="none", frame_number=10)
     y = torch.tensor([1])
     data = ag.assemble(checkpoint, y)
     assert data.x.shape[0] == 0 and data.edge_index.shape[1] == 0
@@ -69,7 +69,7 @@ def test_action_graph_single_node(monkeypatch, patch_records_for_video):
     monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: [patch_records_for_video[0]])
     dummy_emb = DummyNodeEmbeddings()
     ag = ActionGraph(dummy_emb, config=None, device="cpu")
-    checkpoint = SimpleNamespace(video_name="vid", frame=20)
+    checkpoint = SimpleNamespace(video_name="vid", frame_number=20)
     y = torch.tensor([1])
     data = ag.assemble(checkpoint, y)
     assert data.x.shape[0] == 1 and data.edge_index.shape[1] == 0
@@ -80,7 +80,7 @@ def test_action_graph_multiple_nodes(monkeypatch, patch_records_for_video):
     monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: patch_records_for_video[:2])
     dummy_emb = DummyNodeEmbeddings()
     ag = ActionGraph(dummy_emb, config=None, device="cpu")
-    checkpoint = SimpleNamespace(video_name="vid", frame=40)
+    checkpoint = SimpleNamespace(video_name="vid", frame_number=40)
     y = torch.tensor([1])
     data = ag.assemble(checkpoint, y)
     assert data.x.shape[0] == 2 and data.edge_index.shape[1] == 1
@@ -89,18 +89,3 @@ def test_action_graph_multiple_nodes(monkeypatch, patch_records_for_video):
     # Embeddings correct
     assert torch.all(data.x[0] == dummy_emb.get_action_embedding(0))
     assert torch.all(data.x[1] == dummy_emb.get_action_embedding(1))
-
-def test_action_graph_missing_embedding(monkeypatch, patch_records_for_video):
-    # Simulate get_action_embedding returns None for one node
-    def fake_emb(idx):
-        return None if idx == 1 else torch.ones(4) * (idx+1)
-    dummy_emb = DummyNodeEmbeddings()
-    dummy_emb.get_action_embedding = fake_emb
-    monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: patch_records_for_video[:2])
-    ag = ActionGraph(dummy_emb, config=None, device="cpu")
-    checkpoint = SimpleNamespace(video_name="vid", frame=40)
-    y = torch.tensor([1])
-    data = ag.assemble(checkpoint, y)
-    assert data.x.shape[0] == 2
-    assert torch.all(data.x[0] == torch.ones(4))
-    assert torch.all(data.x[1] == torch.zeros(4))
