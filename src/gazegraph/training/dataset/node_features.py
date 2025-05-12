@@ -83,21 +83,26 @@ class NodeFeatureExtractor(ABC):
         return temporal_features
     
     def _normalize_features(self, features_tensor: torch.Tensor) -> torch.Tensor:
-        """Apply normalization to the features tensor.
-        
-        Args:
-            features_tensor: Tensor of node features
-            
-        Returns:
-            Normalized tensor of node features
         """
-        if features_tensor.shape[0] == 0:
+        Normalize the features tensor. Always expects a 2D tensor [num_nodes, num_features].
+        For empty input, returns empty tensor. For single-node or single-feature, handles gracefully.
+        Currently normalizes the visit count (column 1) if present and max > 0.
+        Args:
+            features_tensor: [num_nodes, num_features] tensor
+        Returns:
+            Normalized tensor, same shape
+        """
+        if features_tensor.numel() == 0:
             return features_tensor
-        
-        # Normalize visit count if needed
-        if features_tensor[:, 1].max() > 0:
-            features_tensor[:, 1] /= features_tensor[:, 1].max()
-        
+        # Ensure 2D shape
+        if features_tensor.dim() == 1:
+            features_tensor = features_tensor.unsqueeze(0)
+        # Only normalize if at least two features
+        if features_tensor.size(1) > 1:
+            visit_col = features_tensor[:, 1]
+            max_visit = visit_col.max()
+            if max_visit > 0:
+                features_tensor[:, 1] = visit_col / max_visit
         return features_tensor
     
     @abstractmethod
@@ -155,7 +160,7 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
         features_list = []
         for node_id, node_data in checkpoint.nodes.items():
             # Get temporal features
-            temporal_features = self._extract_temporal_features(checkpoint, node_id)
+            temporal_features = self._extract_temporal_features(checkpoint, node_id).flatten()
                 
             # Create one-hot encoding for object class on the same device as temporal features
             class_idx = checkpoint.object_label_to_id.get(node_data["object_label"], 0)
@@ -163,7 +168,7 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
             one_hot[class_idx] = 1
             
             # Combine features (now guaranteed to be on the same device)
-            node_features = torch.cat([temporal_features, one_hot])
+            node_features = torch.cat([temporal_features, one_hot], dim=0)
             features_list.append(node_features)
         
         if not features_list:
@@ -262,27 +267,16 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         features_list = []
         for node_id in checkpoint.nodes.keys():
             # Get temporal features
-            temporal_features = self._extract_temporal_features(checkpoint, node_id)
+            temporal_features = self._extract_temporal_features(checkpoint, node_id).flatten()
             
             # Get ROI embedding for the node
-            roi_embedding = self._get_roi_embedding(checkpoint, node_id)
-            
-            # Ensure both tensors are on the same device
+            roi_embedding = self._get_roi_embedding(checkpoint, node_id).flatten()
             if temporal_features.device != roi_embedding.device:
                 # Move to the device of roi_embedding (likely CUDA)
                 temporal_features = temporal_features.to(roi_embedding.device)
             
-            # Ensure both tensors have the same number of dimensions before concatenation
-            if temporal_features.dim() != roi_embedding.dim():
-                if temporal_features.dim() == 1 and roi_embedding.dim() == 2:
-                    # Reshape temporal_features to match roi_embedding's dimensions
-                    temporal_features = temporal_features.unsqueeze(0)
-                elif roi_embedding.dim() == 1 and temporal_features.dim() == 2:
-                    # Reshape roi_embedding to match temporal_features's dimensions
-                    roi_embedding = roi_embedding.unsqueeze(0)
-        
             # Combine features
-            node_features = torch.cat([temporal_features, roi_embedding], dim=-1)
+            node_features = torch.cat([temporal_features, roi_embedding], dim=0)
             features_list.append(node_features)
         
         if not features_list:
@@ -363,37 +357,18 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         """
         features_list = []
         for node_id in checkpoint.nodes.keys():
-            # Get temporal features
             temporal_features = self._extract_temporal_features(checkpoint, node_id)
-            
-            # Get label embedding for the node
             label_embedding = self._get_label_embedding(checkpoint, node_id)
-            
-            # Ensure both tensors are on the same device
+            # Ensure both are 1D and on the same device
             if temporal_features.device != label_embedding.device:
-                # Move to the device of label_embedding (likely CUDA)
                 temporal_features = temporal_features.to(label_embedding.device)
-            
-            # Ensure both tensors have the same number of dimensions before concatenation
-            if temporal_features.dim() != label_embedding.dim():
-                if temporal_features.dim() == 1 and label_embedding.dim() == 2:
-                    # Reshape temporal_features to match label_embedding's dimensions
-                    temporal_features = temporal_features.unsqueeze(0)
-                elif label_embedding.dim() == 1 and temporal_features.dim() == 2:
-                    # Reshape label_embedding to match temporal_features's dimensions
-                    label_embedding = label_embedding.unsqueeze(0)
-        
-            # Combine features
-            node_features = torch.cat([temporal_features, label_embedding], dim=-1)
+            temporal_features = temporal_features.flatten()
+            label_embedding = label_embedding.flatten()
+            node_features = torch.cat([temporal_features, label_embedding], dim=0)
             features_list.append(node_features)
-        
         if not features_list:
-            return torch.tensor([], device=self.device)
-            
-        # Stack all node features
+            return torch.empty((0, self.feature_dim), device=getattr(self, 'device', 'cpu'))
         node_features_tensor = torch.stack(features_list)
-        
-        # Apply normalization
         return self._normalize_features(node_features_tensor)
     
     @property
