@@ -1,13 +1,11 @@
-from typing import Dict, List, Optional, Set, Tuple, Any, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 import torch
-import numpy as np
-from collections import deque, defaultdict
-import math
+from collections import defaultdict
 
 from gazegraph.graph.node import Node, VisitRecord
 from gazegraph.graph.edge import Edge
-from gazegraph.graph.utils import AngleUtils, GraphTraversal
 from gazegraph.logger import get_logger
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 
 if TYPE_CHECKING:
     from gazegraph.graph.checkpoint_manager import GraphCheckpoint
@@ -24,11 +22,10 @@ logger = get_logger(__name__)
 class Graph:
     """A scene graph representing objects and their spatial relationships."""
     
-    def __init__(self, object_label_to_id: Dict[str, int] = None, video_length: int = 0):
+    def __init__(self, video_length: int = 0):
         """Initialize an empty graph with a root node.
         
         Args:
-            object_label_to_id: Mapping from object labels to class indices
             video_length: Total length of the video
         """
         self.root = Node(id=-1, object_label='root')
@@ -39,7 +36,7 @@ class Graph:
         self.adjacency = defaultdict(list)
         self.tracer = None
         
-        self.object_label_to_id = object_label_to_id or {}
+        self.object_label_to_id = ActionRecord.get_noun_label_mapping()
         self.video_length = video_length
 
     @property

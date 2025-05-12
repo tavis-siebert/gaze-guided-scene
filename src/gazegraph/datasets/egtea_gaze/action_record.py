@@ -354,19 +354,26 @@ class ActionRecord:
         return action_names.get(action_idx)
     
     @classmethod
-    def get_noun_label_mappings(cls) -> Tuple[Dict[int, str], Dict[str, int]]:
+    def get_noun_label_mapping(cls) -> Dict[str, int]:
         """Get noun label mappings.
         
         Returns:
-            Tuple containing:
-            - Dictionary mapping noun IDs to names
-            - Dictionary mapping noun names to IDs
+            Dictionary mapping noun labels to IDs
         """
         cls._ensure_initialized()
         # Return copies to prevent modification of internal state
-        id_to_name = dict(cls._noun_id_to_name)
-        name_to_id = {name: id for id, name in id_to_name.items()}
-        return id_to_name, name_to_id
+        name_to_id = {name: id for id, name in cls._noun_id_to_name.items()}
+        return name_to_id
+
+    @classmethod
+    def get_noun_names(cls) -> List[str]:
+        """Get list of noun names.
+        
+        Returns:
+            List of noun names
+        """
+        cls._ensure_initialized()
+        return list(cls._noun_id_to_name.values())
     
     @classmethod
     def create_future_action_labels(cls, 

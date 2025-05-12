@@ -383,8 +383,7 @@ def test_action_label_embedding_cache(node_embeddings):
 @pytest.mark.gpu
 def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer, test_video):
     """Test that the best detection in the visit range is (mostly) correctly classified (top 3)."""
-    id_to_name, _ = ActionRecord.get_noun_label_mappings()
-    object_labels = list(id_to_name.values())
+    object_labels = ActionRecord.get_noun_names()
     object_labels = [f"a photo of a {label.replace('_', ' ')}" for label in object_labels]
     clip_model = node_embeddings._get_clip_model()
     node_ids = [nid for nid, node in test_checkpoint.nodes.items() 

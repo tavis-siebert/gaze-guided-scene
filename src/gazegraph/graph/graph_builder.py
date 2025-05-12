@@ -11,10 +11,10 @@ from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.graph.checkpoint_manager import CheckpointManager
 from gazegraph.graph.gaze import GazePoint, GazeType
 from gazegraph.graph.object_detection import ObjectDetector
-from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.config.config_utils import DotDict
 from gazegraph.logger import get_logger
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 
 logger = get_logger(__name__)
 
@@ -41,8 +41,6 @@ class GraphBuilder:
         self.enable_tracing = enable_tracing
         self.output_dir = output_dir
         self.tracer = GraphTracer(self.config.directories.traces, "", enabled=False)
-        
-        self.metadata = VideoMetadata(self.config)
         
         # Initialize YOLO-World model path
         backend = self.config.models.yolo_world.backend
@@ -113,7 +111,7 @@ class GraphBuilder:
         # Initialize object detector with video-specific tracer
         self.object_detector = ObjectDetector(
             model_path=self.yolo_model_path,
-            class_id_to_name=self.metadata.id_to_object_label,
+            classes=ActionRecord.get_noun_names(),
             config=self.config,
             tracer=self.tracer
         )
@@ -124,8 +122,6 @@ class GraphBuilder:
         
         # Create scene graph
         self.scene_graph = Graph(
-            object_label_to_id=self.metadata.object_label_to_id,
-
             video_length=self.video.length
         )
         self.scene_graph.tracer = self.tracer
