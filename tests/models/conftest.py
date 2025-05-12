@@ -11,7 +11,7 @@ from pathlib import Path
 from gazegraph.models.clip import ClipModel
 
 # Get the test images directory path
-TEST_IMAGES_DIR = Path(__file__).parent.parent.parent / "data" / "tests" / "images"
+TEST_IMAGES_DIR = Path(__file__).parent.parent / "resources" / "clip"
 
 @pytest.fixture
 def clip_model():

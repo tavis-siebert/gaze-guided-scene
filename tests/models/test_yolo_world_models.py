@@ -18,7 +18,8 @@ def onnx_model_path():
 
 @pytest.fixture
 def test_dir():
-    path = Path("data/tests/yolo-world")
+    """Fixture for test directory."""
+    path = Path(__file__).parent.parent / "resources" / "yolo-world"
     if not path.exists():
         pytest.skip(f"Test directory not found: {path}")
     return path
