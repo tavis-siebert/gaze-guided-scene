@@ -34,7 +34,7 @@ class GraphDataset(Dataset):
         pre_transform=None,
         pre_filter=None,
         config=None,
-        node_feature_type: str = "one-hot",
+        object_node_feature: str = "one-hot",
         device: str = "cuda"
     ):
         self.root_dir = Path(root_dir) / split
@@ -50,8 +50,8 @@ class GraphDataset(Dataset):
         self.node_drop_p = node_drop_p
         self.max_droppable = max_droppable
         self.device = device
-        self.node_feature_type = node_feature_type
-        self.node_feature_extractor = get_node_feature_extractor(node_feature_type, device=device)
+        self.object_node_feature = object_node_feature
+        self.node_feature_extractor = get_node_feature_extractor(object_node_feature, device=device)
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
             self.sample_tuples : List[Tuple[GraphCheckpoint, dict]] = []
@@ -149,7 +149,7 @@ class GraphDataset(Dataset):
 
     def _extract_node_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
         logger.info(f"Extracting node features for checkpoint {checkpoint.video_name} at frame {checkpoint.frame_number}")
-        if self.node_feature_type == "roi-embeddings":
+        if self.object_node_feature == "roi-embeddings":
             tracer = self._get_tracer_for_checkpoint(checkpoint)
             video = self._get_video_for_checkpoint(checkpoint)
             if tracer and video:

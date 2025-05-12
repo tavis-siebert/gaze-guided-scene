@@ -14,16 +14,16 @@ from logger import get_logger
 from pathlib import Path
 
 class BaseTask:
-    def __init__(self, config, device, task_name, node_feature_type="one-hot", load_cached=False):
+    def __init__(self, config, device, task_name, object_node_feature="one-hot", load_cached=False):
         self.task = task_name
         self.device = device
         self.config = config
         self.num_classes = config.training.num_classes
         self.logger = get_logger(__name__)
-        self.node_feature_type = node_feature_type
+        self.object_node_feature = object_node_feature
         self.load_cached = load_cached
         
-        self.logger.info(f"Using node feature type: {node_feature_type}")
+        self.logger.info(f"Using node feature type: {object_node_feature}")
         
         # Load data and setup loaders
         self._setup_data()
@@ -84,7 +84,7 @@ class BaseTask:
             split="train",
             task_mode=self.task,
             config=self.config,
-            node_feature_type=self.node_feature_type,
+            object_node_feature=self.object_node_feature,
             device=self.device,
             load_cached=self.load_cached
         )
@@ -95,7 +95,7 @@ class BaseTask:
             split="val",
             task_mode=self.task,
             config=self.config,
-            node_feature_type=self.node_feature_type,
+            object_node_feature=self.object_node_feature,
             device=self.device,
             load_cached=self.load_cached
         )

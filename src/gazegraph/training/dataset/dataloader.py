@@ -14,7 +14,7 @@ def create_dataloader(
     split: str = "train",
     task_mode: str = "future_actions",
     config=None,
-    node_feature_type: str = "one-hot",
+    object_node_feature: str = "one-hot",
     device: str = "cuda",
     load_cached: bool = False
 ) -> DataLoader:
@@ -25,7 +25,7 @@ def create_dataloader(
         split: Dataset split ("train" or "val")
         task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
         config: Configuration object containing dataset and training parameters
-        node_feature_type: Type of node features to use
+        object_node_feature: Type of node features to use
         device: Device to use for processing
         load_cached: Whether to load cached dataset from file
         
@@ -50,8 +50,8 @@ def create_dataloader(
             dataset = torch.load(cache_file)
             
             # Check for configuration differences and warn if needed
-            if dataset.node_feature_type != node_feature_type:
-                logger.warning(f"Cached dataset uses '{dataset.node_feature_type}' features, but '{node_feature_type}' was requested")
+            if dataset.object_node_feature != object_node_feature:
+                logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' features, but '{object_node_feature}' was requested")
             if dataset.task_mode != task_mode:
                 logger.warning(f"Cached dataset uses '{dataset.task_mode}' task mode, but '{task_mode}' was requested")
             if dataset.node_drop_p != node_drop_p:
@@ -61,11 +61,11 @@ def create_dataloader(
                 
         except Exception as e:
             logger.error(f"Failed to load cached dataset: {e}")
-            dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, node_feature_type, device, cache_file)
+            dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file)
     else:
         if load_cached:
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
-        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, node_feature_type, device, cache_file)
+        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file)
     
     return DataLoader(
         dataset,
@@ -75,7 +75,7 @@ def create_dataloader(
     )
 
 
-def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, node_feature_type, device, cache_file=None):
+def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file=None):
     """Create a new GraphDataset and optionally save it to cache.
     
     Args:
@@ -85,7 +85,7 @@ def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, c
         node_drop_p: Probability of dropping nodes during training
         max_droppable: Maximum number of nodes to drop during augmentation
         config: Configuration object containing dataset and training parameters
-        node_feature_type: Type of node features to use
+        object_node_feature: Type of object node features to use
         device: Device to use for processing
         cache_file: Path to save the dataset cache
         
@@ -99,7 +99,7 @@ def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, c
         node_drop_p=node_drop_p,
         max_droppable=max_droppable,
         config=config,
-        node_feature_type=node_feature_type,
+        object_node_feature=object_node_feature,
         device=device
     )
     
