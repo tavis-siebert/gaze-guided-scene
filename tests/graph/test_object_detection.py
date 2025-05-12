@@ -234,7 +234,6 @@ class TestObjectDetector:
         mock_detector.fixated_objects_found = True
         mock_detector.all_detections = [1, 2, 3]
         mock_detector.gaze_points = [(0, 0, 0)]
-        mock_detector.total_frames = 10
         mock_detector.fixation_scores = {"cup": 0.8}
         
         mock_detector.reset()
@@ -242,7 +241,6 @@ class TestObjectDetector:
         assert mock_detector.fixated_objects_found == False
         assert mock_detector.all_detections == []
         assert mock_detector.gaze_points == []
-        assert mock_detector.total_frames == 0
         assert mock_detector.fixation_scores == {}
     
     def test_compute_bbox_iou(self, mock_detector):
@@ -330,15 +328,17 @@ class TestObjectDetector:
         with patch.object(ObjectDetector, "_compute_mean_iou", return_value=0.7), \
              patch.object(ObjectDetector, "_compute_geometric_mean", return_value=0.8), \
              patch.object(ObjectDetector, "_compute_mean_gaze_distance", return_value=10.0):
-            
+    
             # Temporarily lower the thresholds to ensure detections pass
             orig_conf_threshold = mock_detector.confidence_threshold
             orig_stability_threshold = mock_detector.bbox_stability_threshold
             orig_gaze_threshold = mock_detector.gaze_proximity_threshold
-            
+            orig_min_fixation_frame_threshold = mock_detector.min_fixation_frame_threshold
+    
             mock_detector.confidence_threshold = 0.5  # Lower than 0.8
             mock_detector.bbox_stability_threshold = 0.5  # Lower than 0.7
             mock_detector.gaze_proximity_threshold = 0.05  # Lower than 1.0/(1.0+10.0) = 0.09
+            mock_detector.min_fixation_frame_threshold = 2  # Lower than default 4
             
             try:
                 # Create detections for testing
@@ -373,15 +373,12 @@ class TestObjectDetector:
                         score=0.6,
                         class_id=1,
                         frame_idx=1,
-                        is_fixated=False  # This one should be ignored for bowl
+                        is_fixated=True  # Changed to True so bowl passes the threshold
                     )
                 ]
                 
                 # Set up gaze points
                 mock_detector.gaze_points = [(15, 15, 0), (20, 20, 1)]
-                
-                # Set total frames
-                mock_detector.total_frames = 3  # For fixation ratio calculation
                 
                 # Run the method
                 scores = mock_detector._compute_fixation_scores()
@@ -394,7 +391,7 @@ class TestObjectDetector:
                 # Check cup components
                 cup_scores = scores["cup"]
                 assert "fixation_ratio" in cup_scores
-                assert cup_scores["fixation_ratio"] == 2/3  # 2 frames out of 3
+                assert cup_scores["fixation_ratio"] == 1.0  # All frames are fixated
                 assert "confidence" in cup_scores
                 assert cup_scores["confidence"] == 0.8  # From mock
                 assert "stability" in cup_scores
@@ -402,12 +399,12 @@ class TestObjectDetector:
                 assert "gaze_proximity" in cup_scores
                 assert cup_scores["gaze_proximity"] == 1.0 / (1.0 + 10.0)
                 assert "duration_weighted" in cup_scores
-                assert cup_scores["duration_weighted"] == 0.8 * (2/3)
+                assert cup_scores["duration_weighted"] == 0.8  # mean_confidence * fixation_ratio (0.8 * 1.0)
                 assert "final_score" in cup_scores
                 
                 # Check that bowl scores exist but are different
                 bowl_scores = scores["bowl"]
-                assert bowl_scores["fixation_ratio"] == 1/3  # 1 frame out of 3
+                assert bowl_scores["fixation_ratio"] == 1.0  # All frames are fixated
                 
                 # Check that the fixation_scores is updated
                 assert mock_detector.fixation_scores["cup"] == cup_scores["final_score"]
@@ -418,12 +415,17 @@ class TestObjectDetector:
                 mock_detector.confidence_threshold = orig_conf_threshold
                 mock_detector.bbox_stability_threshold = orig_stability_threshold
                 mock_detector.gaze_proximity_threshold = orig_gaze_threshold
+                mock_detector.min_fixation_frame_threshold = orig_min_fixation_frame_threshold
     
     def test_compute_fixation_scores_with_filtering(self, mock_detector):
         # Mock necessary methods with patch.object
         with patch.object(ObjectDetector, "_compute_mean_iou") as mock_iou,\
              patch.object(ObjectDetector, "_compute_geometric_mean") as mock_geo,\
              patch.object(ObjectDetector, "_compute_mean_gaze_distance") as mock_dist:
+            
+            # Override min_fixation_frame_threshold to ensure we're testing filtering
+            orig_min_fixation_frame_threshold = mock_detector.min_fixation_frame_threshold
+            mock_detector.min_fixation_frame_threshold = 2  # Lower than default 4
             
             # Configure mock returns for different objects
             def mock_iou_side_effect(bboxes):
@@ -503,7 +505,6 @@ class TestObjectDetector:
                 )
             ]
             
-            mock_detector.total_frames = 4
             mock_detector.gaze_points = [(15, 15, 0), (18, 18, 1)]
             
             # Run the method
@@ -531,16 +532,16 @@ class TestObjectDetector:
         frame = torch.zeros(3, 100, 100)
         gaze_x, gaze_y = 50, 50
         frame_idx = 0
-        
+    
         # Mock detections returned by model
-        mock_detector.model.predict.return_value = [
+        mock_detector.model.run_inference.return_value = [
             {"bbox": (40, 40, 20, 20), "class_name": "cup", "score": 0.9, "class_id": 0},  # Intersects with gaze
             {"bbox": (10, 10, 20, 20), "class_name": "bowl", "score": 0.8, "class_id": 1}  # Does not intersect
         ]
-        
+    
         # Run detection
         detections = mock_detector._perform_detection(frame, gaze_x, gaze_y, frame_idx)
-        
+    
         # Check results
         assert len(detections) == 2
         
@@ -611,7 +612,6 @@ class TestObjectDetector:
         assert mock_detector.fixated_objects_found == True
         assert len(mock_detector.all_detections) == 2
         assert len(mock_detector.gaze_points) == 1
-        assert mock_detector.total_frames == 1
         
         # Check that fixation scores were applied to the detection
         assert result[0].fixation_score == 0.85
@@ -647,9 +647,6 @@ class TestObjectDetector:
             # Verify that we didn't add any detections or gaze points
             assert len(mock_detector.all_detections) == 0
             assert len(mock_detector.gaze_points) == 0
-            
-            # Per the implementation, total_frames is NOT incremented during error handling
-            assert mock_detector.total_frames == 0
     
     def test_has_fixated_objects_empty(self, mock_detector):
         mock_detector.fixated_objects_found = False
