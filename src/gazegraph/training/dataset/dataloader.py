@@ -48,20 +48,28 @@ def create_dataloader(
         logger.info(f"Loading cached dataset from {cache_file}")
         try:
             dataset = torch.load(cache_file)
-            
-            # Check for configuration differences and warn if needed
-            if dataset.object_node_feature != object_node_feature:
-                logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' features, but '{object_node_feature}' was requested")
-            if dataset.task_mode != task_mode:
-                logger.warning(f"Cached dataset uses '{dataset.task_mode}' task mode, but '{task_mode}' was requested")
-            if dataset.node_drop_p != node_drop_p:
-                logger.warning(f"Cached dataset uses {dataset.node_drop_p} node_drop_p, but {node_drop_p} was requested")
-            if dataset.max_droppable != max_droppable:
-                logger.warning(f"Cached dataset uses {dataset.max_droppable} max_droppable, but {max_droppable} was requested")
-                
         except Exception as e:
-            logger.error(f"Failed to load cached dataset: {e}")
-            dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file)
+            raise RuntimeError(f"Failed to load cached dataset: {e}")
+        
+        fail = False
+
+        # Check for configuration differences and warn and fail if needed
+        if dataset.object_node_feature != object_node_feature:
+            logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' features, but '{object_node_feature}' was requested")
+            fail = True
+        if dataset.task_mode != task_mode:
+            logger.warning(f"Cached dataset uses '{dataset.task_mode}' task mode, but '{task_mode}' was requested")
+            fail = True
+        if dataset.node_drop_p != node_drop_p:
+            logger.warning(f"Cached dataset uses {dataset.node_drop_p} node_drop_p, but {node_drop_p} was requested")
+            fail = True
+        if dataset.max_droppable != max_droppable:
+            logger.warning(f"Cached dataset uses {dataset.max_droppable} max_droppable, but {max_droppable} was requested")
+            fail = True
+        
+        if fail:
+            logger.warning("Cached dataset does not match requested parameters. Run again without --load_cached to create a new dataset.")
+            raise RuntimeError("Cached dataset does not match requested parameters. Rerun without --load_cached to create a new dataset.")
     else:
         if load_cached:
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
