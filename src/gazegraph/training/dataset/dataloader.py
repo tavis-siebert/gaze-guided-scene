@@ -77,7 +77,8 @@ def create_dataloader(
     num_workers = config.processing.dataloader_workers
     if object_node_feature == "roi-embeddings":
         # Multiprocessing currently unsupported due to unpickable AV instances
-        num_workers = 0 
+        logger.warning("Multiprocessing currently unsupported for roi-embeddings due to unpickable AV instances")
+        num_workers = 0
 
     return DataLoader(
         dataset,
