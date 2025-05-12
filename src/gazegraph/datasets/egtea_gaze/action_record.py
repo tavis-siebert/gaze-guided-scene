@@ -330,8 +330,12 @@ class ActionRecord:
         cls._ensure_initialized()
         result = {}
         for (verb_id, noun_id), idx in cls._action_to_idx.items():
-            verb_name = cls._verb_id_to_name.get(verb_id, f"verb_{verb_id}")
-            noun_name = cls._noun_id_to_name.get(noun_id, f"noun_{noun_id}")
+            if verb_id not in cls._verb_id_to_name:
+                raise ValueError(f"Verb ID {verb_id} not found in name mappings")
+            if noun_id not in cls._noun_id_to_name:
+                raise ValueError(f"Noun ID {noun_id} not found in name mappings")
+            verb_name = cls._verb_id_to_name[verb_id]
+            noun_name = cls._noun_id_to_name[noun_id]
             result[idx] = f"{verb_name} {noun_name}"
         return result
     
