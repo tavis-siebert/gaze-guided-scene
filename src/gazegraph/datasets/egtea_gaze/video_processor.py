@@ -118,7 +118,7 @@ class Video:
 
     def get_object_labels(self) -> List[str]:
         """Get list of object (noun) labels."""
-        return self.metadata.obj_labels
+        return self.metadata.id_to_object_label
 
     def get_labels_to_int(self) -> Dict[str, int]:
         """Get mapping from object label to class index."""
