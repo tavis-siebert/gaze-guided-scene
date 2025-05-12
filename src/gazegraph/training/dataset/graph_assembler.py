@@ -4,9 +4,9 @@ from torch_geometric.data import Data
 import torch
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
-from typing import Tuple
+from typing import Tuple, Literal
 
-from gazegraph.training.dataset.node_features import NodeFeatureExtractor
+from gazegraph.training.dataset.node_features import NodeFeatureExtractor, get_node_feature_extractor
 from gazegraph.config.config_utils import DotDict
 from gazegraph.datasets.node_embeddings import NodeEmbeddings
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
@@ -80,8 +80,10 @@ class ObjectGraph(GraphAssembler):
 
 class ActionGraph(GraphAssembler):
     """Graph assembler for action graphs (EGTEA). Each node is an observed action; edges connect temporally adjacent actions."""
-    def __init__(self, node_embeddings: NodeEmbeddings, config: DotDict, device: str):
+    def __init__(self, config: DotDict, device: str = "cuda", node_embeddings: NodeEmbeddings | None = None,):
         self.node_embeddings = node_embeddings
+        if self.node_embeddings is None:
+            self.node_embeddings = NodeEmbeddings(config, device=device)
         self.config = config
         self.device = device
 
@@ -107,3 +109,39 @@ class ActionGraph(GraphAssembler):
         else:
             edge_index = torch.zeros((2, 0), dtype=torch.long)
         return Data(x=x, edge_index=edge_index, y=y)
+
+
+def create_graph_assembler(
+    graph_type: Literal["object-graph", "action-graph"],
+    config: DotDict,
+    device: str,
+    object_node_feature: str = "one-hot"
+) -> GraphAssembler:
+    """Factory method to create the appropriate graph assembler based on the dataset type.
+    
+    Args:
+        graph_type: Type of graph to create ("object-graph" or "action-graph")
+        config: Configuration object
+        device: Device to use ("cuda" or "cpu")
+        object_node_feature: Type of object node features (only for object-graph)
+        
+    Returns:
+        GraphAssembler: The appropriate graph assembler instance
+    """
+    if graph_type == "object-graph":
+        node_feature_extractor = get_node_feature_extractor(
+            object_node_feature, device=device, config=config
+        )
+        return ObjectGraph(
+            node_feature_extractor=node_feature_extractor,
+            object_node_feature=object_node_feature,
+            config=config,
+            device=device
+        )
+    elif graph_type == "action-graph":
+        return ActionGraph(
+            config=config,
+            device=device
+        )
+    else:
+        raise ValueError(f"Unknown graph type: {graph_type}")

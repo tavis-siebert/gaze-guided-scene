@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 import torch
 from pathlib import Path
 from torch_geometric.loader import DataLoader
@@ -16,7 +16,8 @@ def create_dataloader(
     config=None,
     object_node_feature: str = "one-hot",
     device: str = "cuda",
-    load_cached: bool = False
+    load_cached: bool = False,
+    graph_type: str = "object-graph"
 ) -> DataLoader:
     """Create a PyG DataLoader for graph data.
     
@@ -28,6 +29,7 @@ def create_dataloader(
         object_node_feature: Type of node features to use
         device: Device to use for processing
         load_cached: Whether to load cached dataset from file
+        graph_type: Type of graph dataset to use ("object-graph" or "action-graph")
         
     Returns:
         PyG DataLoader
@@ -40,7 +42,7 @@ def create_dataloader(
     # Define cache file path
     cache_dir = Path(config.directories.data) / "datasets" if hasattr(config.directories, "data") else Path("data/datasets")
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = cache_dir / f"graph-dataset-{split}.pth"
+    cache_file = cache_dir / f"graph-dataset-{split}-{graph_type}.pth"
     
     # Try to load cached dataset or create a new one
     if load_cached and cache_file.exists():
@@ -65,6 +67,9 @@ def create_dataloader(
         if dataset.max_droppable != max_droppable:
             logger.warning(f"Cached dataset uses {dataset.max_droppable} max_droppable, but {max_droppable} was requested")
             fail = True
+        if dataset.graph_type != graph_type:
+            logger.warning(f"Cached dataset uses '{dataset.graph_type}' graph type, but '{graph_type}' was requested")
+            fail = True
         
         if fail:
             logger.warning("Cached dataset does not match requested parameters. Run again without --load_cached to create a new dataset.")
@@ -72,7 +77,7 @@ def create_dataloader(
     else:
         if load_cached:
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
-        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file)
+        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file, graph_type)
     
     num_workers = config.processing.dataloader_workers
     if object_node_feature == "roi-embeddings":
@@ -88,7 +93,7 @@ def create_dataloader(
     )
 
 
-def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file=None):
+def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file=None, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
     """Create a new GraphDataset and optionally save it to cache.
     
     Args:
@@ -101,6 +106,7 @@ def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, c
         object_node_feature: Type of object node features to use
         device: Device to use for processing
         cache_file: Path to save the dataset cache
+        graph_type: Type of graph dataset to use ("object-graph" or "action-graph")
         
     Returns:
         GraphDataset: The newly created dataset
@@ -113,7 +119,8 @@ def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, c
         max_droppable=max_droppable,
         config=config,
         object_node_feature=object_node_feature,
-        device=device
+        device=device,
+        graph_type=graph_type
     )
     
     # Save the dataset to cache if a cache file is provided
