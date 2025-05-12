@@ -164,7 +164,7 @@ class ActionRecord:
                     parts = line.strip().split(' ')
                     if len(parts) >= 2:
                         verb_name = ' '.join(parts[:-1])
-                        verb_id = int(parts[-1])
+                        verb_id = int(parts[-1]) - 1 # Files are 1-indexed
                         cls._verb_id_to_name[verb_id] = verb_name
         
         # Load noun mapping
@@ -178,7 +178,7 @@ class ActionRecord:
                     parts = line.strip().split(' ')
                     if len(parts) >= 2:
                         noun_name = ' '.join(parts[:-1])
-                        noun_id = int(parts[-1])
+                        noun_id = int(parts[-1]) - 1 # Files are 1-indexed
                         cls._noun_id_to_name[noun_id] = noun_name
                             
         logger.info(f"Loaded {len(cls._verb_id_to_name)} verbs and {len(cls._noun_id_to_name)} nouns")
