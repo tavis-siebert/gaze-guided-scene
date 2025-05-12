@@ -31,6 +31,7 @@ class NodeEmbeddings:
         Args:
             device: Device to run models on ("cuda" or "cpu")
             prepopulate_caches: Whether to prepopulate the embedding caches
+            clip_model: Optional pre-initialized CLIP model (useful for testing)
         """
         self.device = device
         self.clip_model = clip_model
@@ -49,12 +50,13 @@ class NodeEmbeddings:
         # Cache for action label embeddings: action_label -> tensor
         self._action_label_embedding_cache: Dict[str, torch.Tensor] = {}
         
-        # Try to load caches from files first
-        self._load_caches()
+        # Try to load caches from files first if they exist
+        if self.object_label_embedding_path.exists() or self.action_label_embedding_path.exists():
+            self._load_caches()
         
-        # Prepopulate caches if requested and not already loaded
-        if prepopulate_caches and (not self._object_label_embedding_cache or not self._action_label_embedding_cache):
-            self._prepopulate_caches()
+        # Prepopulate caches if requested
+        if prepopulate_caches:
+            self.prepopulate_caches()
         
     def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:
         """
@@ -76,7 +78,12 @@ class NodeEmbeddings:
             return self._action_label_embedding_cache[action_name]
             
         # Generate new embedding
-        embedding = self.clip_model.encode_texts([action_name])[0]
+        if self.clip_model is None:
+            logger.error("CLIP model not initialized")
+            return None
+            
+        prompt = f"a photo of a {action_name}"
+        embedding = self.clip_model.encode_texts([prompt])[0]
         
         # Cache the embedding
         self._action_label_embedding_cache[action_name] = embedding
@@ -167,7 +174,7 @@ class NodeEmbeddings:
         if not node_data:
             logger.warning(f"Node ID {node_id} not found in checkpoint")
             return None
-        object_label = node_data["object_label"]
+        object_label = node_data.get("object_label")
         if not object_label:
             logger.warning(f"Node {node_id} has no object_label")
             return None
@@ -177,7 +184,12 @@ class NodeEmbeddings:
             return self._object_label_embedding_cache[object_label]
         
         # Generate new embedding
-        embedding = self.clip_model.encode_texts([object_label])[0]  # List of 1 tensor -> single tensor
+        if self.clip_model is None:
+            logger.error("CLIP model not initialized")
+            return None
+            
+        prompt = f"a photo of a {object_label}"
+        embedding = self.clip_model.encode_texts([prompt])[0]  # List of 1 tensor -> single tensor
         
         # Cache the embedding
         self._object_label_embedding_cache[object_label] = embedding
@@ -370,22 +382,19 @@ class NodeEmbeddings:
         
         return roi
         
-    def _prepopulate_caches(self) -> None:
+    def prepopulate_caches(self) -> None:
         """
         Prepopulate the object and action label embedding caches using all available labels.
         This improves performance by avoiding repeated encoding of the same labels.
         """
-        logger.info("Prepopulating embedding caches...")
-        
         # Prepopulate object label embeddings cache
-        noun_labels = ActionRecord.get_noun_names()
-        if noun_labels:
-            logger.info(f"Prepopulating object label embeddings for {len(noun_labels)} nouns")
-            for noun_label in noun_labels:
-                if noun_label not in self._object_label_embedding_cache:
-                    # Format the label for CLIP ("a photo of a [noun]")
-                    formatted_label = f"a photo of a {noun_label.replace('_', ' ')}"
-                    embedding = self.clip_model.encode_texts([formatted_label])[0]
+        noun_names = ActionRecord.get_noun_names()
+        if noun_names:
+            logger.info(f"Prepopulating object label embeddings for {len(noun_names)} nouns")
+            for noun_label in noun_names:
+                if noun_label not in self._object_label_embedding_cache and self.clip_model is not None:
+                    prompt = f"a photo of a {noun_label}"
+                    embedding = self.clip_model.encode_texts([prompt])[0]
                     self._object_label_embedding_cache[noun_label] = embedding
             logger.info(f"Completed prepopulating {len(self._object_label_embedding_cache)} object label embeddings")
             
@@ -399,8 +408,9 @@ class NodeEmbeddings:
         if action_names:
             logger.info(f"Prepopulating action label embeddings for {len(action_names)} actions")
             for action_idx, action_name in action_names.items():
-                if action_name not in self._action_label_embedding_cache:
-                    embedding = self.clip_model.encode_texts([action_name])[0]
+                if action_name not in self._action_label_embedding_cache and self.clip_model is not None:
+                    prompt = f"a photo of a {action_name}"
+                    embedding = self.clip_model.encode_texts([prompt])[0]
                     self._action_label_embedding_cache[action_name] = embedding
             logger.info(f"Completed prepopulating {len(self._action_label_embedding_cache)} action label embeddings")
             
