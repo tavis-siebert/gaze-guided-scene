@@ -35,6 +35,13 @@ def node_embeddings(device, clip_model):
     # Disable prepopulation for most tests to avoid unnecessary computation
     return NodeEmbeddings(device=device, prepopulate_caches=False, clip_model=clip_model)
 
+@pytest.fixture()
+def mock_clip_model():
+    return MagicMock()
+
+@pytest.fixture()
+def mock_node_embeddings():
+    return NodeEmbeddings(device="cpu", prepopulate_caches=False, clip_model=MagicMock())
 
 @pytest.fixture
 def test_checkpoint():
@@ -99,11 +106,11 @@ def test_get_action_embedding(node_embeddings):
 
 
 @pytest.mark.unit
-def test_get_action_embedding_invalid_action(node_embeddings):
+def test_get_action_embedding_invalid_action(mock_node_embeddings):
     """Test behavior with invalid action index."""
     with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx", 
                return_value=None):
-        embedding = node_embeddings.get_action_embedding(9999)
+        embedding = mock_node_embeddings.get_action_embedding(9999)
         assert embedding is None
 
 
@@ -120,29 +127,27 @@ def test_extract_roi(node_embeddings):
 
 
 @pytest.mark.unit
-def test_is_valid_roi(node_embeddings):
+def test_is_valid_roi(mock_node_embeddings):
     """Test ROI validation checks."""
     valid_roi = torch.ones((3, 32, 32))
-    assert node_embeddings._is_valid_roi(valid_roi) is True
+    assert mock_node_embeddings._is_valid_roi(valid_roi) is True
     empty_roi = torch.tensor([])
-    assert node_embeddings._is_valid_roi(empty_roi) is False
+    assert mock_node_embeddings._is_valid_roi(empty_roi) is False
     none_roi = None
-    assert node_embeddings._is_valid_roi(none_roi) is False
+    assert mock_node_embeddings._is_valid_roi(none_roi) is False
 
 
-@pytest.mark.gpu
-@pytest.mark.integration
-def test_get_roi_embeddings_for_frame(node_embeddings):
+@pytest.mark.unit
+def test_get_roi_embeddings_for_frame(mock_node_embeddings):
     """Test ROI embedding retrieval for a frame with mocked clip_model."""
     frame = torch.ones((3, 224, 224), dtype=torch.uint8) * 128
     frame_num = 10
     mock_tracer = MagicMock()
     mock_detection = MagicMock(class_name="bowl", is_fixated=True, bbox=(50, 50, 100, 100))
     mock_tracer.get_detections_for_frame.return_value = [mock_detection]
-    with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
-        node_embeddings.clip_model = MagicMock()
-        node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
-        embeddings = node_embeddings._get_roi_embeddings_for_frame(
+    with patch.object(mock_node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
+        mock_node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
+        embeddings = mock_node_embeddings._get_roi_embeddings_for_frame(
             frame_tensor=frame,
             frame_num=frame_num,
             tracer=mock_tracer,
@@ -154,7 +159,7 @@ def test_get_roi_embeddings_for_frame(node_embeddings):
 
 
 @pytest.mark.unit
-def test_roi_embeddings_cache_behavior(node_embeddings):
+def test_roi_embeddings_cache_behavior(mock_node_embeddings):
     """Test ROI embedding caching per (video_name, object_label, visit_start, visit_end)."""
     mock_video = MagicMock(video_name="vid1")
     mock_tracer = MagicMock()
@@ -163,24 +168,23 @@ def test_roi_embeddings_cache_behavior(node_embeddings):
     dummy_detection = MagicMock(class_name=object_label, is_fixated=True, confidence=0.9, score=0.9, bbox=(0,0,32,32))
     mock_tracer.get_detections_for_frame.return_value = [dummy_detection]
     # Patch methods to avoid actual image processing
-    with patch.object(node_embeddings, '_extract_roi', return_value=torch.ones((3, 32, 32))):
-        with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
-            node_embeddings.clip_model = MagicMock()
-            node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
+    with patch.object(mock_node_embeddings, '_extract_roi', return_value=torch.ones((3, 32, 32))):
+        with patch.object(mock_node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
+            mock_node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
             # First call: should compute and cache
-            out1 = node_embeddings._get_roi_embeddings_for_visit(
+            out1 = mock_node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start, visit_end)
             assert len(out1) == 1, "First call should return one embedding"
             # Second call: should hit cache, so encode_image not called again
-            node_embeddings.clip_model.encode_image.reset_mock()
-            out2 = node_embeddings._get_roi_embeddings_for_visit(
+            mock_node_embeddings.clip_model.encode_image.reset_mock()
+            out2 = mock_node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start, visit_end)
             assert out2 == out1, "Second call should return same embeddings from cache"
-            node_embeddings.clip_model.encode_image.assert_not_called()
+            mock_node_embeddings.clip_model.encode_image.assert_not_called()
             # Different key: should compute again with a different result
             # Create a new mock for the second call to ensure different results
-            node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512)) * 2
-            out3 = node_embeddings._get_roi_embeddings_for_visit(
+            mock_node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512)) * 2
+            out3 = mock_node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start+1, visit_end)
             assert len(out3) == len(out1), "Third call should return same number of embeddings"
             assert any(not torch.allclose(t1, t3) for t1, t3 in zip(out1, out3)), "Third call should return different embeddings"
@@ -224,8 +228,7 @@ def test_get_object_node_embedding_roi(node_embeddings, has_visits):
 
 
 @pytest.mark.unit
-@pytest.mark.gpu
-def test_get_object_node_embedding_label(node_embeddings):
+def test_get_object_node_embedding_label(mock_node_embeddings):
     """Test object node embedding generation (label-based)."""
     mock_checkpoint = MagicMock()
     node_data = {
@@ -233,8 +236,8 @@ def test_get_object_node_embedding_label(node_embeddings):
         "visits": [(10, 20)]
     }
     mock_checkpoint.nodes = {1: node_data}
-    with patch.object(node_embeddings.clip_model, 'encode_texts', return_value=[torch.ones((1, 768))]) as mock_encode_texts:
-        embedding = node_embeddings.get_object_node_embedding_label(
+    with patch.object(mock_node_embeddings.clip_model, 'encode_texts', return_value=[torch.ones((1, 768))]) as mock_encode_texts:
+        embedding = mock_node_embeddings.get_object_node_embedding_label(
             checkpoint=mock_checkpoint,
             node_id=1
         )
@@ -245,7 +248,7 @@ def test_get_object_node_embedding_label(node_embeddings):
     # Test missing label
     node_data_no_label = {"object_label": "", "visits": [(10, 20)]}
     mock_checkpoint.nodes = {2: node_data_no_label}
-    embedding = node_embeddings.get_object_node_embedding_label(
+    embedding = mock_node_embeddings.get_object_node_embedding_label(
         checkpoint=mock_checkpoint,
         node_id=2
     )
@@ -253,7 +256,7 @@ def test_get_object_node_embedding_label(node_embeddings):
 
     # Test missing node
     mock_checkpoint.nodes = {}
-    embedding = node_embeddings.get_object_node_embedding_label(
+    embedding = mock_node_embeddings.get_object_node_embedding_label(
         checkpoint=mock_checkpoint,
         node_id=3
     )
@@ -288,53 +291,53 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
 
 
 @pytest.mark.unit
-def test_object_label_embedding_cache(node_embeddings):
+def test_object_label_embedding_cache(mock_node_embeddings):
     """Test caching of object label embeddings with mocked clip_model."""
     mock_checkpoint = MagicMock()
     mock_node_data = {"object_label": "bowl"}
     mock_checkpoint.nodes = {1: mock_node_data}
-    node_embeddings.clip_model.encode_texts = MagicMock()
-    node_embeddings.clip_model.encode_texts.side_effect = [
+    mock_node_embeddings.clip_model.encode_texts = MagicMock()
+    mock_node_embeddings.clip_model.encode_texts.side_effect = [
         torch.ones((1, 768)), # First call
         torch.ones((1, 768)) * 2 # Second call (should not be used due to caching)
     ]
     # First call: should compute and cache
-    embedding1 = node_embeddings.get_object_node_embedding_label(mock_checkpoint, 1)
+    embedding1 = mock_node_embeddings.get_object_node_embedding_label(mock_checkpoint, 1)
     assert embedding1 is not None
     # Second call with same object label: should hit cache
-    embedding2 = node_embeddings.get_object_node_embedding_label(mock_checkpoint, 1)
+    embedding2 = mock_node_embeddings.get_object_node_embedding_label(mock_checkpoint, 1)
     assert torch.allclose(embedding1, embedding2)
     # Verify encode_texts was called only once
-    assert node_embeddings.clip_model.encode_texts.call_count == 1
+    assert mock_node_embeddings.clip_model.encode_texts.call_count == 1
     # Different object label: should compute again
     mock_node_data2 = {"object_label": "spoon"}
     mock_checkpoint.nodes = {2: mock_node_data2}
-    embedding3 = node_embeddings.get_object_node_embedding_label(mock_checkpoint, 2)
-    assert node_embeddings.clip_model.encode_texts.call_count == 2
+    embedding3 = mock_node_embeddings.get_object_node_embedding_label(mock_checkpoint, 2)
+    assert mock_node_embeddings.clip_model.encode_texts.call_count == 2
 
 
 @pytest.mark.unit
-def test_action_label_embedding_cache(node_embeddings):
+def test_action_label_embedding_cache(mock_node_embeddings):
     """Test caching of action label embeddings with mocked clip_model."""
     with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx") as mock_get_action_name:
         mock_get_action_name.side_effect = ["take bowl", "take bowl", "put spoon"]
-        node_embeddings.clip_model.encode_texts = MagicMock()
-        node_embeddings.clip_model.encode_texts.side_effect = [
+        mock_node_embeddings.clip_model.encode_texts = MagicMock()
+        mock_node_embeddings.clip_model.encode_texts.side_effect = [
             torch.ones((1, 768)), # First call
             torch.ones((1, 768)) * 2 # Second call (should not be used due to caching) 
         ]
         # First call: should compute and cache
-        embedding1 = node_embeddings.get_action_embedding(0)
+        embedding1 = mock_node_embeddings.get_action_embedding(0)
         assert embedding1 is not None
         # Second call with same action label: should hit cache
-        embedding2 = node_embeddings.get_action_embedding(0)
+        embedding2 = mock_node_embeddings.get_action_embedding(0)
         assert torch.allclose(embedding1, embedding2)
         # Verify encode_texts was called only once
-        assert node_embeddings.clip_model.encode_texts.call_count == 1
+        assert  mock_node_embeddings.clip_model.encode_texts.call_count == 1
         # Different action label: should compute again
-        embedding3 = node_embeddings.get_action_embedding(1)
+        embedding3 = mock_node_embeddings.get_action_embedding(1)
         # Verify encode_texts was called again
-        assert node_embeddings.clip_model.encode_texts.call_count == 2
+        assert mock_node_embeddings.clip_model.encode_texts.call_count == 2
 
 
 @pytest.mark.integration
@@ -440,7 +443,7 @@ def cleanup_cache_files():
 
 
 @pytest.mark.unit
-def test_prepopulate_caches(device, cleanup_cache_files):
+def test_prepopulate_caches(device, mock_clip_model):
     """Test that caches are prepopulated with all noun and action labels."""
     # Mock the ActionRecord methods
     mock_noun_names = ["bowl", "spoon", "cup"]
@@ -450,12 +453,11 @@ def test_prepopulate_caches(device, cleanup_cache_files):
          patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_names", return_value=mock_action_names):
         
         # Create mock clip model that returns predictable embeddings
-        mock_clip_model = MagicMock()
         mock_clip_model.encode_texts.side_effect = lambda texts: [torch.ones((1, 768)) * i for i, _ in enumerate(texts)]
         
         with patch("gazegraph.models.clip.ClipModel", return_value=mock_clip_model):
             # Initialize with prepopulate_caches=True
-            node_embeddings = NodeEmbeddings(device=device, prepopulate_caches=True)
+            node_embeddings = NodeEmbeddings(device=device, prepopulate_caches=True, clip_model=mock_clip_model)
             
             # Check that caches were populated
             assert len(node_embeddings._object_label_embedding_cache) == len(mock_noun_names)
@@ -467,7 +469,7 @@ def test_prepopulate_caches(device, cleanup_cache_files):
 
 
 @pytest.mark.unit
-def test_load_caches(device, cleanup_cache_files):
+def test_load_caches(device, mock_clip_model):
     """Test that caches are loaded from files if they exist."""
     # Get config for paths
     config = get_config()
@@ -486,7 +488,7 @@ def test_load_caches(device, cleanup_cache_files):
     torch.save(mock_action_cache, action_path)
     
     # Initialize with prepopulate_caches=False to test only loading
-    node_embeddings = NodeEmbeddings(device=device, prepopulate_caches=False)
+    node_embeddings = NodeEmbeddings(device=device, prepopulate_caches=False, clip_model=mock_clip_model)
     
     # Check that caches were loaded correctly
     assert len(node_embeddings._object_label_embedding_cache) == len(mock_object_cache)
@@ -503,7 +505,7 @@ def test_load_caches(device, cleanup_cache_files):
 
 
 @pytest.mark.unit
-def test_prepopulate_and_load_caches_integration(device, cleanup_cache_files):
+def test_prepopulate_and_load_caches_integration(device, mock_clip_model):
     """Test the full cycle of prepopulating, saving, and loading caches."""
     # Mock the ActionRecord methods
     mock_noun_names = ["bowl", "spoon", "cup"]
@@ -513,7 +515,7 @@ def test_prepopulate_and_load_caches_integration(device, cleanup_cache_files):
          patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_names", return_value=mock_action_names):
         
         # First instance: prepopulate and save caches
-        first_instance = NodeEmbeddings(device=device, prepopulate_caches=True)
+        first_instance = NodeEmbeddings(device=device, prepopulate_caches=True, clip_model=mock_clip_model)
         
         # Check that cache files were created
         assert first_instance.object_label_embedding_path.exists()
@@ -528,7 +530,7 @@ def test_prepopulate_and_load_caches_integration(device, cleanup_cache_files):
         with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_noun_names", return_value=[]), \
              patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_names", return_value={}):
             
-            second_instance = NodeEmbeddings(device=device, prepopulate_caches=True)
+            second_instance = NodeEmbeddings(device=device, prepopulate_caches=True, clip_model=mock_clip_model)
             
             # Check that caches were loaded correctly
             assert len(second_instance._object_label_embedding_cache) == len(original_object_cache)
