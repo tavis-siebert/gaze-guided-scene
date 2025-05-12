@@ -413,8 +413,8 @@ def cleanup_cache_files():
     """Fixture to clean up cache files before and after tests."""
     # Get cache paths from config
     config = get_config()
-    object_path = Path(config.dataset.embeddings_cache.object_label_embedding_path)
-    action_path = Path(config.dataset.embeddings_cache.action_label_embedding_path)
+    object_path = Path(config.dataset.embeddings.object_label_embedding_path)
+    action_path = Path(config.dataset.embeddings.action_label_embedding_path)
     
     # Remove cache files before test if they exist
     if object_path.exists():
@@ -463,8 +463,8 @@ def test_load_caches(device, cleanup_cache_files):
     """Test that caches are loaded from files if they exist."""
     # Get config for paths
     config = get_config()
-    object_path = Path(config.dataset.embeddings_cache.object_label_embedding_path)
-    action_path = Path(config.dataset.embeddings_cache.action_label_embedding_path)
+    object_path = Path(config.dataset.embeddings.object_label_embedding_path)
+    action_path = Path(config.dataset.embeddings.action_label_embedding_path)
     
     # Create mock cache data
     mock_object_cache = {"bowl": torch.ones((1, 768)), "spoon": torch.ones((1, 768)) * 2}

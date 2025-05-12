@@ -37,8 +37,8 @@ class NodeEmbeddings:
         self.config = get_config()
         
         # Get cache paths from config
-        self.object_label_embedding_path = Path(self.config.dataset.embeddings_cache.object_label_embedding_path)
-        self.action_label_embedding_path = Path(self.config.dataset.embeddings_cache.action_label_embedding_path)
+        self.object_label_embedding_path = Path(self.config.dataset.embeddings.object_label_embedding_path)
+        self.action_label_embedding_path = Path(self.config.dataset.embeddings.action_label_embedding_path)
         
         # Cache for ROI embeddings per visit: (video_name, object_label, visit_start, visit_end) -> list of tensors
         self._roi_visit_embedding_cache: Dict[Tuple[str, str, int, int], List[torch.Tensor]] = {}
