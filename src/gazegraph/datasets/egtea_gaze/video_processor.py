@@ -116,10 +116,6 @@ class Video:
         """Get future action labels at a given frame."""
         return self.metadata.get_future_action_labels(self.video_name, frame_number)
 
-    def get_object_labels(self) -> List[str]:
-        """Get list of object (noun) labels."""
-        return self.metadata.id_to_object_label
-
     def get_labels_to_int(self) -> Dict[str, int]:
         """Get mapping from object label to class index."""
         return self.metadata.object_label_to_id
