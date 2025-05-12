@@ -1,9 +1,9 @@
 import random
 import torch
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Literal
 from torch_geometric.data import Data, Dataset
-from gazegraph.training.dataset.graph_assembler import ObjectGraph
+from gazegraph.training.dataset.graph_assembler import create_graph_assembler, GraphAssembler
 from tqdm import tqdm
 import numpy as np
 from bisect import bisect_right
@@ -16,6 +16,7 @@ from gazegraph.training.dataset.node_features import get_node_feature_extractor
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.logger import get_logger
+from gazegraph.config.config_utils import DotDict
 
 logger = get_logger(__name__)
 
@@ -25,6 +26,7 @@ class GraphDataset(Dataset):
     
     def __init__(
         self,
+        config: DotDict,
         root_dir: str,
         split: str = "train",
         val_timestamps: Optional[List[float]] = None,
@@ -34,9 +36,9 @@ class GraphDataset(Dataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        config=None,
         object_node_feature: str = "one-hot",
-        device: str = "cuda"
+        device: str = "cuda",
+        graph_type: Literal["object-graph", "action-graph"] = "object-graph"
     ):
         self.root_dir = Path(root_dir) / split
         self.split = split
@@ -52,16 +54,17 @@ class GraphDataset(Dataset):
         self.max_droppable = max_droppable
         self.device = device
         self.object_node_feature = object_node_feature
-        self.node_feature_extractor = get_node_feature_extractor(object_node_feature, device=device, config=config)
+        self.graph_type = graph_type
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
             self.sample_tuples : List[Tuple[GraphCheckpoint, dict]] = []
         self._load_and_collect_samples()
-        self._assembler = ObjectGraph(
-            node_feature_extractor=self.node_feature_extractor,
-            object_node_feature=self.object_node_feature,
+        # Create the appropriate graph assembler based on the graph type
+        self._assembler = create_graph_assembler(
+            graph_type=self.graph_type,
             config=self.config,
-            device=self.device
+            device=self.device,
+            object_node_feature=self.object_node_feature
         )
         self._data_cache = {}
         super().__init__(root=str(self.root_dir), transform=transform, pre_transform=pre_transform, pre_filter=pre_filter)

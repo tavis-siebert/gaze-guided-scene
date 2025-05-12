@@ -5,6 +5,7 @@ import os
 import time
 from datetime import datetime
 import numpy as np
+from typing import Literal
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 from training.utils import get_optimizer
@@ -14,7 +15,7 @@ from logger import get_logger
 from pathlib import Path
 
 class BaseTask:
-    def __init__(self, config, device, task_name, object_node_feature="one-hot", load_cached=False):
+    def __init__(self, config, device, task_name, object_node_feature="one-hot", load_cached=False, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
         self.task = task_name
         self.device = device
         self.config = config
@@ -22,8 +23,10 @@ class BaseTask:
         self.logger = get_logger(__name__)
         self.object_node_feature = object_node_feature
         self.load_cached = load_cached
+        self.graph_type = graph_type
         
         self.logger.info(f"Using node feature type: {object_node_feature}")
+        self.logger.info(f"Using graph type: {graph_type}")
         
         # Load data and setup loaders
         self._setup_data()
@@ -86,7 +89,8 @@ class BaseTask:
             config=self.config,
             object_node_feature=self.object_node_feature,
             device=self.device,
-            load_cached=self.load_cached
+            load_cached=self.load_cached,
+            graph_type=self.graph_type
         )
         
         # Create validation loader
@@ -97,7 +101,8 @@ class BaseTask:
             config=self.config,
             object_node_feature=self.object_node_feature,
             device=self.device,
-            load_cached=self.load_cached
+            load_cached=self.load_cached,
+            graph_type=self.graph_type
         )
         
         # Extract dimensions from data

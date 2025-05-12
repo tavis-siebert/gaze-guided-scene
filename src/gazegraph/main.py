@@ -50,6 +50,9 @@ def setup_parser() -> argparse.ArgumentParser:
                             help="Device to use for processing (default: gpu)")
     train_parser.add_argument("--task", type=str, choices=["future_actions", "next_action"],
                             required=True, help="Task to train the model on")
+    train_parser.add_argument("--graph-type", type=str, choices=["object-graph", "action-graph"],
+                            default="object-graph",
+                            help="Type of graph dataset to use (default: object-graph)")
     train_parser.add_argument("--object-node-feature", type=str, 
                             choices=["one-hot", "roi-embeddings", "object-label-embeddings"],
                             default="one-hot",
@@ -148,9 +151,15 @@ def main():
         task = None
         try:
             TaskClass = get_task(args.task)
-            # Pass node feature type to the task
-            task = TaskClass(config, device, object_node_feature=args.object_node_feature, load_cached=args.load_cached)
-            logger.info(f"Starting training process with node feature type: {args.object_node_feature}")
+            # Pass node feature type and graph type to the task
+            task = TaskClass(
+                config, 
+                device, 
+                object_node_feature=args.object_node_feature, 
+                load_cached=args.load_cached,
+                graph_type=args.graph_type
+            )
+            logger.info(f"Starting training process with node feature type: {args.object_node_feature} and graph type: {args.graph_type}")
             if args.load_cached:
                 logger.info("Using cached GraphDataset from files")
             task.train()
