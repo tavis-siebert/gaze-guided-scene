@@ -153,8 +153,9 @@ def main():
             TaskClass = get_task(args.task)
             # Pass node feature type and graph type to the task
             task = TaskClass(
-                config, 
-                device, 
+                config=config,
+                device=device,
+                task_name=args.task,
                 object_node_feature=args.object_node_feature, 
                 load_cached=args.load_cached,
                 graph_type=args.graph_type
