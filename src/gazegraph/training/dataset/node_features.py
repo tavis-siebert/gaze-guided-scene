@@ -22,7 +22,6 @@ class NodeFeatureExtractor(ABC):
     """Base class for node feature extraction strategies."""
     
     def __init__(self):
-        # Initialize cache for temporal features
         self._temporal_feature_cache = {}
     
     def _extract_temporal_features(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
@@ -305,9 +304,6 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         self.device = device
         self.embedding_dim = embedding_dim
         self.node_embeddings = NodeEmbeddings(device=device)
-        
-        # Cache for label embeddings - keyed by object_label
-        self.label_embedding_cache = {}
     
     def _get_label_embedding(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
         """
@@ -325,16 +321,7 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             logger.warning(f"Node ID {node_id} not found in checkpoint")
             return torch.zeros(self.embedding_dim)
         
-        object_label = node_data["object_label"]
-        
-        # For label embeddings, we can safely cache by object_label since the embedding
-        # depends only on the label text, not on the node's state or visits
-        # This is different from ROI embeddings which depend on the visual content
-        # from the node's visits
-        if object_label in self.label_embedding_cache:
-            return self.label_embedding_cache[object_label]
-        
-        # Get new embedding
+        # Get embedding from NodeEmbeddings (which handles caching internally)
         label_embedding = self.node_embeddings.get_object_node_embedding_label(
             checkpoint, node_id
         )
@@ -342,10 +329,7 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         # If label embedding is not available, use zeros
         if label_embedding is None:
             label_embedding = torch.zeros(self.embedding_dim)
-        
-        # Cache the embedding
-        self.label_embedding_cache[object_label] = label_embedding
-        
+            
         return label_embedding
     
     def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
