@@ -14,6 +14,7 @@ from gazegraph.datasets.node_embeddings import NodeEmbeddings
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.logger import get_logger
+from gazegraph.config.config_utils import DotDict
 
 logger = get_logger(__name__)
 
@@ -21,8 +22,9 @@ logger = get_logger(__name__)
 class NodeFeatureExtractor(ABC):
     """Base class for node feature extraction strategies."""
     
-    def __init__(self):
+    def __init__(self, config: DotDict):
         self._temporal_feature_cache = {}
+        self.config = config
     
     def _extract_temporal_features(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
         """Extract temporal features for a node.
@@ -189,7 +191,7 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
 class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using ROI embeddings."""
     
-    def __init__(self, device: str = "cuda", embedding_dim: int = 512):
+    def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
         """
         Initialize the ROI embedding node feature extractor.
         
@@ -197,10 +199,10 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             device: Device to run models on ("cuda" or "cpu")
             embedding_dim: Dimension of the embeddings
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.device = device
         self.embedding_dim = embedding_dim
-        self.node_embeddings = NodeEmbeddings(device=device)
+        self.node_embeddings = NodeEmbeddings(config=self.config, device=device)
         self.tracer = None
         self.video = None
         
@@ -292,7 +294,7 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
 class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using object label embeddings."""
     
-    def __init__(self, device: str = "cuda", embedding_dim: int = 512):
+    def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
         """
         Initialize the object label embedding node feature extractor.
         
@@ -300,10 +302,10 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             device: Device to run models on ("cuda" or "cpu")
             embedding_dim: Dimension of the embeddings
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.device = device
         self.embedding_dim = embedding_dim
-        self.node_embeddings = NodeEmbeddings(device=device)
+        self.node_embeddings = NodeEmbeddings(config=self.config, device=device)
     
     def _get_label_embedding(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
         """
@@ -392,7 +394,7 @@ def get_node_feature_extractor(feature_type: str, device: str = "cuda", **kwargs
         NodeFeatureExtractor instance
     """
     if feature_type == "one-hot":
-        return OneHotNodeFeatureExtractor()
+        return OneHotNodeFeatureExtractor(**kwargs)
     elif feature_type == "roi-embeddings":
         return ROIEmbeddingNodeFeatureExtractor(device=device, **kwargs)
     elif feature_type == "object-label-embeddings":

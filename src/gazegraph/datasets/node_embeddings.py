@@ -15,6 +15,7 @@ from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.config.config_utils import get_config
 from gazegraph.logger import get_logger
+from gazegraph.config.config_utils import DotDict
 
 logger = get_logger(__name__)
 
@@ -24,7 +25,7 @@ class NodeEmbeddings:
     Handles creation of embeddings for various node types in scene graphs.
     """
     
-    def __init__(self, device: str = "cuda", prepopulate_caches: bool = True, clip_model: ClipModel | None = None):
+    def __init__(self, config: DotDict, device: str = "cuda", prepopulate_caches: bool = True, clip_model: ClipModel | None = None):
         """
         Initialize the node embedder.
         
@@ -37,7 +38,7 @@ class NodeEmbeddings:
         self.clip_model = clip_model
         if not self.clip_model:
             self.clip_model = ClipModel(device=self.device)
-        self.config = get_config()
+        self.config = config
         
         # Get cache paths from config
         self.object_label_embedding_path = Path(self.config.dataset.embeddings.object_label_embedding_path)
