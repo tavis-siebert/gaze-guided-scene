@@ -140,29 +140,3 @@ class GraphDataset(Dataset):
             if augmented_data is not None:
                 data = augmented_data
         return data
-
-    def _get_tracer_for_checkpoint(self, checkpoint: GraphCheckpoint) -> GraphTracer | None:
-        video_name = checkpoint.video_name
-        if not self.config or not hasattr(self.config, 'directories') or not hasattr(self.config.directories, 'traces'):
-            logger.warning("Config or directories.traces missing; cannot load trace file.")
-            return None
-        trace_path = Path(self.config.directories.traces) / f"{video_name}_trace.jsonl"
-        if not trace_path.exists():
-            logger.warning(f"Trace file not found at {trace_path}. ROI embeddings may not work correctly.")
-            return None
-        tracer = GraphTracer(trace_path.parent, video_name, enabled=False)
-        return tracer
-
-    def _get_video_for_checkpoint(self, checkpoint: GraphCheckpoint) -> Video | None:
-        video_name = checkpoint.video_name
-        if not self.config or not hasattr(self.config, 'dataset') or not hasattr(self.config.dataset, 'egtea') or not hasattr(self.config.dataset.egtea, 'raw_videos'):
-            logger.warning("Config or dataset.egtea.raw_videos missing; cannot load video file.")
-            return None
-        video_path = Path(self.config.dataset.egtea.raw_videos) / f"{video_name}.mp4"
-        if not video_path.exists():
-            logger.warning(f"Video file not found at {video_path}. ROI embeddings may not work correctly.")
-            return None
-        video = Video(video_name)
-        return video
-
-    # Node and edge feature extraction now handled by assembler
