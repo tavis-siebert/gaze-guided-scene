@@ -34,7 +34,6 @@ def create_dataloader(
     """
     batch_size = config.training.batch_size if split == "train" else 1
     shuffle = True if split == "train" else False
-    num_workers = config.processing.dataloader_workers
     node_drop_p = config.training.node_drop_p if split == "train" else 0.0
     max_droppable = config.training.max_nodes_droppable if split == "train" else 0
     
@@ -75,11 +74,16 @@ def create_dataloader(
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
         dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file)
     
+    num_workers = config.processing.dataloader_workers
+    if object_node_feature == "roi-embeddings":
+        # Multiprocessing currently unsupported due to unpickable AV instances
+        num_workers = 0 
+
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
-        num_workers=0
+        num_workers=num_workers
     )
 
 
