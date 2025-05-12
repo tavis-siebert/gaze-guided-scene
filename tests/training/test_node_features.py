@@ -38,19 +38,45 @@ class TestNodeFeatureExtractors:
 
     def test_one_hot_extractor(self, mock_config, mock_checkpoint):
         """Test the OneHotNodeFeatureExtractor"""
-        extractor = OneHotNodeFeatureExtractor(config=mock_config)
-        features = extractor.extract_features(mock_checkpoint)
-        
-        # Check shape: 2 nodes, 5 temporal features + 2 one-hot classes
-        assert features.shape == (2, 7)
-        
-        # Check one-hot encoding for first node (cup, class index 0)
-        assert features[0, 5] == 1  # One-hot for class 0
-        assert features[0, 6] == 0  # One-hot for class 1
-        
-        # Check one-hot encoding for second node (bowl, class index 1)
-        assert features[1, 5] == 0  # One-hot for class 0
-        assert features[1, 6] == 1  # One-hot for class 1
+        for device in ["cpu", "cuda"]:
+            extractor = OneHotNodeFeatureExtractor(config=mock_config, device=device)
+            features = extractor.extract_features(mock_checkpoint)
+            # Check shape: 2 nodes, 5 temporal features + 2 one-hot classes
+            assert features.shape == (2, 7)
+            # Device consistency
+            assert str(features.device).startswith(device)
+            # Check one-hot encoding for first node (cup, class index 0)
+            assert features[0, 5] == 1  # One-hot for class 0
+            assert features[0, 6] == 0  # One-hot for class 1
+            # Check one-hot encoding for second node (bowl, class index 1)
+            assert features[1, 5] == 0  # One-hot for class 0
+            assert features[1, 6] == 1  # One-hot for class 1
+
+    def test_object_label_embedding_extractor_device(self, mock_config, mock_checkpoint):
+        """Test device consistency for ObjectLabelEmbeddingNodeFeatureExtractor"""
+        mock_node_embeddings = MagicMock()
+        embedding_dim = 16
+        mock_embedding = torch.ones(embedding_dim)
+        mock_node_embeddings.get_object_node_embedding_label.return_value = mock_embedding
+        for device in ["cpu", "cuda"]:
+            extractor = ObjectLabelEmbeddingNodeFeatureExtractor(config=mock_config, device=device, embedding_dim=embedding_dim, node_embeddings=mock_node_embeddings)
+            features = extractor.extract_features(mock_checkpoint)
+            assert str(features.device).startswith(device)
+
+    def test_roi_embedding_extractor_device(self, mock_config, mock_checkpoint):
+        """Test device consistency for ROIEmbeddingNodeFeatureExtractor"""
+        mock_node_embeddings = MagicMock()
+        embedding_dim = 16
+        mock_embedding = torch.ones(embedding_dim)
+        mock_node_embeddings.get_object_node_embedding_roi.return_value = mock_embedding
+        for device in ["cpu", "cuda"]:
+            extractor = ROIEmbeddingNodeFeatureExtractor(config=mock_config, device=device, embedding_dim=embedding_dim, node_embeddings=mock_node_embeddings)
+            mock_tracer = MagicMock()
+            mock_video = MagicMock()
+            extractor.set_context(mock_tracer, mock_video)
+            features = extractor.extract_features(mock_checkpoint)
+            assert str(features.device).startswith(device)
+
 
     def test_roi_embedding_extractor(self, mock_config, mock_checkpoint):
         """Test the ROIEmbeddingNodeFeatureExtractor"""

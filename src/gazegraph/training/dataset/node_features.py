@@ -143,6 +143,9 @@ class NodeFeatureExtractor(ABC):
 
 class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using one-hot encoding for object classes."""
+    def __init__(self, device: str = "cuda", **kwargs):
+        super().__init__(**kwargs)
+        self.device = device
     
     def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
         """
@@ -169,10 +172,11 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
             
             # Combine features (now guaranteed to be on the same device)
             node_features = torch.cat([temporal_features, one_hot], dim=0)
+            node_features = node_features.to(self.device)
             features_list.append(node_features)
         
         if not features_list:
-            return torch.tensor([], device=device)
+            return torch.empty((0, self.feature_dim), device=self.device)
             
         # Stack all node features
         node_features_tensor = torch.stack(features_list)
@@ -277,10 +281,11 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             
             # Combine features
             node_features = torch.cat([temporal_features, roi_embedding], dim=0)
+            node_features = node_features.to(self.device)
             features_list.append(node_features)
         
         if not features_list:
-            return torch.tensor([], device=self.device)
+            return torch.empty((0, self.feature_dim), device=self.device)
             
         # Stack all node features
         node_features_tensor = torch.stack(features_list)
@@ -365,9 +370,10 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             temporal_features = temporal_features.flatten()
             label_embedding = label_embedding.flatten()
             node_features = torch.cat([temporal_features, label_embedding], dim=0)
+            node_features = node_features.to(self.device)
             features_list.append(node_features)
         if not features_list:
-            return torch.empty((0, self.feature_dim), device=getattr(self, 'device', 'cpu'))
+            return torch.empty((0, self.feature_dim), device=self.device)
         node_features_tensor = torch.stack(features_list)
         return self._normalize_features(node_features_tensor)
     
