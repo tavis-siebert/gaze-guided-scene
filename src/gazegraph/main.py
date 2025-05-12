@@ -6,8 +6,11 @@ from dotenv import load_dotenv
 
 from gazegraph.config.config_utils import load_config
 from gazegraph.logger import get_logger, configure_root_logger
+import multiprocessing as mp
 
 logger = None
+
+mp.set_start_method("spawn", force=True)
 
 def setup_parser() -> argparse.ArgumentParser:
     load_dotenv()
