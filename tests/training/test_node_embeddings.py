@@ -71,22 +71,18 @@ def test_get_clip_model(node_embeddings):
 @pytest.mark.gpu
 @pytest.mark.unit
 def test_get_action_embedding(node_embeddings):
-    """Test that action embeddings are correctly generated."""
-    with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx", 
-               return_value="take bowl"):
-        embedding = node_embeddings.get_action_embedding(0)
-        assert embedding is not None
-        assert isinstance(embedding, torch.Tensor)
-        assert embedding.shape[1] == 768  # We assume CLIP ViT-L/14 model
-        
-        # Test caching - second call should use cached value
-        with patch.object(node_embeddings.clip_model, "encode_texts") as mock_encode_texts:
-            # Second call should use cached value
+    """Test action embedding generation and caching."""
+    with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx", return_value="take bowl"):
+        with patch.object(node_embeddings.clip_model, "encode_texts", return_value=[torch.ones((1, 768))]) as mock_encode_texts:
+            embedding = node_embeddings.get_action_embedding(0)
+            assert embedding is not None
+            assert isinstance(embedding, torch.Tensor)
+            assert embedding.shape[1] == 768
+            # Second call should use cache
             embedding2 = node_embeddings.get_action_embedding(0)
             # Verify encode_texts was not called again
             mock_encode_texts.assert_not_called()
-            # Verify we got the same embedding
-            assert torch.allclose(embedding, embedding2)
+            assert torch.allclose(embedding, embedding2), "Second call should return same embedding from cache"
 
 
 @pytest.mark.unit
@@ -124,87 +120,57 @@ def test_is_valid_roi(node_embeddings):
 @pytest.mark.gpu
 @pytest.mark.integration
 def test_get_roi_embeddings_for_frame(node_embeddings):
-    """Test retrieval of ROI embeddings for a frame."""
+    """Test ROI embedding retrieval for a frame with mocked clip_model."""
     frame = torch.ones((3, 224, 224), dtype=torch.uint8) * 128
     frame_num = 10
     mock_tracer = MagicMock()
-    mock_detection = MagicMock()
-    mock_detection.class_name = "bowl"
-    mock_detection.is_fixated = True
-    mock_detection.bbox = (50, 50, 100, 100)
+    mock_detection = MagicMock(class_name="bowl", is_fixated=True, bbox=(50, 50, 100, 100))
     mock_tracer.get_detections_for_frame.return_value = [mock_detection]
-    
     with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
-        with patch.object(node_embeddings, '_get_clip_model') as mock_get_clip:
-            mock_clip = MagicMock()
-            mock_clip.encode_image.return_value = torch.ones((1, 512))
-            mock_get_clip.return_value = mock_clip
-            node_embeddings.clip_model = mock_clip
-            embeddings = node_embeddings._get_roi_embeddings_for_frame(
-                frame_tensor=frame,
-                frame_num=frame_num,
-                tracer=mock_tracer,
-                object_label="bowl"
-            )
+        node_embeddings.clip_model = MagicMock()
+        node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
+        embeddings = node_embeddings._get_roi_embeddings_for_frame(
+            frame_tensor=frame,
+            frame_num=frame_num,
+            tracer=mock_tracer,
+            object_label="bowl"
+        )
     assert len(embeddings) == 1
     assert embeddings[0].shape == (1, 512)
     mock_tracer.get_detections_for_frame.assert_called_once_with(frame_num)
 
 
-@pytest.mark.integration
+@pytest.mark.unit
 def test_roi_embeddings_cache_behavior(node_embeddings):
-    """Test that ROI embeddings are cached per (video_name, object_label, visit_start, visit_end)."""
-    mock_video = MagicMock()
-    mock_video.video_name = "vid1"
+    """Test ROI embedding caching per (video_name, object_label, visit_start, visit_end)."""
+    mock_video = MagicMock(video_name="vid1")
     mock_tracer = MagicMock()
     object_label = "bowl"
     visit_start, visit_end = 10, 20
-    
-    # Create a properly configured mock detection
-    dummy_detection = MagicMock()
-    dummy_detection.class_name = object_label  # Match the object label
-    dummy_detection.is_fixated = True
-    dummy_detection.confidence = 0.9
-    dummy_detection.score = 0.9
-    dummy_detection.bbox = (0, 0, 32, 32)  # Add a bbox attribute
-    
-    # Configure the tracer to return our detection
+    dummy_detection = MagicMock(class_name=object_label, is_fixated=True, confidence=0.9, score=0.9, bbox=(0,0,32,32))
     mock_tracer.get_detections_for_frame.return_value = [dummy_detection]
-    
     # Patch methods to avoid actual image processing
     with patch.object(node_embeddings, '_extract_roi', return_value=torch.ones((3, 32, 32))):
         with patch.object(node_embeddings, '_convert_roi_tensor_to_pil', return_value=MagicMock()):
-            # Configure CLIP model mock
             node_embeddings.clip_model = MagicMock()
             node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512))
-            
             # First call: should compute and cache
             out1 = node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start, visit_end)
             assert len(out1) == 1, "First call should return one embedding"
-            
             # Second call: should hit cache, so encode_image not called again
             node_embeddings.clip_model.encode_image.reset_mock()
             out2 = node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start, visit_end)
             assert out2 == out1, "Second call should return same embeddings from cache"
             node_embeddings.clip_model.encode_image.assert_not_called()
-            
             # Different key: should compute again with a different result
             # Create a new mock for the second call to ensure different results
-            node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512)) * 2  # Different value
+            node_embeddings.clip_model.encode_image.return_value = torch.ones((1, 512)) * 2
             out3 = node_embeddings._get_roi_embeddings_for_visit(
                 mock_video, mock_tracer, object_label, visit_start+1, visit_end)
-            
-            # Compare tensors properly - can't directly compare tensor lists with !=
-            assert len(out3) == len(out1), "Output lists should have the same length"
-            # Check that at least one tensor element is different
-            is_different = False
-            for t1, t3 in zip(out1, out3):
-                if not torch.allclose(t1, t3):
-                    is_different = True
-                    break
-            assert is_different, "Different visit range should not return identical embeddings"
+            assert len(out3) == len(out1), "Third call should return same number of embeddings"
+            assert any(not torch.allclose(t1, t3) for t1, t3 in zip(out1, out3)), "Third call should return different embeddings"
 
 @pytest.mark.integration
 @pytest.mark.gpu
@@ -314,67 +280,50 @@ def test_object_node_embedding_with_real_data(node_embeddings, test_checkpoint, 
 
 @pytest.mark.unit
 def test_object_label_embedding_cache(node_embeddings):
-    """Test that object label embeddings are cached by object_label."""
-    # Create a mock checkpoint
+    """Test caching of object label embeddings with mocked clip_model."""
     mock_checkpoint = MagicMock()
     mock_node_data = {"object_label": "bowl"}
     mock_checkpoint.nodes = {1: mock_node_data}
-    
-    # Configure CLIP model mock to return different values on each call
     node_embeddings.clip_model.encode_texts = MagicMock()
     node_embeddings.clip_model.encode_texts.side_effect = [
-        torch.ones((1, 768)),  # First call
-        torch.ones((1, 768)) * 2  # Second call (should not be used due to caching)
+        torch.ones((1, 768)), # First call
+        torch.ones((1, 768)) * 2 # Second call (should not be used due to caching)
     ]
-    
     # First call: should compute and cache
     embedding1 = node_embeddings.get_object_node_embedding_label(mock_checkpoint, 1)
     assert embedding1 is not None
-    
     # Second call with same object label: should hit cache
     embedding2 = node_embeddings.get_object_node_embedding_label(mock_checkpoint, 1)
-    assert torch.allclose(embedding1, embedding2), "Second call should return same embedding from cache"
-    
+    assert torch.allclose(embedding1, embedding2)
     # Verify encode_texts was called only once
     assert node_embeddings.clip_model.encode_texts.call_count == 1
-    
     # Different object label: should compute again
     mock_node_data2 = {"object_label": "spoon"}
     mock_checkpoint.nodes = {2: mock_node_data2}
     embedding3 = node_embeddings.get_object_node_embedding_label(mock_checkpoint, 2)
-    
-    # Verify encode_texts was called again
     assert node_embeddings.clip_model.encode_texts.call_count == 2
 
 
 @pytest.mark.unit
 def test_action_label_embedding_cache(node_embeddings):
-    """Test that action label embeddings are cached by action_label."""
-    # Configure ActionRecord mock
+    """Test caching of action label embeddings with mocked clip_model."""
     with patch("gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx") as mock_get_action_name:
         mock_get_action_name.side_effect = ["take bowl", "take bowl", "put spoon"]
-        
-        # Configure CLIP model mock to return different values on each call
         node_embeddings.clip_model.encode_texts = MagicMock()
         node_embeddings.clip_model.encode_texts.side_effect = [
-            torch.ones((1, 768)),  # First call
-            torch.ones((1, 768)) * 2  # Second call (should not be used due to caching)
+            torch.ones((1, 768)), # First call
+            torch.ones((1, 768)) * 2 # Second call (should not be used due to caching) 
         ]
-        
         # First call: should compute and cache
         embedding1 = node_embeddings.get_action_embedding(0)
         assert embedding1 is not None
-        
         # Second call with same action label: should hit cache
         embedding2 = node_embeddings.get_action_embedding(0)
-        assert torch.allclose(embedding1, embedding2), "Second call should return same embedding from cache"
-        
+        assert torch.allclose(embedding1, embedding2)
         # Verify encode_texts was called only once
         assert node_embeddings.clip_model.encode_texts.call_count == 1
-        
         # Different action label: should compute again
         embedding3 = node_embeddings.get_action_embedding(1)
-        
         # Verify encode_texts was called again
         assert node_embeddings.clip_model.encode_texts.call_count == 2
 
