@@ -51,7 +51,7 @@ class GraphDataset(Dataset):
         self.max_droppable = max_droppable
         self.device = device
         self.object_node_feature = object_node_feature
-        self.node_feature_extractor = get_node_feature_extractor(object_node_feature, device=device)
+        self.node_feature_extractor = get_node_feature_extractor(object_node_feature, device=device, config=config)
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
             self.sample_tuples : List[Tuple[GraphCheckpoint, dict]] = []
