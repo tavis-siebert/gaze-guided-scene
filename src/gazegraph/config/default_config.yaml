@@ -46,7 +46,7 @@ dataset:
       train_video_lengths: ${dataset.ego_topo.data_dir}/split/train_S1_nframes.csv
       val_video_lengths: ${dataset.ego_topo.data_dir}/split/val_S1_nframes.csv
       
-  # Embedding cache paths
+  # Embeddings settings
   embeddings:
     object_label_embedding_path: ${directories.data_dir}/datasets/noun_label_embeddings.pth
     action_label_embedding_path: ${directories.data_dir}/datasets/action_label_embeddings.pth

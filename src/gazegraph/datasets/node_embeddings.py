@@ -24,7 +24,7 @@ class NodeEmbeddings:
     Handles creation of embeddings for various node types in scene graphs.
     """
     
-    def __init__(self, device: str = "cuda", prepopulate_caches: bool = True):
+    def __init__(self, device: str = "cuda", prepopulate_caches: bool = True, clip_model: ClipModel | None = None):
         """
         Initialize the node embedder.
         
@@ -33,7 +33,9 @@ class NodeEmbeddings:
             prepopulate_caches: Whether to prepopulate the embedding caches
         """
         self.device = device
-        self.clip_model = ClipModel(device=self.device)
+        self.clip_model = clip_model
+        if not self.clip_model:
+            self.clip_model = ClipModel(device=self.device)
         self.config = get_config()
         
         # Get cache paths from config
