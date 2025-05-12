@@ -3,6 +3,7 @@ import torch
 from pathlib import Path
 from typing import List, Optional, Tuple
 from torch_geometric.data import Data, Dataset
+from gazegraph.training.dataset.graph_assembler import ObjectGraph
 from tqdm import tqdm
 import numpy as np
 from bisect import bisect_right
@@ -56,6 +57,13 @@ class GraphDataset(Dataset):
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
             self.sample_tuples : List[Tuple[GraphCheckpoint, dict]] = []
         self._load_and_collect_samples()
+        self._assembler = ObjectGraph(
+            node_feature_extractor=self.node_feature_extractor,
+            object_node_feature=self.object_node_feature,
+            config=self.config,
+            device=self.device
+        )
+        self._data_cache = {}
         super().__init__(root=str(self.root_dir), transform=transform, pre_transform=pre_transform, pre_filter=pre_filter)
 
     def _load_and_collect_samples(self):
@@ -108,12 +116,17 @@ class GraphDataset(Dataset):
         return len(self.sample_tuples)
 
     def get(self, idx: int) -> Data:
-        """Get a single graph data object."""
+        """Get a single graph data object, using cache and assembler."""
+        if idx in self._data_cache:
+            return self._data_cache[idx]
         checkpoint, action_labels = self.sample_tuples[idx]
-        node_features = self._extract_node_features(checkpoint)
-        edge_index, edge_attr = self._extract_edge_features(checkpoint)
         y = action_labels[self.task_mode]
-        data = Data(x=node_features, edge_index=edge_index, edge_attr=edge_attr, y=y)
+        data = self._assembler.assemble(checkpoint, y)
+        data = self._apply_augmentations(data)
+        self._data_cache[idx] = data
+        return data
+
+    def _apply_augmentations(self, data: Data) -> Data:
         if self.node_drop_p > 0 and random.random() < self.node_drop_p:
             if data.x is not None and data.edge_index is not None and data.edge_attr is not None:
                 augmented_data = node_dropping(data.x, data.edge_index, data.edge_attr, self.max_droppable)
@@ -147,24 +160,4 @@ class GraphDataset(Dataset):
         video = Video(video_name)
         return video
 
-    def _extract_node_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
-        logger.info(f"Extracting node features for checkpoint {checkpoint.video_name} at frame {checkpoint.frame_number}")
-        if self.object_node_feature == "roi-embeddings":
-            tracer = self._get_tracer_for_checkpoint(checkpoint)
-            video = self._get_video_for_checkpoint(checkpoint)
-            if tracer and video:
-                self.node_feature_extractor.set_context(tracer=tracer, video=video)
-            else:
-                logger.warning(f"Could not set ROI embedding context for checkpoint {checkpoint.video_name}")
-        return self.node_feature_extractor.extract_features(checkpoint)
-
-    def _extract_edge_features(self, checkpoint: GraphCheckpoint) -> Tuple[torch.Tensor, torch.Tensor]:
-        if not checkpoint.edges:
-            return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1))
-        edge_list = [(e["source_id"], e["target_id"]) for e in checkpoint.edges]
-        edge_attrs = [[e.get("angle", 0.0)] for e in checkpoint.edges]
-        edge_index = torch.tensor(edge_list, dtype=torch.long).t()
-        edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
-        if edge_attr.shape[0] > 0 and edge_attr.max() > 0:
-            edge_attr = edge_attr / (edge_attr.max() + 1e-8)
-        return edge_index, edge_attr
+    # Node and edge feature extraction now handled by assembler
