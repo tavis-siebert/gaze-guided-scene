@@ -78,6 +78,8 @@ def test_get_action_embedding(node_embeddings):
             assert embedding is not None
             assert isinstance(embedding, torch.Tensor)
             assert embedding.shape[1] == 768
+            # Reset mock to clear call history
+            mock_encode_texts.reset_mock()
             # Second call should use cache
             embedding2 = node_embeddings.get_action_embedding(0)
             # Verify encode_texts was not called again
@@ -189,14 +191,13 @@ def test_get_object_node_embedding_roi(node_embeddings, has_visits):
     if has_visits:
         with patch.object(node_embeddings, '_get_roi_embeddings_for_visit') as mock_get_roi:
             mock_get_roi.return_value = [torch.ones((1, 768))]
-            with patch.object(node_embeddings, '_get_clip_model') as mock_clip:
-                mock_clip.return_value = MagicMock()
-                embedding = node_embeddings.get_object_node_embedding_roi(
-                    checkpoint=mock_checkpoint,
-                    tracer=mock_tracer,
-                    video=mock_video,
-                    node_id=1
-                )
+            # Use the clip_model attribute directly
+            embedding = node_embeddings.get_object_node_embedding_roi(
+                checkpoint=mock_checkpoint,
+                tracer=mock_tracer,
+                video=mock_video,
+                node_id=1
+            )
             assert embedding is not None
             assert isinstance(embedding, torch.Tensor)
             assert embedding.shape[0] == 768  # We assume ViT-L/14 CLIP model
@@ -221,10 +222,7 @@ def test_get_object_node_embedding_label(node_embeddings):
         "visits": [(10, 20)]
     }
     mock_checkpoint.nodes = {1: node_data}
-    with patch.object(node_embeddings, '_get_clip_model') as mock_clip:
-        mock_model = MagicMock()
-        mock_model.encode_texts.return_value = [torch.ones((1, 768))]
-        mock_clip.return_value = mock_model
+    with patch.object(node_embeddings.clip_model, 'encode_texts', return_value=[torch.ones((1, 768))]) as mock_encode_texts:
         embedding = node_embeddings.get_object_node_embedding_label(
             checkpoint=mock_checkpoint,
             node_id=1
@@ -334,7 +332,7 @@ def test_roi_image_classification(node_embeddings, test_checkpoint, test_tracer,
     """Test that the best detection in the visit range is (mostly) correctly classified (top 3)."""
     object_labels = ActionRecord.get_noun_names()
     object_labels = [f"a photo of a {label.replace('_', ' ')}" for label in object_labels]
-    clip_model = node_embeddings._get_clip_model()
+    clip_model = node_embeddings.clip_model
     node_ids = [nid for nid, node in test_checkpoint.nodes.items() 
                if 'visits' in node and node['visits']]
     
