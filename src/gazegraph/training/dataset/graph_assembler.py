@@ -93,8 +93,13 @@ class ActionGraph(GraphAssembler):
         # 1. Get all observed actions up to current frame
         past_records = ActionRecord.get_past_action_records(video_name, current_frame)
         if not past_records:
-            # Return empty graph
-            return Data(x=torch.empty((0, self.node_embeddings.get_action_embedding(0).shape[-1])), edge_index=torch.zeros((2, 0), dtype=torch.long), y=y)
+            # Return empty graph with default edge_attr
+            return Data(
+                x=torch.empty((0, self.node_embeddings.get_action_embedding(0).shape[-1])),
+                edge_index=torch.zeros((2, 0), dtype=torch.long),
+                edge_attr=torch.zeros((0, 1), dtype=torch.float),
+                y=y
+            )
         # 2. Build node features (action embeddings)
         node_features = []
         for rec in past_records:
@@ -106,9 +111,12 @@ class ActionGraph(GraphAssembler):
             edge_index = torch.tensor([
                 [i, i+1] for i in range(len(past_records)-1)
             ], dtype=torch.long).t()
+            # Add edge attributes (temporal distance between actions)
+            edge_attr = torch.ones((edge_index.shape[1], 1), dtype=torch.float)
         else:
             edge_index = torch.zeros((2, 0), dtype=torch.long)
-        return Data(x=x, edge_index=edge_index, y=y)
+            edge_attr = torch.zeros((0, 1), dtype=torch.float)
+        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
 def create_graph_assembler(
