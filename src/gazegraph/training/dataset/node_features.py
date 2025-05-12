@@ -22,9 +22,10 @@ logger = get_logger(__name__)
 class NodeFeatureExtractor(ABC):
     """Base class for node feature extraction strategies."""
     
-    def __init__(self, config: DotDict):
+    def __init__(self, config: DotDict, node_embeddings: Optional[NodeEmbeddings] = None):
         self._temporal_feature_cache = {}
         self.config = config
+        self.node_embeddings = node_embeddings
     
     def _extract_temporal_features(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
         """Extract temporal features for a node.
@@ -198,13 +199,17 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         Args:
             device: Device to run models on ("cuda" or "cpu")
             embedding_dim: Dimension of the embeddings
+            node_embeddings: Optional NodeEmbeddings instance (for testing)
         """
         super().__init__(**kwargs)
         self.device = device
         self.embedding_dim = embedding_dim
-        self.node_embeddings = NodeEmbeddings(config=self.config, device=device)
         self.tracer = None
         self.video = None
+        
+        # Initialize node embeddings if not provided
+        if self.node_embeddings is None:
+            self.node_embeddings = NodeEmbeddings(self.config, device=device)
         
     def set_context(self, tracer: GraphTracer | None, video: Video | None):
         """
@@ -267,8 +272,17 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
                 # Move to the device of roi_embedding (likely CUDA)
                 temporal_features = temporal_features.to(roi_embedding.device)
             
+            # Ensure both tensors have the same number of dimensions before concatenation
+            if temporal_features.dim() != roi_embedding.dim():
+                if temporal_features.dim() == 1 and roi_embedding.dim() == 2:
+                    # Reshape temporal_features to match roi_embedding's dimensions
+                    temporal_features = temporal_features.unsqueeze(0)
+                elif roi_embedding.dim() == 1 and temporal_features.dim() == 2:
+                    # Reshape roi_embedding to match temporal_features's dimensions
+                    roi_embedding = roi_embedding.unsqueeze(0)
+        
             # Combine features
-            node_features = torch.cat([temporal_features, roi_embedding])
+            node_features = torch.cat([temporal_features, roi_embedding], dim=-1)
             features_list.append(node_features)
         
         if not features_list:
@@ -301,11 +315,14 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         Args:
             device: Device to run models on ("cuda" or "cpu")
             embedding_dim: Dimension of the embeddings
+            node_embeddings: Optional NodeEmbeddings instance (for testing)
         """
         super().__init__(**kwargs)
         self.device = device
         self.embedding_dim = embedding_dim
-        self.node_embeddings = NodeEmbeddings(config=self.config, device=device)
+        
+        if self.node_embeddings is None:
+            self.node_embeddings = NodeEmbeddings(self.config, device=device)
     
     def _get_label_embedding(self, checkpoint: GraphCheckpoint, node_id: int) -> torch.Tensor:
         """
@@ -357,8 +374,17 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
                 # Move to the device of label_embedding (likely CUDA)
                 temporal_features = temporal_features.to(label_embedding.device)
             
+            # Ensure both tensors have the same number of dimensions before concatenation
+            if temporal_features.dim() != label_embedding.dim():
+                if temporal_features.dim() == 1 and label_embedding.dim() == 2:
+                    # Reshape temporal_features to match label_embedding's dimensions
+                    temporal_features = temporal_features.unsqueeze(0)
+                elif label_embedding.dim() == 1 and temporal_features.dim() == 2:
+                    # Reshape label_embedding to match temporal_features's dimensions
+                    label_embedding = label_embedding.unsqueeze(0)
+        
             # Combine features
-            node_features = torch.cat([temporal_features, label_embedding])
+            node_features = torch.cat([temporal_features, label_embedding], dim=-1)
             features_list.append(node_features)
         
         if not features_list:
