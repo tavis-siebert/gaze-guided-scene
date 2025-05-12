@@ -90,34 +90,95 @@ class TestNodeFeatureExtractors:
 
     def test_object_label_embedding_extractor(self, mock_config, mock_checkpoint):
         """Test the ObjectLabelEmbeddingNodeFeatureExtractor"""
-        # Create a proper mock for NodeEmbeddings
         mock_node_embeddings = MagicMock()
-        
-        # Set embedding dimension for the test
         embedding_dim = 16
         mock_embedding = torch.ones(embedding_dim)
         mock_node_embeddings.get_object_node_embedding_label.return_value = mock_embedding
-        
-        # Create the extractor with the mock node_embeddings
         extractor = ObjectLabelEmbeddingNodeFeatureExtractor(config=mock_config, device="cpu", embedding_dim=embedding_dim, node_embeddings=mock_node_embeddings)
-        
-        # Extract features
         features = extractor.extract_features(mock_checkpoint)
-        
         # Check shape: 2 nodes, 5 temporal features + embedding_dim
         assert features.shape == (2, 5 + embedding_dim)
-        
         # Check that the embedding part is filled with ones
-        assert torch.all(features[0, 5:] == 1)
-        assert torch.all(features[1, 5:] == 1)
-        
+        assert torch.all(features[:, 5:] == 1)
         # Check that the method was called with correct parameters
-        mock_node_embeddings.get_object_node_embedding_label.assert_any_call(
-            mock_checkpoint, 0
-        )
-        mock_node_embeddings.get_object_node_embedding_label.assert_any_call(
-            mock_checkpoint, 1
-        )
+        mock_node_embeddings.get_object_node_embedding_label.assert_any_call(mock_checkpoint, 0)
+        mock_node_embeddings.get_object_node_embedding_label.assert_any_call(mock_checkpoint, 1)
+
+    def test_normalization_and_shape_consistency(self):
+        """Test normalization and shape for various feature tensor edge cases"""
+        from gazegraph.training.dataset.node_features import NodeFeatureExtractor
+        class DummyExtractor(NodeFeatureExtractor):
+            def extract_features(self, checkpoint):
+                pass
+        extractor = DummyExtractor(config=None)
+        # Multi-node, multi-feature
+        t = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
+        norm = extractor._normalize_features(t.clone())
+        assert norm.shape == (2, 3)
+        assert norm[0, 1] == t[0, 1] / t[:, 1].max()
+        # Single-node, multi-feature
+        t = torch.tensor([1., 2., 3.])
+        norm = extractor._normalize_features(t.clone())
+        assert norm.shape == (1, 3)
+        # Multi-node, single-feature
+        t = torch.tensor([[1.], [2.]])
+        norm = extractor._normalize_features(t.clone())
+        assert norm.shape == (2, 1)
+        # Single-node, single-feature
+        t = torch.tensor([1.])
+        norm = extractor._normalize_features(t.clone())
+        assert norm.shape == (1, 1)
+        # Empty tensor
+        t = torch.empty((0, 3))
+        norm = extractor._normalize_features(t)
+        assert norm.shape == (0, 3)
+
+    def test_no_index_error_on_various_inputs(self):
+        """No IndexError should be raised for any input shape"""
+        from gazegraph.training.dataset.node_features import NodeFeatureExtractor
+        class DummyExtractor(NodeFeatureExtractor):
+            def extract_features(self, checkpoint):
+                return torch.tensor([])
+            @property
+            def feature_dim(self):
+                return 1
+        extractor = DummyExtractor(config=type('DotDict', (), {})())
+        extractor._normalize_features(torch.tensor([[1.], [2.]]))
+        extractor._normalize_features(torch.tensor([]))
+        extractor._normalize_features(torch.empty((0, 3)))
+
+    def test_feature_extractors_output_shape(self, mock_config, mock_checkpoint):
+        """All extractors return 2D output with correct feature dim"""
+        mock_node_embeddings = MagicMock()
+        embedding_dim = 8
+        # OneHot
+        extractor = OneHotNodeFeatureExtractor(config=mock_config)
+        features = extractor.extract_features(mock_checkpoint)
+        assert features.ndim == 2
+        # ROI
+        mock_node_embeddings.get_object_node_embedding_roi.return_value = torch.ones(embedding_dim)
+        roi_extractor = ROIEmbeddingNodeFeatureExtractor(config=mock_config, device="cpu", embedding_dim=embedding_dim, node_embeddings=mock_node_embeddings)
+        roi_extractor.set_context(MagicMock(), MagicMock())
+        features = roi_extractor.extract_features(mock_checkpoint)
+        assert features.ndim == 2
+        # ObjectLabelEmbedding
+        mock_node_embeddings.get_object_node_embedding_label.return_value = torch.ones(embedding_dim)
+        obj_extractor = ObjectLabelEmbeddingNodeFeatureExtractor(config=mock_config, device="cpu", embedding_dim=embedding_dim, node_embeddings=mock_node_embeddings)
+        features = obj_extractor.extract_features(mock_checkpoint)
+        assert features.ndim == 2
+
+    def test_visit_count_normalization(self):
+        """Visit count column is normalized if max > 0"""
+        from gazegraph.training.dataset.node_features import NodeFeatureExtractor
+        class DummyExtractor(NodeFeatureExtractor):
+            def extract_features(self, checkpoint):
+                pass
+        extractor = DummyExtractor(config=None)
+        t = torch.tensor([[1., 2., 3.], [4., 6., 6.]])
+        norm = extractor._normalize_features(t.clone())
+        assert norm[0, 1] == 2. / 6.
+        assert norm[1, 1] == 1.0
+
 
     def test_get_node_feature_extractor(self, mock_config):
         """Test the factory function for node feature extractors"""
