@@ -19,37 +19,6 @@ from gazegraph.models.clip import ClipModel
 
 
 @pytest.fixture
-def device():
-    return "cuda" if torch.cuda.is_available() else "cpu"
-
-@pytest.fixture(scope="session")
-def clip_model():
-    """Fixture to provide a persistent CLIP model instance for tests."""
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = ClipModel(device=device)
-    return model
-
-@pytest.fixture
-def node_embeddings(device, clip_model):
-    """Fixture for a NodeEmbeddings instance configured for testing."""
-    # Disable prepopulation for most tests to avoid unnecessary computation
-    return NodeEmbeddings(device=device, prepopulate_caches=False, clip_model=clip_model)
-
-@pytest.fixture()
-def mock_clip_model():
-    return MagicMock()
-
-@pytest.fixture()
-def mock_node_embeddings():
-    # Patch the _load_caches method to prevent loading from cache files during tests
-    with patch.object(NodeEmbeddings, '_load_caches'):
-        node_embeddings = NodeEmbeddings(device="cpu", prepopulate_caches=False, clip_model=MagicMock())
-        # Clear any caches that might have been loaded
-        node_embeddings._object_label_embedding_cache = {}
-        node_embeddings._action_label_embedding_cache = {}
-        return node_embeddings
-
-@pytest.fixture
 def test_checkpoint():
     """Fixture that loads a real checkpoint from the data directory."""
     graph_path = Path("data/graphs/train/OP01-R04-ContinentalBreakfast_graph.pth")
