@@ -59,7 +59,7 @@ class NodeEmbeddings:
         if prepopulate_caches:
             self.prepopulate_caches()
         
-    def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:
+    def get_action_embedding(self, action_idx: int) -> torch.Tensor:
         """
         Get embedding for an action using CLIP text embedding.
         
@@ -71,8 +71,7 @@ class NodeEmbeddings:
         """
         action_name = ActionRecord.get_action_name_by_idx(action_idx)
         if action_name is None:
-            logger.warning(f"Action index {action_idx} not found in action mapping")
-            return None
+            raise ValueError(f"Action index {action_idx} not found in action mapping")
         
         # Check cache first
         if action_name in self._action_label_embedding_cache:
@@ -80,9 +79,8 @@ class NodeEmbeddings:
             
         # Generate new embedding
         if self.clip_model is None:
-            logger.error("CLIP model not initialized")
-            return None
-            
+            raise RuntimeError("CLIP model not initialized")
+        
         prompt = f"a photo of a {action_name}"
         embedding = self.clip_model.encode_texts([prompt])[0]
         
