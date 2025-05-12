@@ -15,17 +15,25 @@ from gazegraph.graph.checkpoint_manager import CheckpointManager
 from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.config.config_utils import get_config
+from gazegraph.models.clip import ClipModel
 
 
 @pytest.fixture
 def device():
     return "cuda" if torch.cuda.is_available() else "cpu"
 
+@pytest.fixture(scope="session")
+def clip_model():
+    """Fixture to provide a persistent CLIP model instance for tests."""
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ClipModel(device=device)
+    return model
+
 @pytest.fixture
-def node_embeddings(device):
+def node_embeddings(device, clip_model):
     """Fixture for a NodeEmbeddings instance configured for testing."""
     # Disable prepopulation for most tests to avoid unnecessary computation
-    return NodeEmbeddings(device=device, prepopulate_caches=False)
+    return NodeEmbeddings(device=device, prepopulate_caches=False, clip_model=clip_model)
 
 
 @pytest.fixture
