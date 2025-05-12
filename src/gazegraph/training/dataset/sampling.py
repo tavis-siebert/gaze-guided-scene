@@ -70,7 +70,7 @@ def _potential_from_checkpoints(checkpoints: List[GraphCheckpoint], metadata: Vi
     return [
         (cp, labels)
         for cp in checkpoints
-        if (labels := cp.get_future_action_labels(cp.frame_number, metadata)) is not None
+        if (labels := cp.get_future_action_labels(cp.frame_number, metadata)) and labels
     ]
 
 def _potential_from_oversampling(checkpoints: List[GraphCheckpoint], valid_frames, metadata: VideoMetadata):
@@ -82,7 +82,7 @@ def _potential_from_oversampling(checkpoints: List[GraphCheckpoint], valid_frame
             continue
         cp = suitable[-1]
         labels = cp.get_future_action_labels(frame, metadata)
-        if labels is not None:
+        if labels:
             potential.append((cp, labels))
     return potential
 
