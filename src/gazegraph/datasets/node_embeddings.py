@@ -32,6 +32,10 @@ class NodeEmbeddings:
         self.clip_model = ClipModel(device=self.device)
         # Cache for ROI embeddings per visit: (video_name, object_label, visit_start, visit_end) -> list of tensors
         self._roi_visit_embedding_cache: Dict[Tuple[str, str, int, int], List[torch.Tensor]] = {}
+        # Cache for object label embeddings: object_label -> tensor
+        self._object_label_embedding_cache: Dict[str, torch.Tensor] = {}
+        # Cache for action label embeddings: action_label -> tensor
+        self._action_label_embedding_cache: Dict[str, torch.Tensor] = {}
         
     def get_action_embedding(self, action_idx: int) -> Optional[torch.Tensor]:
         """
@@ -47,8 +51,17 @@ class NodeEmbeddings:
         if action_name is None:
             logger.warning(f"Action index {action_idx} not found in action mapping")
             return None
+        
+        # Check cache first
+        if action_name in self._action_label_embedding_cache:
+            return self._action_label_embedding_cache[action_name]
             
+        # Generate new embedding
         embedding = self.clip_model.encode_texts([action_name])[0]
+        
+        # Cache the embedding
+        self._action_label_embedding_cache[action_name] = embedding
+        
         return embedding
         
     def get_object_node_embedding_roi(
@@ -136,7 +149,17 @@ class NodeEmbeddings:
         if not object_label:
             logger.warning(f"Node {node_id} has no object_label")
             return None
+        
+        # Check cache first
+        if object_label in self._object_label_embedding_cache:
+            return self._object_label_embedding_cache[object_label]
+        
+        # Generate new embedding
         embedding = self.clip_model.encode_texts([object_label])[0]  # List of 1 tensor -> single tensor
+        
+        # Cache the embedding
+        self._object_label_embedding_cache[object_label] = embedding
+        
         logger.info(f"Generated label-based embedding for node {node_id} ('{object_label}')")
         return embedding
 
