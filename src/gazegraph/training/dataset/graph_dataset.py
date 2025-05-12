@@ -70,6 +70,7 @@ class GraphDataset(Dataset):
         if self.sample_tuples:
             logger.info(f"Using cached samples for {self.split} split")
             return
+        logger.info(f"Collecting checkpoints for {self.split} split")
         for file_path in tqdm(self.checkpoint_files, desc=f"Loading {self.split} checkpoints"):
             video_name = Path(file_path).stem.split('_')[0]
             checkpoints = CheckpointManager.load_checkpoints(str(file_path))
@@ -82,20 +83,21 @@ class GraphDataset(Dataset):
         sampling_cfg = None
         if self.config and hasattr(self.config, 'dataset') and hasattr(self.config.dataset, 'sampling'):
             sampling_cfg = self.config.dataset.sampling
-        if sampling_cfg:
-            if getattr(sampling_cfg, 'random_seed', None) is not None:
-                random.seed(sampling_cfg.random_seed)
-                np.random.seed(sampling_cfg.random_seed)
-            samples = get_samples(
-                checkpoints, video_name, sampling_cfg.strategy, sampling_cfg.samples_per_video,
-                sampling_cfg.allow_duplicates, sampling_cfg.oversampling, self.metadata
-            )
-            self.sample_tuples.extend(samples)
         else:
-            for cp in checkpoints:
-                labels = cp.get_future_action_labels(cp.frame_number, self.metadata)
-                if labels is not None:
-                    self.sample_tuples.append((cp, labels))
+            raise ValueError("Sampling configuration not found in config")
+        if getattr(sampling_cfg, 'random_seed', None) is not None:
+            random.seed(sampling_cfg.random_seed)
+            np.random.seed(sampling_cfg.random_seed)
+        samples = get_samples(
+            checkpoints=checkpoints,
+            video_name=video_name,
+            strategy=sampling_cfg.strategy,
+            samples_per_video=sampling_cfg.samples_per_video,
+            allow_duplicates=sampling_cfg.allow_duplicates,
+            oversampling=sampling_cfg.oversampling,
+            metadata=self.metadata
+        )
+        self.sample_tuples.extend(samples)
 
     def _add_val_samples(self, checkpoints: List[GraphCheckpoint]):
         if not checkpoints:
