@@ -4,4 +4,4 @@
 #SBATCH --output=logs/build.out
 #SBATCH --time=48:00:00
 
-./run.sh build-graphs --device gpu --enable-tracing --videos OP01-R04-ContinentalBreakfast --overwrite
+./scripts/run.sh build-graphs --device gpu --enable-tracing --videos OP01-R04-ContinentalBreakfast --overwrite
