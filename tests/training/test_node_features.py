@@ -109,8 +109,11 @@ class TestNodeFeatureExtractors:
         from gazegraph.training.dataset.node_features import NodeFeatureExtractor
         class DummyExtractor(NodeFeatureExtractor):
             def extract_features(self, checkpoint):
-                pass
-        extractor = DummyExtractor(config=None)
+                return torch.tensor([])
+            @property
+            def feature_dim(self):
+                return 1
+        extractor = DummyExtractor(config=type('DotDict', (), {})())
         # Multi-node, multi-feature
         t = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
         norm = extractor._normalize_features(t.clone())
@@ -172,8 +175,11 @@ class TestNodeFeatureExtractors:
         from gazegraph.training.dataset.node_features import NodeFeatureExtractor
         class DummyExtractor(NodeFeatureExtractor):
             def extract_features(self, checkpoint):
-                pass
-        extractor = DummyExtractor(config=None)
+                return torch.tensor([])
+            @property
+            def feature_dim(self):
+                return 1
+        extractor = DummyExtractor(config=type('DotDict', (), {})())
         t = torch.tensor([[1., 2., 3.], [4., 6., 6.]])
         norm = extractor._normalize_features(t.clone())
         assert norm[0, 1] == 2. / 6.
