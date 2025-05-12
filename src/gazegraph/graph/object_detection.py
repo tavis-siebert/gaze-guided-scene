@@ -146,12 +146,12 @@ class ObjectDetector:
     def __init__(
         self, 
         model_path: Path,
-        class_id_to_name: Dict[int, str],
+        classes: List[str],
         config: DotDict,
         tracer: Optional['GraphTracer'] = None
     ):
         """Initialize the object detector."""
-        self.class_id_to_name = class_id_to_name
+        self.classes = classes
         self.tracer = tracer
         self.config = config
         
@@ -186,7 +186,6 @@ class ObjectDetector:
         )
         num_workers = getattr(config.processing, "n_cores", None)
         self.model.load_model(model_path, num_workers)
-        self.classes = list(self.class_id_to_name.values())
         self.model.set_classes(self.classes)
         
         # State tracking

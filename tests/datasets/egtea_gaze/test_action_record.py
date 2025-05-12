@@ -157,10 +157,10 @@ def test_api_methods(mock_action_records, mock_records_by_video):
             mp = ActionRecord.get_action_mapping()
             assert mp == {(1, 3): 0, (2, 1): 1} and mp is not ActionRecord._action_to_idx
             
-            # Test get_noun_label_mappings
+            # Test get_noun_label_mapping
             with patch.object(ActionRecord, '_noun_id_to_name', {1: "cup", 2: "bowl", 3: "knife"}):
-                id2n, n2i = ActionRecord.get_noun_label_mappings()
-                assert id2n == {1: "cup", 2: "bowl", 3: "knife"} and n2i == {"cup": 1, "bowl": 2, "knife": 3}
+                n2i = ActionRecord.get_noun_label_mapping()
+                assert n2i == {"cup": 1, "bowl": 2, "knife": 3}
                 
                 # Test get_action_name_by_idx
                 with patch.object(ActionRecord, '_verb_id_to_name', {1: "take", 2: "put"}):
