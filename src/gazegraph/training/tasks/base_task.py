@@ -25,7 +25,7 @@ class BaseTask:
         self.load_cached = load_cached
         self.graph_type = graph_type
         
-        self.logger.info(f"Using node feature type: {object_node_feature}")
+        self.logger.info(f"Using object node feature type: {object_node_feature}")
         self.logger.info(f"Using graph type: {graph_type}")
         
         # Load data and setup loaders

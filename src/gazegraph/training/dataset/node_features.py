@@ -407,4 +407,4 @@ def get_node_feature_extractor(feature_type: str, device: str = "cuda", **kwargs
     elif feature_type == "object-label-embeddings":
         return ObjectLabelEmbeddingNodeFeatureExtractor(device=device, **kwargs)
     else:
-        raise ValueError(f"Unknown node feature type: {feature_type}")
+        raise ValueError(f"Unknown object node feature type: {feature_type}")

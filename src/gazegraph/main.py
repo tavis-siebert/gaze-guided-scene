@@ -151,7 +151,7 @@ def main():
         task = None
         try:
             TaskClass = get_task(args.task)
-            # Pass node feature type and graph type to the task
+            # Pass object node feature type and graph type to the task
             task = TaskClass(
                 config=config,
                 device=device,
@@ -160,7 +160,7 @@ def main():
                 load_cached=args.load_cached,
                 graph_type=args.graph_type
             )
-            logger.info(f"Starting training process with node feature type: {args.object_node_feature} and graph type: {args.graph_type}")
+            logger.info(f"Starting training process with object node feature type: {args.object_node_feature} and graph type: {args.graph_type}")
             if args.load_cached:
                 logger.info("Using cached GraphDataset from files")
             task.train()
