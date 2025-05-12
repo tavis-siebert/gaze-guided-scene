@@ -127,7 +127,7 @@ def main():
     logger.info(f"Loaded configuration from {args.config}")
     
     if args.command == "setup-scratch":
-        from gazegraph.scripts.setup_scratch import setup_scratch
+        from gazegraph.setup_scratch import setup_scratch
         dropbox_token = get_dropbox_token(args)
         logger.info("Starting scratch setup process")
         setup_scratch(config, access_token=dropbox_token)
