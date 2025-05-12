@@ -2,9 +2,12 @@ import pytest
 import torch
 from torch_geometric.data import Data
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
-from gazegraph.training.dataset.graph_assembler import ActionGraph
+from gazegraph.training.dataset.graph_assembler import ActionGraph, ObjectGraph, create_graph_assembler, GraphAssembler
+from gazegraph.training.dataset.node_features import NodeFeatureExtractor
+from gazegraph.config.config_utils import DotDict
 
 class DummyNodeEmbeddings:
     def __init__(self, emb_dim=4):
@@ -58,7 +61,7 @@ def test_action_graph_empty(monkeypatch):
     # No records for video
     monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: [])
     dummy_emb = DummyNodeEmbeddings()
-    ag = ActionGraph(dummy_emb, config=None, device="cpu")
+    ag = ActionGraph(config=None, node_embeddings=dummy_emb, device="cpu")
     checkpoint = SimpleNamespace(video_name="none", frame_number=10)
     y = torch.tensor([1])
     data = ag.assemble(checkpoint, y)
@@ -68,7 +71,7 @@ def test_action_graph_single_node(monkeypatch, patch_records_for_video):
     # Only one past record
     monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: [patch_records_for_video[0]])
     dummy_emb = DummyNodeEmbeddings()
-    ag = ActionGraph(dummy_emb, config=None, device="cpu")
+    ag = ActionGraph(config=None, node_embeddings=dummy_emb, device="cpu")
     checkpoint = SimpleNamespace(video_name="vid", frame_number=20)
     y = torch.tensor([1])
     data = ag.assemble(checkpoint, y)
@@ -79,7 +82,7 @@ def test_action_graph_multiple_nodes(monkeypatch, patch_records_for_video):
     # Two past records
     monkeypatch.setattr(ActionRecord, 'get_past_action_records', lambda v, f: patch_records_for_video[:2])
     dummy_emb = DummyNodeEmbeddings()
-    ag = ActionGraph(dummy_emb, config=None, device="cpu")
+    ag = ActionGraph(config=None, node_embeddings=dummy_emb, device="cpu")
     checkpoint = SimpleNamespace(video_name="vid", frame_number=40)
     y = torch.tensor([1])
     data = ag.assemble(checkpoint, y)
@@ -89,3 +92,100 @@ def test_action_graph_multiple_nodes(monkeypatch, patch_records_for_video):
     # Embeddings correct
     assert torch.all(data.x[0] == dummy_emb.get_action_embedding(0))
     assert torch.all(data.x[1] == dummy_emb.get_action_embedding(1))
+
+
+# Create a DotDict-compatible config for testing
+def create_test_config():
+    # DotDict requires a dictionary for initialization
+    config = DotDict({
+        # Add minimal required attributes for testing
+        'training': {
+            'num_classes': 10
+        },
+        'directories': {
+            'graphs': '/tmp/graphs',
+            'traces': '/tmp/traces'
+        },
+        'dataset': {
+            'egtea': {
+                'raw_videos': '/tmp/videos'
+            },
+            'embeddings': {
+                'object_label_embedding_path': '/tmp/embeddings/object_labels',
+                'roi_embedding_path': '/tmp/embeddings/roi',
+                'action_embedding_path': '/tmp/embeddings/actions'
+            }
+        }
+    })
+    return config
+
+
+@patch('gazegraph.training.dataset.graph_assembler.get_node_feature_extractor')
+def test_create_graph_assembler_object_graph(mock_get_node_feature_extractor):
+    # Setup mock
+    mock_extractor = MagicMock(spec=NodeFeatureExtractor)
+    mock_get_node_feature_extractor.return_value = mock_extractor
+    
+    # Test object-graph creation
+    config = create_test_config()
+    assembler = create_graph_assembler(
+        graph_type="object-graph",
+        config=config,
+        device="cpu",
+        object_node_feature="one-hot"
+    )
+    
+    # Verify correct type and initialization
+    assert isinstance(assembler, ObjectGraph)
+    assert assembler.config == config
+    assert assembler.device == "cpu"
+    assert assembler.object_node_feature == "one-hot"
+    assert assembler.node_feature_extractor == mock_extractor
+    
+    # Verify the node feature extractor was created with correct params
+    mock_get_node_feature_extractor.assert_called_once_with(
+        "one-hot", device="cpu", config=config
+    )
+
+
+@patch('gazegraph.training.dataset.graph_assembler.NodeEmbeddings')
+def test_create_graph_assembler_action_graph(mock_node_embeddings_class):
+    # Setup mock
+    mock_embeddings = MagicMock()
+    mock_node_embeddings_class.return_value = mock_embeddings
+    
+    # Test action-graph creation
+    config = create_test_config()
+    assembler = create_graph_assembler(
+        graph_type="action-graph",
+        config=config,
+        device="cpu"
+    )
+    
+    # Verify correct type and initialization
+    assert isinstance(assembler, ActionGraph)
+    assert assembler.config == config
+    assert assembler.device == "cpu"
+    assert assembler.node_embeddings == mock_embeddings
+    
+    # Since we're not providing node_embeddings, it should create one
+    mock_node_embeddings_class.assert_called_once_with(config, device="cpu")
+
+
+def test_create_graph_assembler_invalid_type():
+    # Test invalid graph type
+    config = create_test_config()
+    
+    # We need to use monkeypatch to bypass the type checking for this test
+    # since we're intentionally passing an invalid graph type
+    with patch('gazegraph.training.dataset.graph_assembler.create_graph_assembler') as mock_create:
+        mock_create.side_effect = ValueError("Unknown graph type: invalid-graph-type")
+        
+        with pytest.raises(ValueError) as excinfo:
+            mock_create(
+                graph_type="invalid-graph-type",
+                config=config,
+                device="cpu"
+            )
+        
+        assert "Unknown graph type" in str(excinfo.value)
