@@ -189,6 +189,34 @@ def test_roi_embeddings_cache_behavior(mock_node_embeddings):
             assert len(out3) == len(out1), "Third call should return same number of embeddings"
             assert any(not torch.allclose(t1, t3) for t1, t3 in zip(out1, out3)), "Third call should return different embeddings"
 
+@pytest.mark.unit
+def test_sample_visits(mock_node_embeddings):
+    """Test that visits are sampled correctly based on config settings."""
+    # Create a list of visits
+    visits = [(10, 20), (30, 40), (50, 60), (70, 80), (90, 100)]
+    node_id = 1
+    object_label = "bowl"
+    
+    # Test case 1: max_visit_sample = 0 (use all visits)
+    with patch.object(mock_node_embeddings.config.dataset.embeddings, "max_visit_sample", 0):
+        sampled_visits = mock_node_embeddings._sample_visits(visits, node_id, object_label)
+        assert len(sampled_visits) == len(visits)
+        assert sampled_visits == visits
+    
+    # Test case 2: max_visit_sample = 3 (sample 3 visits)
+    with patch.object(mock_node_embeddings.config.dataset.embeddings, "max_visit_sample", 3):
+        # Set a fixed random seed for deterministic testing
+        with patch.object(mock_node_embeddings.config.dataset.sampling, "random_seed", 42):
+            sampled_visits = mock_node_embeddings._sample_visits(visits, node_id, object_label)
+            assert len(sampled_visits) == 3
+            assert all(visit in visits for visit in sampled_visits)
+    
+    # Test case 3: max_visit_sample > len(visits) (use all visits)
+    with patch.object(mock_node_embeddings.config.dataset.embeddings, "max_visit_sample", 10):
+        sampled_visits = mock_node_embeddings._sample_visits(visits, node_id, object_label)
+        assert len(sampled_visits) == len(visits)
+        assert sampled_visits == visits
+
 @pytest.mark.integration
 @pytest.mark.gpu
 @pytest.mark.parametrize("has_visits", [True, False])
@@ -204,7 +232,8 @@ def test_get_object_node_embedding_roi(node_embeddings, has_visits):
     mock_checkpoint.nodes = {1: node_data}
     
     if has_visits:
-        with patch.object(node_embeddings, '_get_roi_embeddings_for_visit') as mock_get_roi:
+        with patch.object(node_embeddings, '_get_roi_embeddings_for_visit') as mock_get_roi, \
+             patch.object(node_embeddings, '_sample_visits', return_value=[(10, 20)]) as mock_sample_visits:
             mock_get_roi.return_value = [torch.ones((1, 768))]
             # Use the clip_model attribute directly
             embedding = node_embeddings.get_object_node_embedding_roi(
@@ -217,6 +246,7 @@ def test_get_object_node_embedding_roi(node_embeddings, has_visits):
             assert isinstance(embedding, torch.Tensor)
             assert embedding.shape[0] == 768  # We assume ViT-L/14 CLIP model
             mock_get_roi.assert_called_once()
+            mock_sample_visits.assert_called_once_with([(10, 20)], 1, "bowl")
     else:
         embedding = node_embeddings.get_object_node_embedding_roi(
             checkpoint=mock_checkpoint,

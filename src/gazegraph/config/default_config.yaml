@@ -50,6 +50,7 @@ dataset:
   embeddings:
     object_label_embedding_path: ${directories.data_dir}/datasets/noun_label_embeddings.pth
     action_label_embedding_path: ${directories.data_dir}/datasets/action_label_embeddings.pth
+    max_visit_sample: 3  # Maximum number of visits to sample per node (0 = use all visits)
 
 # Model settings and paths
 models:

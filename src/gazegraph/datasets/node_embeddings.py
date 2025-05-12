@@ -115,8 +115,11 @@ class NodeEmbeddings:
             logger.warning(f"Node {node_id} ('{object_label}') has no visits")
             return None
 
+        # Get the visits to process (either all visits or a sample)
+        visits_to_process = self._sample_visits(visits, node_id, object_label)
+
         all_visit_embeddings = []
-        for visit_start, visit_end in visits:
+        for visit_start, visit_end in visits_to_process:
             # Process each visit and collect ROI embeddings from that visit
             visit_roi_embeddings = self._get_roi_embeddings_for_visit(
                 video, tracer, object_label, visit_start, visit_end
@@ -246,6 +249,41 @@ class NodeEmbeddings:
         self._roi_visit_embedding_cache[cache_key] = collected_roi_embeddings
         return collected_roi_embeddings
 
+    def _sample_visits(self, visits: List[Tuple[int, int]], node_id: int, object_label: str) -> List[Tuple[int, int]]:
+        """
+        Sample visits for a node to reduce computational complexity.
+        
+        Args:
+            visits: List of visit tuples (start_frame, end_frame)
+            node_id: ID of the node
+            object_label: Label of the object
+            
+        Returns:
+            List of sampled visit tuples to process
+        """
+        max_visit_sample = self.config.dataset.embeddings.max_visit_sample
+        
+        # If max_visit_sample is 0 or there are fewer visits than the limit, use all visits
+        if max_visit_sample == 0 or len(visits) <= max_visit_sample:
+            return visits
+        
+        # Sample visits using random seed from config
+        random_seed = self.config.dataset.sampling.random_seed
+        if random_seed is not None:
+            torch.manual_seed(random_seed)
+        
+        # Convert to list to ensure deterministic ordering before sampling
+        visits_list = list(visits)
+        
+        # Sample n_roi_samples visits randomly
+        indices = torch.randperm(len(visits_list))[:max_visit_sample].tolist()
+        sampled_visits = [visits_list[i] for i in indices]
+        
+        logger.info(f"Sampled {len(sampled_visits)}/{len(visits)} visits for node {node_id} ('{object_label}')"
+               f" using max_visit_sample={max_visit_sample}")
+        
+        return sampled_visits
+        
     def _is_valid_roi(self, roi_tensor: torch.Tensor) -> bool:
         """Check if ROI tensor is non-empty and has valid dimensions."""
         return roi_tensor is not None and roi_tensor.numel() > 0 and roi_tensor.shape[1] > 0 and roi_tensor.shape[2] > 0
