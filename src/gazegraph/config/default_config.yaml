@@ -40,7 +40,7 @@ dataset:
     #   otherwise only checkpoint frames are used.
     strategy: all  # 'all', 'uniform', or 'random'
     samples_per_video: 0  # number of samples per video; 0 = use all
-    allow_duplicates: true  # whether sampling can include the same sample multiple times
+    allow_duplicates: false  # whether sampling can include the same sample multiple times
     random_seed: 42  # seed for reproducible sampling; null for no fixed seed
     oversampling: false  # whether to sample all frames (not just checkpoint frames)
 
