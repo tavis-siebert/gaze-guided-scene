@@ -62,7 +62,7 @@ def mock_detector(mock_config):
         # Create detector with mock model
         detector = ObjectDetector(
             model_path=Path("path/to/model"),
-            class_id_to_name={0: "cup", 1: "bowl", 2: "spoon"},
+            classes=["cup", "bowl", "spoon"],
             config=mock_config
         )
         
