@@ -27,8 +27,8 @@ class VideoMetadata:
         self.config = config or get_config()
         
         # ActionRecord automatically initializes itself when needed
-        self.obj_labels, self.object_labels_to_id = ActionRecord.get_noun_label_mappings()
-        self.num_object_classes = len(self.obj_labels)
+        self.id_to_object_label, self.object_labels_to_id = ActionRecord.get_noun_label_mappings()
+        self.num_object_classes = len(self.id_to_object_label)
         
         # Load video lengths for both train and val splits
         self.video_lengths = {}

@@ -113,7 +113,7 @@ class GraphBuilder:
         # Initialize object detector with video-specific tracer
         self.object_detector = ObjectDetector(
             model_path=self.yolo_model_path,
-            class_id_to_name=self.metadata.obj_labels,
+            class_id_to_name=self.metadata.id_to_object_label,
             config=self.config,
             tracer=self.tracer
         )
