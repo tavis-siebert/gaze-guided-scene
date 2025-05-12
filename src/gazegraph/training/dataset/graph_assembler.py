@@ -107,4 +107,3 @@ class ActionGraph(GraphAssembler):
         else:
             edge_index = torch.zeros((2, 0), dtype=torch.long)
         return Data(x=x, edge_index=edge_index, y=y)
-
