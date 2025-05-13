@@ -389,85 +389,87 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
 
 
 class OneHotActionNodeFeatureExtractor(NodeFeatureExtractor):
-    """Extracts node features using one-hot encoding for action classes."""
+    """Extracts node features using one-hot encoding for action classes.
     
+    For action graphs, call extract_features(action_records: List[ActionRecord])
+    to obtain a [num_nodes, num_action_classes] tensor, where each row is a one-hot vector.
+    """
     def __init__(self, device: str = "cuda", **kwargs):
         super().__init__(**kwargs)
         self.device = device
         from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
         self.action_mapping = ActionRecord.get_action_mapping()
         self.num_action_classes = len(self.action_mapping)
-    
-    def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
+
+    def extract_features(self, checkpoint=None, action_records=None, *args, **kwargs) -> torch.Tensor:
         """
-        Extract node features from a checkpoint using one-hot encoding for action classes.
-        
+        Extract node features using one-hot encoding for action classes.
+
         Args:
-            checkpoint: GraphCheckpoint object
-            
+            checkpoint: (Unused, for compatibility)
+            action_records: List of ActionRecord objects. Each must have .action_idx set.
         Returns:
-            Tensor of node features
+            Tensor of shape [num_nodes, num_action_classes]
         """
-        # For action nodes, we don't use the checkpoint directly
-        # Instead, we rely on the action_idx provided when assembling the graph
-        # This method is mainly a placeholder to satisfy the interface
-        # The actual feature extraction happens in ActionGraph.assemble
-        return torch.empty((0, self.feature_dim), device=self.device)
-    
+        if action_records is None:
+            # For compatibility: return empty tensor
+            return torch.empty((0, self.feature_dim), device=self.device)
+        num_nodes = len(action_records)
+        x = torch.zeros((num_nodes, self.num_action_classes), device=self.device)
+        for i, rec in enumerate(action_records):
+            if rec.action_idx is not None:
+                x[i, rec.action_idx] = 1.0
+        assert x.shape == (num_nodes, self.num_action_classes), f"Expected shape {(num_nodes, self.num_action_classes)}, got {x.shape}"
+        return x
+
+
     @property
     def feature_dim(self) -> int:
-        """
-        Get the dimension of the node features.
-        
-        Returns:
-            Dimension of the node features (number of action classes)
-        """
+        """Get the dimension of the node features (number of action classes)."""
         return self.num_action_classes
 
 
 class ActionLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
-    """Extracts node features using action label embeddings."""
+    """Extracts node features using action label embeddings.
     
+    For action graphs, call extract_features(action_records: List[ActionRecord])
+    to obtain a [num_nodes, embedding_dim] tensor, where each row is an embedding.
+    """
     def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
-        """
-        Initialize the action label embedding node feature extractor.
-        
-        Args:
-            device: Device to run models on ("cuda" or "cpu")
-            embedding_dim: Dimension of the embeddings
-            node_embeddings: Optional NodeEmbeddings instance (for testing)
-        """
         super().__init__(**kwargs)
         self.device = device
         self.embedding_dim = embedding_dim
-        
         if self.node_embeddings is None:
             self.node_embeddings = NodeEmbeddings(self.config, device=device)
-    
-    def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
+
+    def extract_features(self, checkpoint=None, action_records=None, *args, **kwargs) -> torch.Tensor:
         """
-        Extract node features from a checkpoint using action label embeddings.
-        
+        Extract node features using action label embeddings.
+
         Args:
-            checkpoint: GraphCheckpoint object
-            
+            checkpoint: (Unused, for compatibility)
+            action_records: List of ActionRecord objects. Each must have .action_idx set.
         Returns:
-            Tensor of node features
+            Tensor of shape [num_nodes, embedding_dim]
         """
-        # For action nodes, we don't use the checkpoint directly
-        # Instead, we rely on the action_idx provided when assembling the graph
-        # This method is mainly a placeholder to satisfy the interface
-        # The actual feature extraction happens in ActionGraph.assemble
-        return torch.empty((0, self.feature_dim), device=self.device)
-    
+        if action_records is None:
+            # For compatibility: return empty tensor
+            return torch.empty((0, self.feature_dim), device=self.device)
+        features = []
+        for rec in action_records:
+            emb = self.node_embeddings.get_action_embedding(rec.action_idx)
+            features.append(emb)
+        if features:
+            x = torch.stack(features)
+        else:
+            x = torch.empty((0, self.embedding_dim), device=self.device)
+        assert x.shape == (len(action_records), self.embedding_dim), f"Expected shape ({len(action_records)}, {self.embedding_dim}), got {x.shape}"
+        return x
+
+
     @property
     def feature_dim(self) -> int:
-        """
-        Get the dimension of the node features.
-        
-        Returns:
-            Dimension of the node features (embedding_dim)
-        """
+        """Get the dimension of the node features (embedding_dim)."""
         return self.embedding_dim
 
 
