@@ -125,6 +125,8 @@ class ActionGraph(GraphAssembler):
         elif x.dim() == 0:
             x = x.view(1, -1)
 
+        assert x.shape == (len(past_records), self.node_feature_extractor.feature_dim), f"x.shape: {x.shape}, expected ({len(past_records)}, {self.node_feature_extractor.feature_dim})"
+
         # 3. Build edges (from older to younger)
         if len(past_records) > 1:
             edge_index = torch.tensor([
@@ -135,6 +137,9 @@ class ActionGraph(GraphAssembler):
         else:
             edge_index = torch.zeros((2, 0), dtype=torch.long, device=self.device)
             edge_attr = torch.zeros((0, 1), dtype=torch.float, device=self.device)
+
+        assert edge_index.shape == (2, len(past_records)), f"edge_index.shape: {edge_index.shape}, expected (2, {len(past_records)})"
+        assert edge_attr.shape == (len(past_records)-1, 1), f"edge_attr.shape: {edge_attr.shape}, expected ({len(past_records)-1}, 1)"
         
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
