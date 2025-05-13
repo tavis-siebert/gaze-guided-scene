@@ -93,7 +93,9 @@ class ObjectGraph(GraphAssembler):
 
 class ActionGraph(GraphAssembler):
     """Graph assembler for action graphs (EGTEA). Each node is an observed action; edges connect temporally adjacent actions."""
-    def __init__(self, config: DotDict, device: str = "cuda", node_embeddings: NodeEmbeddings | None = None,):
+    def __init__(self, node_feature_extractor: NodeFeatureExtractor, action_node_feature: str, config: DotDict, device: str = "cuda", node_embeddings: NodeEmbeddings | None = None):
+        self.node_feature_extractor = node_feature_extractor
+        self.action_node_feature = action_node_feature
         self.node_embeddings = node_embeddings
         if self.node_embeddings is None:
             self.node_embeddings = NodeEmbeddings(config, device=device)
@@ -107,28 +109,45 @@ class ActionGraph(GraphAssembler):
         past_records = ActionRecord.get_past_action_records(video_name, current_frame)
         if not past_records:
             # Return empty graph with default edge_attr
+            feature_dim = self.node_feature_extractor.feature_dim
             return Data(
-                x=torch.empty((0, self.node_embeddings.get_action_embedding(0).shape[-1])),
-                edge_index=torch.zeros((2, 0), dtype=torch.long),
-                edge_attr=torch.zeros((0, 1), dtype=torch.float),
+                x=torch.empty((0, feature_dim), device=self.device),
+                edge_index=torch.zeros((2, 0), dtype=torch.long, device=self.device),
+                edge_attr=torch.zeros((0, 1), dtype=torch.float, device=self.device),
                 y=y
             )
-        # 2. Build node features (action embeddings)
-        node_features = []
-        for rec in past_records:
-            emb = self.node_embeddings.get_action_embedding(rec.action_idx)
-            node_features.append(emb)
-        x = torch.stack(node_features)
+        
+        # 2. Build node features based on the selected feature type
+        if self.action_node_feature == "action-one-hot":
+            action_mapping = ActionRecord.get_action_mapping()
+            num_action_classes = len(action_mapping)
+            x = torch.zeros((len(past_records), num_action_classes), device=self.device)
+            for i, rec in enumerate(past_records):
+                if rec.action_idx is not None:
+                    x[i, rec.action_idx] = 1.0
+        else:  # action-label-embedding
+            node_features = []
+            for rec in past_records:
+                emb = self.node_embeddings.get_action_embedding(rec.action_idx)
+                node_features.append(emb)
+            x = torch.stack(node_features) if node_features else torch.empty((0, self.node_feature_extractor.feature_dim), device=self.device)
+        # Ensure x is always 2D
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        elif x.dim() == 0:
+            x = x.view(1, -1)
+
         # 3. Build edges (from older to younger)
         if len(past_records) > 1:
             edge_index = torch.tensor([
                 [i, i+1] for i in range(len(past_records)-1)
-            ], dtype=torch.long).t()
+            ], dtype=torch.long, device=self.device).t()
             # Add edge attributes (temporal distance between actions)
-            edge_attr = torch.ones((edge_index.shape[1], 1), dtype=torch.float)
+            edge_attr = torch.ones((edge_index.shape[1], 1), dtype=torch.float, device=self.device)
         else:
-            edge_index = torch.zeros((2, 0), dtype=torch.long)
-            edge_attr = torch.zeros((0, 1), dtype=torch.float)
+            edge_index = torch.zeros((2, 0), dtype=torch.long, device=self.device)
+            edge_attr = torch.zeros((0, 1), dtype=torch.float, device=self.device)
+        
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
@@ -136,7 +155,8 @@ def create_graph_assembler(
     graph_type: Literal["object-graph", "action-graph"],
     config: DotDict,
     device: str,
-    object_node_feature: str = "one-hot"
+    object_node_feature: str = "one-hot",
+    action_node_feature: str = "action-label-embedding"
 ) -> GraphAssembler:
     """Factory method to create the appropriate graph assembler based on the dataset type.
     
@@ -145,6 +165,7 @@ def create_graph_assembler(
         config: Configuration object
         device: Device to use ("cuda" or "cpu")
         object_node_feature: Type of object node features (only for object-graph)
+        action_node_feature: Type of action node features (only for action-graph)
         
     Returns:
         GraphAssembler: The appropriate graph assembler instance
@@ -160,9 +181,15 @@ def create_graph_assembler(
             device=device
         )
     elif graph_type == "action-graph":
+        node_feature_extractor = get_node_feature_extractor(
+            action_node_feature, device=device, config=config
+        )
         return ActionGraph(
+            node_feature_extractor=node_feature_extractor,
+            action_node_feature=action_node_feature,
             config=config,
             device=device
         )
     else:
         raise ValueError(f"Unknown graph type: {graph_type}")
+

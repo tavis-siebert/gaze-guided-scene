@@ -15,6 +15,7 @@ def create_dataloader(
     task_mode: str = "future_actions",
     config=None,
     object_node_feature: str = "one-hot",
+    action_node_feature: str = "action-label-embedding",
     device: str = "cuda",
     load_cached: bool = False,
     graph_type: str = "object-graph"
@@ -26,7 +27,8 @@ def create_dataloader(
         split: Dataset split ("train" or "val")
         task_mode: Task mode ("future_actions", "future_actions_ordered", or "next_action")
         config: Configuration object containing dataset and training parameters
-        object_node_feature: Type of node features to use
+        object_node_feature: Type of object node features to use
+        action_node_feature: Type of action node features to use
         device: Device to use for processing
         load_cached: Whether to load cached dataset from file
         graph_type: Type of graph dataset to use ("object-graph" or "action-graph")
@@ -42,7 +44,8 @@ def create_dataloader(
     # Define cache file path
     cache_dir = Path(config.directories.data) / "datasets" if hasattr(config.directories, "data") else Path("data/datasets")
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = cache_dir / f"graph-dataset-{split}-{graph_type}.pth"
+    feature_type = object_node_feature if graph_type == "object-graph" else action_node_feature
+    cache_file = cache_dir / f"graph-dataset-{split}-{graph_type}-{feature_type}.pth"
     
     # Try to load cached dataset or create a new one
     if load_cached and cache_file.exists():
@@ -55,8 +58,11 @@ def create_dataloader(
         fail = False
 
         # Check for configuration differences and warn and fail if needed
-        if dataset.object_node_feature != object_node_feature:
-            logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' features, but '{object_node_feature}' was requested")
+        if graph_type == "object-graph" and dataset.object_node_feature != object_node_feature:
+            logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' object features, but '{object_node_feature}' was requested")
+            fail = True
+        if graph_type == "action-graph" and hasattr(dataset, 'action_node_feature') and dataset.action_node_feature != action_node_feature:
+            logger.warning(f"Cached dataset uses '{dataset.action_node_feature}' action features, but '{action_node_feature}' was requested")
             fail = True
         if dataset.task_mode != task_mode:
             logger.warning(f"Cached dataset uses '{dataset.task_mode}' task mode, but '{task_mode}' was requested")
@@ -77,7 +83,7 @@ def create_dataloader(
     else:
         if load_cached:
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
-        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file, graph_type)
+        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, action_node_feature, device, cache_file, graph_type)
     
     num_workers = config.processing.dataloader_workers
     if object_node_feature == "roi-embeddings":
@@ -93,7 +99,7 @@ def create_dataloader(
     )
 
 
-def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, device, cache_file=None, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
+def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, action_node_feature, device, cache_file=None, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
     """Create a new GraphDataset and optionally save it to cache.
     
     Args:
@@ -104,6 +110,7 @@ def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, c
         max_droppable: Maximum number of nodes to drop during augmentation
         config: Configuration object containing dataset and training parameters
         object_node_feature: Type of object node features to use
+        action_node_feature: Type of action node features to use
         device: Device to use for processing
         cache_file: Path to save the dataset cache
         graph_type: Type of graph dataset to use ("object-graph" or "action-graph")
@@ -119,6 +126,7 @@ def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, c
         max_droppable=max_droppable,
         config=config,
         object_node_feature=object_node_feature,
+        action_node_feature=action_node_feature,
         device=device,
         graph_type=graph_type
     )

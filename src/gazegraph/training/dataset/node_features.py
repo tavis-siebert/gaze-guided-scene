@@ -388,12 +388,96 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         return 5 + self.embedding_dim  # 5 temporal features + embedding dimension
 
 
+class OneHotActionNodeFeatureExtractor(NodeFeatureExtractor):
+    """Extracts node features using one-hot encoding for action classes."""
+    
+    def __init__(self, device: str = "cuda", **kwargs):
+        super().__init__(**kwargs)
+        self.device = device
+        from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
+        self.action_mapping = ActionRecord.get_action_mapping()
+        self.num_action_classes = len(self.action_mapping)
+    
+    def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
+        """
+        Extract node features from a checkpoint using one-hot encoding for action classes.
+        
+        Args:
+            checkpoint: GraphCheckpoint object
+            
+        Returns:
+            Tensor of node features
+        """
+        # For action nodes, we don't use the checkpoint directly
+        # Instead, we rely on the action_idx provided when assembling the graph
+        # This method is mainly a placeholder to satisfy the interface
+        # The actual feature extraction happens in ActionGraph.assemble
+        return torch.empty((0, self.feature_dim), device=self.device)
+    
+    @property
+    def feature_dim(self) -> int:
+        """
+        Get the dimension of the node features.
+        
+        Returns:
+            Dimension of the node features (number of action classes)
+        """
+        return self.num_action_classes
+
+
+class ActionLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
+    """Extracts node features using action label embeddings."""
+    
+    def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
+        """
+        Initialize the action label embedding node feature extractor.
+        
+        Args:
+            device: Device to run models on ("cuda" or "cpu")
+            embedding_dim: Dimension of the embeddings
+            node_embeddings: Optional NodeEmbeddings instance (for testing)
+        """
+        super().__init__(**kwargs)
+        self.device = device
+        self.embedding_dim = embedding_dim
+        
+        if self.node_embeddings is None:
+            self.node_embeddings = NodeEmbeddings(self.config, device=device)
+    
+    def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
+        """
+        Extract node features from a checkpoint using action label embeddings.
+        
+        Args:
+            checkpoint: GraphCheckpoint object
+            
+        Returns:
+            Tensor of node features
+        """
+        # For action nodes, we don't use the checkpoint directly
+        # Instead, we rely on the action_idx provided when assembling the graph
+        # This method is mainly a placeholder to satisfy the interface
+        # The actual feature extraction happens in ActionGraph.assemble
+        return torch.empty((0, self.feature_dim), device=self.device)
+    
+    @property
+    def feature_dim(self) -> int:
+        """
+        Get the dimension of the node features.
+        
+        Returns:
+            Dimension of the node features (embedding_dim)
+        """
+        return self.embedding_dim
+
+
 def get_node_feature_extractor(feature_type: str, device: str = "cuda", **kwargs) -> NodeFeatureExtractor:
     """
     Factory function to get the appropriate node feature extractor.
     
     Args:
-        feature_type: Type of node features to extract ("one-hot", "roi-embeddings", or "object-label-embeddings")
+        feature_type: Type of node features to extract ("one-hot", "roi-embeddings", "object-label-embeddings",
+                                                     "action-label-embedding", "action-one-hot")
         device: Device to run models on ("cuda" or "cpu")
         **kwargs: Additional arguments to pass to the node feature extractor
         
@@ -406,5 +490,9 @@ def get_node_feature_extractor(feature_type: str, device: str = "cuda", **kwargs
         return ROIEmbeddingNodeFeatureExtractor(device=device, **kwargs)
     elif feature_type == "object-label-embeddings":
         return ObjectLabelEmbeddingNodeFeatureExtractor(device=device, **kwargs)
+    elif feature_type == "action-label-embedding":
+        return ActionLabelEmbeddingNodeFeatureExtractor(device=device, **kwargs)
+    elif feature_type == "action-one-hot":
+        return OneHotActionNodeFeatureExtractor(device=device, **kwargs)
     else:
-        raise ValueError(f"Unknown object node feature type: {feature_type}")
+        raise ValueError(f"Unknown node feature type: {feature_type}")

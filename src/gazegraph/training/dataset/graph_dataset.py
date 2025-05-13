@@ -37,6 +37,7 @@ class GraphDataset(Dataset):
         pre_transform=None,
         pre_filter=None,
         object_node_feature: str = "one-hot",
+        action_node_feature: str = "action-label-embedding",
         device: str = "cuda",
         graph_type: Literal["object-graph", "action-graph"] = "object-graph"
     ):
@@ -54,6 +55,7 @@ class GraphDataset(Dataset):
         self.max_droppable = max_droppable
         self.device = device
         self.object_node_feature = object_node_feature
+        self.action_node_feature = action_node_feature
         self.graph_type = graph_type
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
@@ -64,7 +66,8 @@ class GraphDataset(Dataset):
             graph_type=self.graph_type,
             config=self.config,
             device=self.device,
-            object_node_feature=self.object_node_feature
+            object_node_feature=self.object_node_feature,
+            action_node_feature=self.action_node_feature
         )
         self._data_cache = {}
         super().__init__(root=str(self.root_dir), transform=transform, pre_transform=pre_transform, pre_filter=pre_filter)
