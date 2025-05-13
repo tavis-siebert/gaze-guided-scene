@@ -68,14 +68,27 @@ class ObjectGraph(GraphAssembler):
         return video
 
     def _extract_edge_features(self, checkpoint: GraphCheckpoint) -> Tuple[torch.Tensor, torch.Tensor]:
-        if not checkpoint.edges:
-            raise ValueError("No edges found in checkpoint")
-        edge_list = [(e["source_id"], e["target_id"]) for e in checkpoint.edges]
-        edge_attrs = [[e.get("angle", 0.0)] for e in checkpoint.edges]
-        edge_index = torch.tensor(edge_list, dtype=torch.long).t()
-        edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
-        if edge_attr.shape[0] > 0 and edge_attr.max() > 0:
+        edge_feature_dim = 1
+
+        edge_list = [(e["source_id"], e["target_id"]) for e in checkpoint.edges] if checkpoint.edges else []
+        edge_attrs = [[e.get("angle", 0.0)] for e in checkpoint.edges] if checkpoint.edges else []
+
+        edge_index = (
+            torch.tensor(edge_list, dtype=torch.long).t().contiguous()
+            if edge_list else torch.empty((2, 0), dtype=torch.long)
+        )
+
+        edge_attr = (
+            torch.tensor(edge_attrs, dtype=torch.float)
+            if edge_attrs else torch.empty((0, edge_feature_dim), dtype=torch.float)
+        )
+
+        if edge_attr.numel() > 0 and edge_attr.max() > 0:
             edge_attr = edge_attr / (edge_attr.max() + 1e-8)
+
+        assert edge_index.shape == (2, len(edge_list)), f"edge_index.shape: {edge_index.shape}, expected (2, {len(edge_list)})"
+        assert edge_attr.shape == (len(edge_list), edge_feature_dim), f"edge_attr.shape: {edge_attr.shape}, expected ({len(edge_list)}, {edge_feature_dim})"
+
         return edge_index, edge_attr
 
 class ActionGraph(GraphAssembler):
