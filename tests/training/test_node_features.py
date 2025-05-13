@@ -7,8 +7,10 @@ from gazegraph.training.dataset.node_features import (
     OneHotNodeFeatureExtractor,
     ROIEmbeddingNodeFeatureExtractor,
     ObjectLabelEmbeddingNodeFeatureExtractor,
+    OneHotActionNodeFeatureExtractor,
     get_node_feature_extractor
 )
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 
 
 class TestNodeFeatureExtractors:
@@ -49,15 +51,18 @@ class TestNodeFeatureExtractors:
             assert features[1, 5] == 0  # One-hot for class 0
             assert features[1, 6] == 1  # One-hot for class 1
 
+    def one_hot_action_extractor(self, mock_config):
             # Action graph mode
+            action_one_hot_extractor = OneHotActionNodeFeatureExtractor(config=mock_config)
             MockActionRecord = type("MockActionRecord", (), {})
             recs = []
+            num_action_classes = len(ActionRecord.get_action_mapping())
             for idx in range(3):
                 rec = MockActionRecord()
-                rec.action_idx = idx % extractor.num_action_classes
+                rec.action_idx = idx % num_action_classes
                 recs.append(rec)
-            action_features = extractor.extract_features(None, action_records=recs)
-            assert action_features.shape == (3, extractor.num_action_classes)
+            action_features = action_one_hot_extractor.extract_features(None, action_records=recs)
+            assert action_features.shape == (3, num_action_classes)
             for i, rec in enumerate(recs):
                 assert action_features[i, rec.action_idx] == 1
                 assert action_features[i].sum() == 1
