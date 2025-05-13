@@ -4,7 +4,7 @@ from typing import List, Optional, Set
 from torch_geometric.data import Data
 from itertools import combinations
 
-from training.dataset.graph_utils import edge_idx_to_adj_list, tarjans, is_connected_after_dropping
+from gazegraph.training.dataset.graph_utils import edge_idx_to_adj_list, tarjans, is_connected_after_dropping
 
 
 def find_valid_dropped_nodes(

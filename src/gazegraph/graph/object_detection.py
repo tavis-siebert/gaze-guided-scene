@@ -5,18 +5,23 @@ Object detection module for detecting and tracking objects in video frames.
 import torch
 import numpy as np
 import math
-from typing import Dict, List, Tuple, Any, Optional, DefaultDict, Union
+from typing import Dict, List, Tuple, Any, Optional, DefaultDict, Union, TYPE_CHECKING
 from collections import defaultdict, Counter
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from PIL import Image
 
 from gazegraph.models.yolo_world import YOLOWorldModel
-from gazegraph.graph.graph_tracer import GraphTracer
+
+# Use TYPE_CHECKING to avoid circular imports
+if TYPE_CHECKING:
+    from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.graph.gaze import GazePoint
 from gazegraph.config.config_utils import DotDict
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 @dataclass
 class ScoreComponents:
@@ -42,6 +47,25 @@ class ScoreComponents:
             'duration_weighted': self.duration_weighted,
             'gaze_distance': self.gaze_distance
         }
+        
+    @classmethod
+    def from_dict(cls, data: Dict[str, float]) -> 'ScoreComponents':
+        """Create ScoreComponents from a dictionary.
+        
+        Args:
+            data: Dictionary containing score components
+            
+        Returns:
+            New ScoreComponents instance
+        """
+        return cls(
+            confidence=data.get('confidence', 0.0),
+            stability=data.get('stability', 0.0),
+            gaze_proximity=data.get('gaze_proximity', 0.0),
+            fixation_ratio=data.get('fixation_ratio', 0.0),
+            duration_weighted=data.get('duration_weighted', 0.0),
+            gaze_distance=data.get('gaze_distance', 0.0)
+        )
 
 @dataclass
 class Detection:
@@ -82,6 +106,38 @@ class Detection:
                 'components': self.components.to_dict()
             }
         }
+        
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], frame_idx: Optional[int] = None) -> 'Detection':
+        """Create Detection from a dictionary.
+        
+        Args:
+            data: Dictionary containing detection data
+            frame_idx: Optional frame index to override the one in data
+            
+        Returns:
+            New Detection instance
+        """
+        det_data = data['detection']
+        fix_data = data['fixation']
+        
+        # Convert bbox from list to tuple if needed
+        bbox = tuple(det_data['bbox']) if isinstance(det_data['bbox'], list) else det_data['bbox']
+        
+        # Use provided frame_idx if available, otherwise from data
+        actual_frame_idx = frame_idx if frame_idx is not None else det_data.get('frame_idx', -1)
+        
+        return cls(
+            bbox=bbox,
+            class_name=det_data['class_name'],
+            score=det_data['score'],
+            class_id=det_data['class_id'],
+            frame_idx=actual_frame_idx,
+            is_fixated=fix_data['is_fixated'],
+            is_top_scoring=fix_data['is_top_scoring'],
+            fixation_score=fix_data['score'],
+            components=ScoreComponents.from_dict(fix_data['components'])
+        )
 
 
 class ObjectDetector:
@@ -90,32 +146,21 @@ class ObjectDetector:
     def __init__(
         self, 
         model_path: Path,
-        obj_labels: Dict[int, str],
-        labels_to_int: Dict[str, int],
+        classes: List[str],
         config: DotDict,
-        tracer: Optional[GraphTracer] = None
+        tracer: Optional['GraphTracer'] = None
     ):
-        """Initialize the object detector.
-        
-        Args:
-            model_path: Path to the detection model
-            obj_labels: Mapping of class IDs to object labels
-            labels_to_int: Mapping of object labels to class IDs
-            config: Configuration dictionary containing detection settings
-            tracer: Optional GraphTracer for logging detection info
-        """
-        self.obj_labels = obj_labels
-        self.labels_to_int = labels_to_int
-        self.clip_labels = [f"{obj}" for obj in self.obj_labels.values()]
+        """Initialize the object detector."""
+        self.classes = classes
         self.tracer = tracer
         self.config = config
         
-        # Extract settings from config
-        self.conf_threshold = config.models.yolo_world.conf_threshold
-        self.iou_threshold = config.models.yolo_world.iou_threshold
+        # Backend selection
+        backend = config.models.yolo_world.backend
         
         # Fixation parameters
-        self.min_fixation_frame_ratio = config.graph.min_fixation_frame_ratio
+        self.min_fixation_frame_threshold = config.graph.fixated_object_detection.min_fixation_frame_threshold
+        self.min_fixation_frame_ratio = config.graph.fixated_object_detection.min_fixation_frame_ratio
         self.bbox_stability_weight = config.graph.fixated_object_detection.weights.bbox_stability
         self.gaze_proximity_weight = config.graph.fixated_object_detection.weights.gaze_proximity
         self.confidence_weight = config.graph.fixated_object_detection.weights.confidence
@@ -126,8 +171,7 @@ class ObjectDetector:
         self.gaze_proximity_threshold = config.graph.fixated_object_detection.thresholds.gaze_proximity
         self.confidence_threshold = config.graph.fixated_object_detection.thresholds.confidence
         
-        logger.info(f"Initializing YOLO-World model: {model_path.name} "
-                    f"(conf_threshold={self.conf_threshold}, iou_threshold={self.iou_threshold})")
+        logger.info(f"Initializing YOLO-World model: {model_path.name} (backend={backend})")
         
         logger.info(f"Fixation detection with thresholds: "
                   f"stability={self.bbox_stability_threshold}, "
@@ -135,19 +179,18 @@ class ObjectDetector:
                   f"confidence={self.confidence_threshold}, "
                   f"min_fixation_ratio={self.min_fixation_frame_ratio}")
         
+        # Set up model
         self.model = YOLOWorldModel(
-            conf_threshold=self.conf_threshold,
-            iou_threshold=self.iou_threshold
+            conf_threshold=self.config.models.yolo_world.onnx.conf_threshold,
+            iou_threshold=self.config.models.yolo_world.onnx.iou_threshold
         )
-        
-        # Get number of processing workers from config
         num_workers = getattr(config.processing, "n_cores", None)
-        self.model.load_model(model_path, num_workers=num_workers)
-        self.model.set_classes(list(self.obj_labels.values()))
+        self.model.load_model(model_path, num_workers)
+        self.model.set_classes(self.classes)
         
         # State tracking
         self.reset()
-    
+
     def detect_objects(
         self, 
         frame: torch.Tensor, 
@@ -217,8 +260,6 @@ class ObjectDetector:
             if not found_fixated_objects:
                 self.all_detections.extend(detections)
             
-            self.total_frames += 1
-            
         except Exception as e:
             logger.warning(f"[Frame {frame_idx}] Object detection failed: {str(e)}")
             import traceback
@@ -246,6 +287,8 @@ class ObjectDetector:
             'total_considered': 0,
             'passed_all': 0
         }
+
+        total_frames_any_object_fixated = len(set(d.frame_idx for d in self.all_detections if d.is_fixated))
         
         for obj_name in unique_objects:
             # Get all fixated detections for this object
@@ -261,9 +304,14 @@ class ObjectDetector:
             # Initialize component scores dict
             components = {}
                 
-            # Compute fixation ratio
+            # Apply absolute minimum fixation threshold
             fixation_frames = len(set(d.frame_idx for d in obj_detections))
-            fixation_ratio = fixation_frames / max(self.total_frames, 1)
+            if fixation_frames < self.min_fixation_frame_threshold:
+                logger.debug(f"Object {obj_name} filtered out: fixation frames {fixation_frames} < threshold {self.min_fixation_frame_threshold}")
+                continue
+
+            # Compute fixation ratio
+            fixation_ratio = fixation_frames / max(total_frames_any_object_fixated, 1)
             components['fixation_ratio'] = fixation_ratio
             
             # Apply minimum fixation threshold
@@ -367,7 +415,7 @@ class ObjectDetector:
             List of Detection objects
         """
         # Get raw detections from the model
-        raw_detections = self.model.run_inference(frame, self.clip_labels, self.obj_labels)
+        raw_detections = self.model.run_inference(frame)
         if not raw_detections:
             return []
             
@@ -376,7 +424,8 @@ class ObjectDetector:
             left, top, width, height = detection['bbox']
             
             # Check if gaze intersects with this object
-            is_fixated = (left <= gaze_x <= left + width and top <= gaze_y <= top + height)
+            margin = self.config.graph.fixated_object_detection.bbox_margin
+            is_fixated = (left - margin <= gaze_x <= left + width + margin and top - margin <= gaze_y <= top + height + margin)
             
             # Create a new detection object
             detection_obj = Detection(
@@ -433,7 +482,6 @@ class ObjectDetector:
         self.fixated_objects_found = False
         self.all_detections = []
         self.gaze_points = []
-        self.total_frames = 0
         self.fixation_scores = {}
         
         # Statistics for filtered objects

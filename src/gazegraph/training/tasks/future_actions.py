@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from training.tasks.base_task import BaseTask
-from training.evaluation.metrics import confusion_matrix, mAP
-from datasets.egtea_gaze.action_record import ActionRecord
-from datasets.egtea_gaze.video_metadata import VideoMetadata
+from gazegraph.training.tasks.base_task import BaseTask
+from gazegraph.training.evaluation.metrics import confusion_matrix, mAP
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
+from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 
 class FutureActionsTask(BaseTask):
-    def __init__(self, config, device):
-        super().__init__(config, device, "future_actions")
+    def __init__(self, config, device, task_name, **kwargs):
+        super().__init__(config=config, device=device, task_name=task_name, **kwargs)
         self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
         
         self.metadata = VideoMetadata(config)

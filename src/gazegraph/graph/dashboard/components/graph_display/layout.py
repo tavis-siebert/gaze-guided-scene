@@ -2,7 +2,7 @@
 from typing import Dict, Any, Tuple
 import numpy as np
 import networkx as nx
-from logger import get_logger
+from gazegraph.logger import get_logger
 
 from gazegraph.graph.dashboard.utils.constants import (
     MAX_ANGLE_NODES, LAYOUT_RADIUS_STEP, LAYOUT_JITTER_SCALE,

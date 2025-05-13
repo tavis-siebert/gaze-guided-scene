@@ -8,11 +8,17 @@ enabling playback and visualization for debugging and analysis.
 import json
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union, Tuple
+from typing import Dict, Any, List, Optional, Union, Tuple, DefaultDict, TYPE_CHECKING
+from collections import defaultdict
 import logging
 import numpy as np
+from dataclasses import dataclass
 
 from gazegraph.logger import get_logger
+
+# Use TYPE_CHECKING to avoid circular imports
+if TYPE_CHECKING:
+    from gazegraph.graph.object_detection import Detection, ScoreComponents
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -36,19 +42,25 @@ class GraphTracer:
             enabled: Whether tracing is enabled
         """
         self.enabled = enabled
+        self.output_path = Path(output_path)
+        self.trace_file = self.output_path / f"{video_name}_trace.jsonl"
+
+        # Initialize event cache
+        self._cache_valid = False
+        self._events_by_frame: DefaultDict[int, List[Dict[str, Any]]] = defaultdict(list)
+
         if not self.enabled:
             logger.info("Graph tracing disabled")
             return
             
-        self.output_path = Path(output_path)
         self.output_path.mkdir(parents=True, exist_ok=True)
         
-        self.trace_file = self.output_path / f"{video_name}_trace.jsonl"
         # Clear any existing trace file
         with open(self.trace_file, 'w') as f:
             pass
             
         self.event_count = 0
+        
         logger.info(f"Graph tracer initialized. Logging to {self.trace_file}")
     
     def log_event(self, event_type: str, frame_number: int, data: Dict[str, Any]) -> None:
@@ -63,6 +75,9 @@ class GraphTracer:
         if not self.enabled:
             return
             
+        # Invalidate cache when new events are logged
+        self._cache_valid = False
+        
         # Sanitize data to ensure it's JSON serializable
         data = self._sanitize_data(data)
         
@@ -260,4 +275,62 @@ class GraphTracer:
                     "event_id": event["event_id"],
                     "data": {"error": "Failed to serialize original data"}
                 }
-                f.write(json.dumps(simplified_event) + '\n') 
+                f.write(json.dumps(simplified_event) + '\n')
+    
+    def _ensure_cache_valid(self) -> None:
+        """Ensure the event cache is valid by loading events if necessary."""
+        if self._cache_valid:
+            return
+            
+        self._events_by_frame.clear()
+        
+        try:
+            with open(self.trace_file, 'r') as f:
+                for line in f:
+                    event = json.loads(line.strip())
+                    frame_number = event['frame_number']
+                    self._events_by_frame[frame_number].append(event)
+                    
+            self._cache_valid = True
+            logger.debug(f"Loaded events for {len(self._events_by_frame)} frames")
+            
+        except Exception as e:
+            logger.error(f"Error loading events: {e}")
+            self._events_by_frame.clear()
+            self._cache_valid = False
+            
+    def get_detections_for_frame(self, frame_number: int) -> List[Any]:
+        """Get all detections for a specific frame number.
+        
+        This function efficiently retrieves and parses detections from the event cache
+        for the specified frame.
+        
+        Args:
+            frame_number: Frame number to get detections for
+            
+        Returns:
+            List of Detection objects for the specified frame
+        """
+        # Ensure event cache is valid
+        self._ensure_cache_valid()
+        
+        detections = []
+        
+        # Process only YOLO detection events for the requested frame
+        for event in self._events_by_frame[frame_number]:
+            if event['event_type'] != 'yolo_objects_detected':
+                continue
+                
+            try:
+                # Import here to avoid circular import
+                from gazegraph.graph.object_detection import Detection
+                
+                for det_dict in event['data']['detections']:
+                    detection = Detection.from_dict(det_dict, frame_number)
+                    detections.append(detection)
+                    
+            except Exception as e:
+                logger.error(f"Error parsing detection in frame {frame_number}: {e}")
+                continue
+                
+        return detections 

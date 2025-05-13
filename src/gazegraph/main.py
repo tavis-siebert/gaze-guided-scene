@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 import argparse
-import sys
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import logging
 
-from gazegraph.config.config_utils import load_config, DotDict
+from gazegraph.config.config_utils import load_config
 from gazegraph.logger import get_logger, configure_root_logger
+import multiprocessing as mp
 
 logger = None
+
+mp.set_start_method("spawn", force=True)
 
 def setup_parser() -> argparse.ArgumentParser:
     load_dotenv()
@@ -49,6 +50,19 @@ def setup_parser() -> argparse.ArgumentParser:
                             help="Device to use for processing (default: gpu)")
     train_parser.add_argument("--task", type=str, choices=["future_actions", "next_action"],
                             required=True, help="Task to train the model on")
+    train_parser.add_argument("--graph-type", type=str, choices=["object-graph", "action-graph"],
+                            default="object-graph",
+                            help="Type of graph dataset to use (default: object-graph)")
+    train_parser.add_argument("--object-node-feature", type=str, 
+                            choices=["one-hot", "roi-embeddings", "object-label-embeddings"],
+                            default="one-hot",
+                            help="Type of object node features to use (default: one-hot)")
+    train_parser.add_argument("--action-node-feature", type=str, 
+                            choices=["action-one-hot", "action-label-embedding"],
+                            default="action-label-embedding",
+                            help="Type of action node features to use (default: action-label-embedding)")
+    train_parser.add_argument("--load-cached", action="store_true",
+                            help="Load cached GraphDataset from files in data/datasets/")
     
     # Visualization command
     visualize_parser = subparsers.add_parser("visualize", help="Visualize graph construction process")
@@ -123,7 +137,7 @@ def main():
     logger.info(f"Loaded configuration from {args.config}")
     
     if args.command == "setup-scratch":
-        from gazegraph.scripts.setup_scratch import setup_scratch
+        from gazegraph.setup_scratch import setup_scratch
         dropbox_token = get_dropbox_token(args)
         logger.info("Starting scratch setup process")
         setup_scratch(config, access_token=dropbox_token)
@@ -141,8 +155,19 @@ def main():
         task = None
         try:
             TaskClass = get_task(args.task)
-            task = TaskClass(config, device)
-            logger.info("Starting training process")
+            # Pass object node feature type and graph type to the task
+            task = TaskClass(
+                config=config,
+                device=device,
+                task_name=args.task,
+                object_node_feature=args.object_node_feature,
+                action_node_feature=args.action_node_feature,
+                load_cached=args.load_cached,
+                graph_type=args.graph_type
+            )
+            logger.info(f"Starting training process with object node feature type: {args.object_node_feature} and graph type: {args.graph_type}")
+            if args.load_cached:
+                logger.info("Using cached GraphDataset from files")
             task.train()
             logger.info("Training completed successfully")
         except Exception as e:

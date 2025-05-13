@@ -11,10 +11,10 @@ from gazegraph.graph.graph_tracer import GraphTracer
 from gazegraph.graph.checkpoint_manager import CheckpointManager
 from gazegraph.graph.gaze import GazePoint, GazeType
 from gazegraph.graph.object_detection import ObjectDetector
-from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.config.config_utils import DotDict
 from gazegraph.logger import get_logger
+from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 
 logger = get_logger(__name__)
 
@@ -42,12 +42,9 @@ class GraphBuilder:
         self.output_dir = output_dir
         self.tracer = GraphTracer(self.config.directories.traces, "", enabled=False)
         
-        self.metadata = VideoMetadata(self.config)
-        
         # Initialize YOLO-World model path
-        yolo_model_file = self.config.models.yolo_world.model_file
-        yolo_model_dir = Path(self.config.models.yolo_world.model_dir)
-        self.yolo_model_path = yolo_model_dir / yolo_model_file
+        backend = self.config.models.yolo_world.backend
+        self.yolo_model_path = Path(self.config.models.yolo_world.paths[backend])
         
         # Create object detector (will be re-initialized for each video with proper tracer)
         self.object_detector = None
@@ -114,8 +111,7 @@ class GraphBuilder:
         # Initialize object detector with video-specific tracer
         self.object_detector = ObjectDetector(
             model_path=self.yolo_model_path,
-            obj_labels=self.metadata.obj_labels,
-            labels_to_int=self.metadata.labels_to_int,
+            classes=ActionRecord.get_noun_names(),
             config=self.config,
             tracer=self.tracer
         )
@@ -126,8 +122,6 @@ class GraphBuilder:
         
         # Create scene graph
         self.scene_graph = Graph(
-            labels_to_int=self.metadata.labels_to_int,
-            num_object_classes=self.metadata.num_object_classes,
             video_length=self.video.length
         )
         self.scene_graph.tracer = self.tracer
