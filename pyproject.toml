@@ -24,6 +24,8 @@ dependencies = [
     "optree>=0.13.0",
     "pandas>=2.2.3",
     "plotly>=5.13.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
     "python-dotenv>=1.1.0",
     "requests>=2.32.3",
     "scikit-learn>=1.6.1",
@@ -35,6 +37,7 @@ dependencies = [
     "torchvision>=0.22.0",
     "tqdm>=4.67.1",
     "transformers>=4.51.3",
+    "ultralytics>=8.3.130",
 ]
 
 [build-system]
@@ -43,3 +46,6 @@ build-backend = "setuptools.build_meta"
 
 [project.urls]
 "Github" = "https://github.com/tavis-siebert/gaze-guided-scene"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"

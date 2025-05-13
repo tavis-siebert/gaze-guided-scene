@@ -15,6 +15,7 @@ logs/
 out/
 src/gazegraph/config/local_config.yaml
 *.tar.gz
+data/tests/out/
 
 # Ignore all files in traces directory
 data/traces/

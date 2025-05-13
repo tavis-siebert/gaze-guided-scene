@@ -5,7 +5,7 @@ Action record module for handling EGTEA Gaze+ action annotations.
 import os
 import torch
 from typing import Dict, List, Tuple, Optional, Set
-from collections import Counter
+from collections import Counter, defaultdict
 import json
 from pathlib import Path
 
@@ -23,6 +23,7 @@ class ActionRecord:
     - Handles parsing of action annotation entries
     - Provides mapping between action IDs and human-readable names
     - Creates future action prediction labels from record lists
+    - Self-initializes to ensure consistent action mappings
     """
     # Class-level action mapping
     _action_to_idx = None
@@ -31,7 +32,10 @@ class ActionRecord:
     # Action name mappings
     _verb_id_to_name = {}
     _noun_id_to_name = {}
-    _action_id_to_name = {}
+    
+    # Record data
+    _records_by_video = None
+    _train_records = None
     
     # Config access
     _config = None
@@ -44,6 +48,9 @@ class ActionRecord:
             row: List of strings from a tab-separated line in the annotation file
         """
         self._data = row
+        # Auto-initialize if not already done
+        if not self._is_initialized:
+            self._ensure_initialized()
 
     @property
     def video_name(self) -> str:
@@ -105,9 +112,7 @@ class ActionRecord:
     @property
     def action_idx(self) -> Optional[int]:
         """Get the index of this action in the action mapping."""
-        if not self._is_initialized:
-            logger.warning("Action mapping not initialized. Call initialize_action_mapping() first.")
-            return None
+        self._ensure_initialized()
         return self._action_to_idx.get(self.action_tuple)
     
     @classmethod
@@ -118,7 +123,25 @@ class ActionRecord:
         return cls._config
     
     @classmethod
-    def load_name_mappings(cls, base_dir: Optional[str] = None) -> None:
+    def _ensure_initialized(cls) -> None:
+        """Ensure that action mappings and records are initialized."""
+        if cls._is_initialized:
+            return
+            
+        logger.info("Initializing ActionRecord class...")
+        
+        # Load name mappings first
+        cls._load_name_mappings()
+        
+        # Load records and initialize action mapping
+        cls._records_by_video, cls._train_records = cls._load_all_records()
+        cls._compute_and_set_action_mapping(cls._train_records)
+        
+        cls._is_initialized = True
+        logger.info("ActionRecord initialization complete")
+    
+    @classmethod
+    def _load_name_mappings(cls, base_dir: Optional[str] = None) -> None:
         """Load verb and noun name mappings from index files.
         
         Args:
@@ -141,7 +164,7 @@ class ActionRecord:
                     parts = line.strip().split(' ')
                     if len(parts) >= 2:
                         verb_name = ' '.join(parts[:-1])
-                        verb_id = int(parts[-1])
+                        verb_id = int(parts[-1]) - 1 # Files are 1-indexed
                         cls._verb_id_to_name[verb_id] = verb_name
         
         # Load noun mapping
@@ -155,25 +178,55 @@ class ActionRecord:
                     parts = line.strip().split(' ')
                     if len(parts) >= 2:
                         noun_name = ' '.join(parts[:-1])
-                        noun_id = int(parts[-1])
+                        noun_id = int(parts[-1]) - 1 # Files are 1-indexed
                         cls._noun_id_to_name[noun_id] = noun_name
-        
-        # Load action mapping
-        action_path = os.path.join(base_dir, "action_idx.txt")
-        if not os.path.exists(action_path):
-            raise FileNotFoundError(f"Action index file not found at {action_path}")
-            
-        with open(action_path, 'r') as f:
-            for line in f:
-                if line.strip():
-                    parts = line.strip().split(' ')
-                    if len(parts) >= 2:
-                        action_name = ' '.join(parts[:-1])
-                        action_id = int(parts[-1])
-                        cls._action_id_to_name[action_id] = action_name
                             
-        logger.info(f"Loaded {len(cls._verb_id_to_name)} verbs, {len(cls._noun_id_to_name)} nouns, "
-                   f"and {len(cls._action_id_to_name)} actions")
+        logger.info(f"Loaded {len(cls._verb_id_to_name)} verbs and {len(cls._noun_id_to_name)} nouns")
+    
+    @classmethod
+    def _load_all_records(cls) -> Tuple[Dict[str, List["ActionRecord"]], List["ActionRecord"]]:
+        """
+        Load action records for train and val splits from ego_topo split files.
+        """
+        records_by_video: Dict[str, List["ActionRecord"]] = defaultdict(list)
+        train_records: List["ActionRecord"] = []
+        
+        config = cls.get_config()
+        splits = config.dataset.ego_topo.splits
+        
+        # Set a temporary flag to prevent recursive initialization
+        temp_init_flag = cls._is_initialized
+        cls._is_initialized = True  # Temporarily set to True to prevent recursion
+        
+        try:
+            for split_name in ("train", "val"):
+                ann_file = getattr(splits, split_name)
+                
+                try:
+                    with open(ann_file) as f:
+                        for line in f:
+                            if not line.strip():
+                                continue
+                            record = ActionRecord(line.strip().split("\t"))
+                            records_by_video[record.video_name].append(record)
+                            if split_name == "train":
+                                train_records.append(record)
+                except FileNotFoundError:
+                    logger.error(f"Action records file not found at {ann_file}")
+                    raise
+                except Exception as e:
+                    logger.error(f"Error loading action records for {split_name} split: {e}")
+                    raise
+        finally:
+            # Restore the original initialization flag
+            cls._is_initialized = temp_init_flag
+        
+        # Sort records for each video by end frame
+        for recs in records_by_video.values():
+            recs.sort(key=lambda r: r.end_frame)
+        
+        logger.info(f"Loaded {len(train_records)} training records and {len(records_by_video)} videos")
+        return records_by_video, train_records
     
     @classmethod
     def _compute_action_mapping(cls, records: List["ActionRecord"], num_classes: int = NUM_ACTION_CLASSES) -> Dict[Tuple[int, int], int]:
@@ -194,16 +247,13 @@ class ActionRecord:
 
         # Create mapping from action tuple to index
         return {action: idx for idx, (action, _) in enumerate(top_actions)}
-
-    @classmethod
-    def initialize_action_mapping(cls, train_records: List["ActionRecord"], num_classes: int = NUM_ACTION_CLASSES) -> None:
-        """Initialize the action mapping from training records.
         
-        This method should be called once at the start of training/evaluation to ensure
-        consistent action mappings across the entire pipeline.
+    @classmethod
+    def _compute_and_set_action_mapping(cls, train_records: List["ActionRecord"], num_classes: int = NUM_ACTION_CLASSES) -> None:
+        """Compute and set the action mapping from training records.
         
         Args:
-            train_records: List of action records from the training set
+            train_records: List of action records from training set
             num_classes: Number of action classes to include
             
         Raises:
@@ -220,7 +270,6 @@ class ActionRecord:
             raise RuntimeError("Name mappings must be loaded before initializing action mapping")
             
         cls._action_to_idx = cls._compute_action_mapping(train_records, num_classes)
-        cls._is_initialized = True
         
         # Log mapping statistics
         unique_verbs = len(set(verb_id for (verb_id, _) in cls._action_to_idx.keys()))
@@ -229,15 +278,46 @@ class ActionRecord:
                    f"({unique_verbs} unique verbs, {unique_nouns} unique nouns)")
     
     @classmethod
+    def get_records_for_video(cls, video_name: str) -> List["ActionRecord"]:
+        """Get action records for a video.
+        
+        Args:
+            video_name: Name of the video
+            
+        Returns:
+            List of action records for the specified video
+        """
+        cls._ensure_initialized()
+        return cls._records_by_video.get(video_name, [])
+    
+    @classmethod
+    def get_all_videos(cls) -> List[str]:
+        """Get all video names.
+        
+        Returns:
+            List of video names
+        """
+        cls._ensure_initialized()
+        return list(cls._records_by_video.keys())
+    
+    @classmethod
+    def get_all_records(cls) -> List["ActionRecord"]:
+        """Get all action records.
+        
+        Returns:
+            List of all action records
+        """
+        cls._ensure_initialized()
+        return [r for recs in cls._records_by_video.values() for r in recs]
+    
+    @classmethod
     def get_action_mapping(cls) -> Dict[Tuple[int, int], int]:
         """Get the current action mapping.
         
         Returns:
             Dictionary mapping (verb_id, noun_id) to action index
         """
-        if not cls._is_initialized:
-            logger.warning("Action mapping not initialized. Call initialize_action_mapping() first.")
-            return {}
+        cls._ensure_initialized()
         return cls._action_to_idx.copy()
     
     @classmethod 
@@ -247,43 +327,77 @@ class ActionRecord:
         Returns:
             Dictionary mapping action index to full action name
         """
+        cls._ensure_initialized()
         result = {}
-        if cls._is_initialized and cls._action_to_idx:
-            for (verb_id, noun_id), idx in cls._action_to_idx.items():
-                verb_name = cls._verb_id_to_name.get(verb_id, f"verb_{verb_id}")
-                noun_name = cls._noun_id_to_name.get(noun_id, f"noun_{noun_id}")
-                result[idx] = f"{verb_name} {noun_name}"
+        for (verb_id, noun_id), idx in cls._action_to_idx.items():
+            if verb_id not in cls._verb_id_to_name:
+                raise ValueError(f"Verb ID {verb_id} not found in name mappings")
+            if noun_id not in cls._noun_id_to_name:
+                raise ValueError(f"Noun ID {noun_id} not found in name mappings")
+            verb_name = cls._verb_id_to_name[verb_id]
+            noun_name = cls._noun_id_to_name[noun_id]
+            result[idx] = f"{verb_name} {noun_name}"
         return result
     
     @classmethod
-    def get_noun_label_mappings(cls) -> Tuple[Dict[int, str], Dict[str, int]]:
+    def get_action_name_by_idx(cls, action_idx: int) -> Optional[str]:
+        """Get the human-readable name for an action index.
+        
+        Args:
+            action_idx: The index of the action
+            
+        Returns:
+            The action name as a string, or None if not found
+        """
+        cls._ensure_initialized()
+        action_names = cls.get_action_names()
+        return action_names.get(action_idx)
+    
+    @classmethod
+    def get_noun_label_mapping(cls) -> Dict[str, int]:
         """Get noun label mappings.
         
         Returns:
-            Tuple containing:
-            - Dictionary mapping noun IDs to names
-            - Dictionary mapping noun names to IDs
-            
-        Raises:
-            RuntimeError: If name mappings haven't been loaded
+            Dictionary mapping noun labels to IDs
         """
-        if not cls._verb_id_to_name or not cls._noun_id_to_name:
-            raise RuntimeError("Name mappings must be loaded before accessing noun labels")
-            
+        cls._ensure_initialized()
         # Return copies to prevent modification of internal state
-        id_to_name = dict(cls._noun_id_to_name)
-        name_to_id = {name: id for id, name in id_to_name.items()}
-        return id_to_name, name_to_id
+        name_to_id = {name: id for id, name in cls._noun_id_to_name.items()}
+        return name_to_id
+
+    @classmethod
+    def get_noun_names(cls) -> List[str]:
+        """Get list of noun names.
+        
+        Returns:
+            List of noun names
+        """
+        cls._ensure_initialized()
+        return list(cls._noun_id_to_name.values())
     
     @classmethod
+    def get_past_action_records(cls, video_name: str, current_frame: int) -> list:
+        """Get all action records for a video up to and including the current frame, sorted by start_frame."""
+        cls._ensure_initialized()
+        records = cls.get_records_for_video(video_name)
+        return sorted([r for r in records if r.start_frame <= current_frame and r.action_idx is not None], key=lambda r: r.start_frame)
+
+    @classmethod
+    def get_future_action_records(cls, video_name: str, current_frame: int) -> list:
+        """Get all action records for a video after the current frame, sorted by start_frame."""
+        cls._ensure_initialized()
+        records = cls.get_records_for_video(video_name)
+        return sorted([r for r in records if r.start_frame > current_frame and r.action_idx is not None], key=lambda r: r.start_frame)
+
+    @classmethod
     def create_future_action_labels(cls, 
-                                    records: List["ActionRecord"], 
+                                    video_name: str, 
                                     current_frame: int,
-                                    num_action_classes: int = None) -> Optional[Dict[str, torch.Tensor]]:
+                                ) -> Dict[str, torch.Tensor]:
         """Create action label tensors for future actions.
         
         Args:
-            records: List of action records for a video
+            video_name: Name of the video
             current_frame: Current frame number
             num_action_classes: Number of action classes (optional, uses mapping length if not provided)
             
@@ -292,34 +406,17 @@ class ActionRecord:
             - 'next_action': Tensor of the next action class
             - 'future_actions': Binary tensor indicating which actions occur in the future
             - 'future_actions_ordered': Ordered tensor of future action classes
-            
-        Raises:
-            RuntimeError: If action mapping is not initialized
         """
-        if not cls._is_initialized:
-            raise RuntimeError("Action mapping not initialized. Call initialize_action_mapping() first.")
-            
-        if num_action_classes is None:
-            num_action_classes = len(cls._action_to_idx)
-        
-        past_records = [record for record in records if record.end_frame <= current_frame]
-        future_records = [record for record in records if record.start_frame > current_frame]
-        future_records = sorted(future_records, key=lambda record: record.start_frame)
-        
-        future_actions = [
-            record.action_idx
-            for record in future_records if record.action_idx is not None
-        ]
-        
+        cls._ensure_initialized()
+        num_action_classes = len(cls._action_to_idx)
+        future_records = cls.get_future_action_records(video_name, current_frame)
+        future_actions = [record.action_idx for record in future_records if record.action_idx is not None]
         if not future_actions:
-            return None
-            
+            return {}
         next_action_label = torch.tensor(future_actions[0], dtype=torch.long)
         future_action_labels_ordered = torch.tensor(future_actions, dtype=torch.long)
-        
         future_action_labels = torch.zeros(num_action_classes, dtype=torch.long)
         future_action_labels[list(set(future_actions))] = 1
-        
         return {
             'next_action': next_action_label,
             'future_actions': future_action_labels,

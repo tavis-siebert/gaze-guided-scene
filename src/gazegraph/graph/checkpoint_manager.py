@@ -9,7 +9,10 @@ logger = get_logger(__name__)
 
 @dataclass
 class GraphCheckpoint:
-    """Encapsulates graph state at a specific timestamp."""
+    """Encapsulates graph state at a specific timestamp.
+
+    All context attributes (video_name, object_label_to_id, video_length) are required for correct operation.
+    """
     # Graph structure
     nodes: Dict[int, Dict]
     edges: List[Dict]
@@ -19,11 +22,16 @@ class GraphCheckpoint:
     frame_number: int
     non_black_frame_count: int
     
-    # Shared video context - only needed for deserialization
-    video_name: Optional[str] = None
-    labels_to_int: Optional[Dict[str, int]] = None
-    num_object_classes: Optional[int] = None
-    video_length: Optional[int] = None
+    # Shared video context - always required
+    video_name: str
+    object_label_to_id: Dict[str, int]
+    video_length: int
+
+    @property
+    def num_object_classes(self) -> int:
+        """Return the number of object classes (computed from object_label_to_id)."""
+        return len(self.object_label_to_id)
+
     
     def to_dict(self) -> Dict:
         """Convert checkpoint to serializable dictionary without shared context."""
@@ -36,24 +44,29 @@ class GraphCheckpoint:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict, context: Dict = None) -> 'GraphCheckpoint':
-        """Create checkpoint from dictionary with optional shared context.
+    def from_dict(cls, data: Dict, context: Dict) -> 'GraphCheckpoint':
+        """Create checkpoint from dictionary with required shared context.
         
         Args:
             data: Dictionary with checkpoint data
-            context: Optional shared context data (video_name, labels_to_int, etc.)
+            context: Shared context data (must include video_name, object_label_to_id, video_length)
         """
-        context = context or {}
+        required_keys = ["video_name", "object_label_to_id", "video_length"]
+        # Rename for backward compatibility
+        if "labels_to_int" in context:
+            context["object_label_to_id"] = context.pop("labels_to_int")
+        missing = [k for k in required_keys if k not in context or context[k] is None]
+        if missing:
+            raise ValueError(f"Missing required context keys for GraphCheckpoint: {missing}")
         return cls(
             nodes=data["nodes"],
             edges=data["edges"],
             adjacency=data["adjacency"],
             frame_number=data["frame_number"],
             non_black_frame_count=data["non_black_frame_count"],
-            video_name=context.get("video_name"),
-            labels_to_int=context.get("labels_to_int"),
-            num_object_classes=context.get("num_object_classes"),
-            video_length=context.get("video_length")
+            video_name=context["video_name"],
+            object_label_to_id=context["object_label_to_id"],
+            video_length=context["video_length"],
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -158,8 +171,7 @@ class CheckpointManager:
             frame_number=frame_num,
             non_black_frame_count=non_black_frame_count,
             video_name=self.video_name,
-            labels_to_int=self.graph.labels_to_int,
-            num_object_classes=self.graph.num_object_classes,
+            object_label_to_id=self.graph.object_label_to_id,
             video_length=self.graph.video_length
         )
         
@@ -209,8 +221,8 @@ class CheckpointManager:
             frame_number=frame_num,
             non_black_frame_count=non_black_frame_count,
             video_name=self.video_name,
-            labels_to_int=self.graph.labels_to_int,
-            num_object_classes=self.graph.num_object_classes,
+            object_label_to_id=self.graph.object_label_to_id,
+
             video_length=self.graph.video_length
         )
         # Skip if no state change
@@ -237,8 +249,7 @@ class CheckpointManager:
             first_checkpoint = self.checkpoints[0]
             context = {
                 "video_name": self.video_name,
-                "labels_to_int": first_checkpoint.labels_to_int,
-                "num_object_classes": first_checkpoint.num_object_classes,
+                "object_label_to_id": first_checkpoint.object_label_to_id,
                 "video_length": first_checkpoint.video_length
             }
         else:

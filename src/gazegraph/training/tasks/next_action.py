@@ -1,11 +1,10 @@
-import torch
 import torch.nn as nn
-from training.evaluation.metrics import accuracy
-from training.tasks.base_task import BaseTask
+from gazegraph.training.evaluation.metrics import accuracy
+from gazegraph.training.tasks.base_task import BaseTask
 
 class NextActionTask(BaseTask):
-    def __init__(self, config, device):
-        super().__init__(config, device, "next_action")
+    def __init__(self, config, device, task_name, **kwargs):
+        super().__init__(config=config, device=device, task_name=task_name, **kwargs)
         self.criterion = nn.CrossEntropyLoss(reduction='sum')
     
     def compute_loss(self, output, y):

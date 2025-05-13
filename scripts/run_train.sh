@@ -1,0 +1,7 @@
+#!/bin/bash
+
+#SBATCH --account=3dv
+#SBATCH --output=logs/train.out
+#SBATCH --time=48:00:00
+
+./scripts/run.sh train --device gpu --task future_actions --object-node-feature roi-embeddings --load-cached

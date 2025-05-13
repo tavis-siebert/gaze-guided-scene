@@ -1,81 +1,88 @@
 import torch
-from pathlib import Path
-from typing import Dict, List, Optional
-from transformers import CLIPProcessor, CLIPModel as HFCLIPModel
+import clip
+from typing import List, Tuple
+from PIL import Image
 
 from gazegraph.logger import get_logger
 
-# Initialize logger for this module
 logger = get_logger(__name__)
 
 class ClipModel:
-    """
-    Handles CLIP model loading, processing, and inference for object detection.
-    """
+    """Wrapper for CLIP model providing text and image encoding capabilities."""
     
-    def __init__(self, model_id: str = "openai/clip-vit-base-patch16"):
-        """
-        Initialize the CLIP model.
+    def __init__(self, name: str = "ViT-L/14", jit: bool = False, download_root: str | None = None, device: str | None = None):
+        """Initialize CLIP model.
         
         Args:
-            model_id: The HuggingFace model ID for CLIP
+            name: Model name or checkpoint path
+            jit: Whether to load JIT optimized model
+            download_root: Path to download model files
+            device: Device to run model on
         """
-        self.model_id = model_id
-        self.processor = None
-        self.model = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-    def load_model(self, local_model_dir: Optional[Path] = None) -> None:
-        """
-        Load the CLIP model, trying local directory first then falling back to online.
-        
-        Args:
-            local_model_dir: Path to local model directory, if available
-        """
-        try:
-            if local_model_dir:
-                logger.info(f"Loading CLIP model from local directory: {local_model_dir}")
-                self.processor = CLIPProcessor.from_pretrained(str(local_model_dir))
-                self.model = HFCLIPModel.from_pretrained(str(local_model_dir))
-            else:
-                raise FileNotFoundError("No local model directory provided")
-        except Exception as e:
-            logger.warning(f"Failed to load local model, downloading from {self.model_id}: {e}")
-            self.processor = CLIPProcessor.from_pretrained(self.model_id)
-            self.model = HFCLIPModel.from_pretrained(self.model_id)
-            
-        self.model = self.model.to(self.device)
-        logger.info(f"Using device: {self.device} for CLIP model")
-    
-    def run_inference(self, frame: torch.Tensor, text_labels: List[str], obj_labels: Dict[int, str]) -> str:
-        """
-        Run CLIP inference on an image frame.
+        self.name = name
+        self.device = device if device else "cuda" if torch.cuda.is_available() else "cpu"
+        self.model, self.preprocess = clip.load(
+            name=name,
+            device=self.device,
+            jit=jit,
+            download_root=download_root # type: ignore
+        )
+
+    def encode_texts(self, texts: List[str]) -> List[torch.Tensor]:
+        """Encode text inputs using CLIP.
         
         Args:
-            frame: The image frame tensor
-            text_labels: List of text prompts for CLIP
-            obj_labels: Dictionary mapping class indices to object labels
+            texts: List of text strings to encode
             
         Returns:
-            The predicted object label
-        """
-        if self.processor is None or self.model is None:
-            raise RuntimeError("CLIP model not loaded. Call load_model() first.")
-            
-        inputs = self.processor(
-            text=text_labels,
-            images=frame,
-            return_tensors='pt',
-            padding=True
-        )
-        
-        # Move inputs to the same device as the model
-        inputs = {k: v.to(self.device) if hasattr(v, 'to') else v for k, v in inputs.items()}
-        
+            List of text embeddings as tensors
+        """            
+        text_tokens = clip.tokenize(texts).to(self.device)
+
         with torch.no_grad():
-            outputs = self.model(**inputs)
+            text_features = [self.model.encode_text(token).detach() for token in text_tokens.split(1)]
             
-        probs = outputs.logits_per_image.softmax(dim=1)
-        predicted_class_idx = probs.argmax(dim=1).item()
+        return text_features
         
-        return obj_labels[predicted_class_idx] 
+    def encode_image(self, image: Image.Image | torch.Tensor) -> torch.Tensor:
+        """Encode image input using CLIP.
+        
+        Args:
+            image: PIL Image or preprocessed tensor
+            
+        Returns:
+            Image embedding tensor
+        """ 
+        if isinstance(image, Image.Image):
+            image = self.preprocess(image).unsqueeze(0).to(self.device)
+            
+        with torch.no_grad():
+            image_features = self.model.encode_image(image)
+            
+        return image_features
+
+    def classify(self, labels: List[str], image: Image.Image | torch.Tensor) -> Tuple[List[float], str]:
+        """Classify an image by computing similarity scores against provided labels.
+
+        Args:
+            labels: Candidate class labels
+            image: PIL Image or preprocessed tensor
+
+        Returns:
+            A tuple of (scores, best_label) where scores is a list of similarity scores 
+            corresponding to labels and best_label is the label with the highest score.
+        """        
+        image_features = self.encode_image(image)
+        text_features_list = self.encode_texts(labels)
+        text_features = torch.cat(text_features_list, dim=0)
+
+        image_features = image_features / image_features.norm(dim=1, keepdim=True)
+        text_features = text_features / text_features.norm(dim=1, keepdim=True)
+        
+        logit_scale = self.model.logit_scale.exp()
+        logits_per_image = logit_scale * image_features @ text_features.t()
+
+        scores = logits_per_image[0].tolist()
+        best_index = int(logits_per_image.argmax(dim=1)[0])
+        best_label = labels[best_index]
+        return scores, best_label
