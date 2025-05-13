@@ -255,6 +255,14 @@ class NodeEmbeddings:
                 pil_image = self._convert_roi_tensor_to_pil(roi_tensor)
                 roi_embedding = self.clip_model.encode_image(pil_image)  # (1, D)
                 collected_roi_embeddings.append(roi_embedding)
+            else:
+                logger.warning(
+                    f"Invalid ROI found for visit {visit_start}-{visit_end} for '{object_label}'"
+                )
+        else:
+            logger.warning(
+                f"No valid detections found for visit {visit_start}-{visit_end} for '{object_label}'"
+            )
         
         # Cache and return results
         self._roi_visit_embedding_cache[cache_key] = collected_roi_embeddings
