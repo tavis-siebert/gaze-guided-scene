@@ -117,20 +117,8 @@ class ActionGraph(GraphAssembler):
                 y=y
             )
         
-        # 2. Build node features based on the selected feature type
-        if self.action_node_feature == "action-one-hot":
-            action_mapping = ActionRecord.get_action_mapping()
-            num_action_classes = len(action_mapping)
-            x = torch.zeros((len(past_records), num_action_classes), device=self.device)
-            for i, rec in enumerate(past_records):
-                if rec.action_idx is not None:
-                    x[i, rec.action_idx] = 1.0
-        else:  # action-label-embedding
-            node_features = []
-            for rec in past_records:
-                emb = self.node_embeddings.get_action_embedding(rec.action_idx)
-                node_features.append(emb)
-            x = torch.stack(node_features) if node_features else torch.empty((0, self.node_feature_extractor.feature_dim), device=self.device)
+        # 2. Build node features using the node feature extractor
+        x = self.node_feature_extractor.extract_features(checkpoint, action_records=past_records)
         # Ensure x is always 2D
         if x.dim() == 1:
             x = x.unsqueeze(0)

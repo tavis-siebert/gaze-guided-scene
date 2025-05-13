@@ -37,20 +37,50 @@ class TestNodeFeatureExtractors:
         return checkpoint
 
     def test_one_hot_extractor(self, mock_config, mock_checkpoint):
-        """Test the OneHotNodeFeatureExtractor"""
+        """Test the OneHotNodeFeatureExtractor for object and action graphs"""
         for device in ["cpu", "cuda"]:
             extractor = OneHotNodeFeatureExtractor(config=mock_config, device=device)
+            # Object graph mode
             features = extractor.extract_features(mock_checkpoint)
-            # Check shape: 2 nodes, 5 temporal features + 2 one-hot classes
             assert features.shape == (2, 7)
-            # Device consistency
             assert str(features.device).startswith(device)
-            # Check one-hot encoding for first node (cup, class index 0)
             assert features[0, 5] == 1  # One-hot for class 0
             assert features[0, 6] == 0  # One-hot for class 1
-            # Check one-hot encoding for second node (bowl, class index 1)
             assert features[1, 5] == 0  # One-hot for class 0
             assert features[1, 6] == 1  # One-hot for class 1
+
+            # Action graph mode
+            MockActionRecord = type("MockActionRecord", (), {})
+            recs = []
+            for idx in range(3):
+                rec = MockActionRecord()
+                rec.action_idx = idx % extractor.num_action_classes
+                recs.append(rec)
+            action_features = extractor.extract_features(None, action_records=recs)
+            assert action_features.shape == (3, extractor.num_action_classes)
+            for i, rec in enumerate(recs):
+                assert action_features[i, rec.action_idx] == 1
+                assert action_features[i].sum() == 1
+
+    def test_action_label_embedding_extractor(self, mock_config):
+        """Test ActionLabelEmbeddingNodeFeatureExtractor for action graph usage"""
+        embedding_dim = 8
+        mock_node_embeddings = type("MockNodeEmbeddings", (), {
+            "get_action_embedding": lambda self, idx: torch.full((embedding_dim,), idx, dtype=torch.float)
+        })()
+        extractor = __import__("gazegraph.training.dataset.node_features", fromlist=["ActionLabelEmbeddingNodeFeatureExtractor"]).ActionLabelEmbeddingNodeFeatureExtractor(
+            config=mock_config, device="cpu", embedding_dim=embedding_dim, node_embeddings=mock_node_embeddings
+        )
+        MockActionRecord = type("MockActionRecord", (), {})
+        recs = []
+        for idx in range(5):
+            rec = MockActionRecord()
+            rec.action_idx = idx
+            recs.append(rec)
+        features = extractor.extract_features(None, action_records=recs)
+        assert features.shape == (5, embedding_dim)
+        for i, rec in enumerate(recs):
+            assert torch.all(features[i] == rec.action_idx)
 
     def test_object_label_embedding_extractor_device(self, mock_config, mock_checkpoint):
         """Test device consistency for ObjectLabelEmbeddingNodeFeatureExtractor"""
