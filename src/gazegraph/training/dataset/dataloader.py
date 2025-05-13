@@ -42,7 +42,7 @@ def create_dataloader(
     max_droppable = config.training.max_nodes_droppable if split == "train" else 0
     
     # Define cache file path
-    cache_dir = Path(config.directories.data) / "datasets" if hasattr(config.directories, "data") else Path("data/datasets")
+    cache_dir = Path(config.directories.data_dir) / "datasets"
     cache_dir.mkdir(parents=True, exist_ok=True)
     feature_type = object_node_feature if graph_type == "object-graph" else action_node_feature
     cache_file = cache_dir / f"graph-dataset-{split}-{graph_type}-{feature_type}.pth"
