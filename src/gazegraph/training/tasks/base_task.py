@@ -15,17 +15,20 @@ from logger import get_logger
 from pathlib import Path
 
 class BaseTask:
-    def __init__(self, config, device, task_name, object_node_feature="one-hot", load_cached=False, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
+    def __init__(self, config, device, task_name, object_node_feature="one-hot", action_node_feature="action-label-embedding", load_cached=False, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
         self.task = task_name
         self.device = device
         self.config = config
         self.num_classes = config.training.num_classes
         self.logger = get_logger(__name__)
         self.object_node_feature = object_node_feature
+        self.action_node_feature = action_node_feature
         self.load_cached = load_cached
         self.graph_type = graph_type
         
         self.logger.info(f"Using object node feature type: {object_node_feature}")
+        if self.graph_type == "action-graph":
+            self.logger.info(f"Using action node feature type: {action_node_feature}")
         self.logger.info(f"Using graph type: {graph_type}")
         
         # Load data and setup loaders
@@ -88,6 +91,7 @@ class BaseTask:
             task_mode=self.task,
             config=self.config,
             object_node_feature=self.object_node_feature,
+            action_node_feature=self.action_node_feature,
             device=self.device,
             load_cached=self.load_cached,
             graph_type=self.graph_type
@@ -100,6 +104,7 @@ class BaseTask:
             task_mode=self.task,
             config=self.config,
             object_node_feature=self.object_node_feature,
+            action_node_feature=self.action_node_feature,
             device=self.device,
             load_cached=self.load_cached,
             graph_type=self.graph_type

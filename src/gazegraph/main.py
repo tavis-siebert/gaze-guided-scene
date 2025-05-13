@@ -57,6 +57,10 @@ def setup_parser() -> argparse.ArgumentParser:
                             choices=["one-hot", "roi-embeddings", "object-label-embeddings"],
                             default="one-hot",
                             help="Type of object node features to use (default: one-hot)")
+    train_parser.add_argument("--action-node-feature", type=str, 
+                            choices=["action-one-hot", "action-label-embedding"],
+                            default="action-label-embedding",
+                            help="Type of action node features to use (default: action-label-embedding)")
     train_parser.add_argument("--load-cached", action="store_true",
                             help="Load cached GraphDataset from files in data/datasets/")
     
@@ -156,7 +160,8 @@ def main():
                 config=config,
                 device=device,
                 task_name=args.task,
-                object_node_feature=args.object_node_feature, 
+                object_node_feature=args.object_node_feature,
+                action_node_feature=args.action_node_feature,
                 load_cached=args.load_cached,
                 graph_type=args.graph_type
             )
