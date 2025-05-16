@@ -1,11 +1,12 @@
+import torch
+
 from abc import ABC, abstractmethod
 from pathlib import Path
-from torch_geometric.data import Data
-import torch
+from typing import Tuple, Literal, List
+from torch_geometric.data import Data, HeteroData
+
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
-from typing import Tuple, Literal
-
 from gazegraph.training.dataset.node_features import NodeFeatureExtractor, get_node_feature_extractor
 from gazegraph.config.config_utils import DotDict
 from gazegraph.datasets.node_embeddings import NodeEmbeddings
@@ -18,7 +19,7 @@ logger = get_logger(__name__)
 class GraphAssembler(ABC):
     """Abstract base for graph assembly strategies."""
     @abstractmethod
-    def assemble(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> Data:
+    def assemble(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> Data | HeteroData:
         pass
 
 class ObjectGraph(GraphAssembler):
@@ -143,9 +144,81 @@ class ActionGraph(GraphAssembler):
         
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
+class ActionObjectGraph(GraphAssembler):
+    # TODO 
+    # handle undersample/oversample cases as the previous graphs do
+    def __init__(
+        self, 
+        config: DotDict,
+        action_feature_extractor: NodeFeatureExtractor,
+        object_feature_extractor: NodeFeatureExtractor,
+        action_node_feature: str,
+        object_node_feature: str,
+        device: str
+    ):
+        self.config = config
+        self.device = device
+
+        self.ActionGraph = ActionGraph(action_feature_extractor, action_node_feature, config, device)
+        self.ObjectGraph = ObjectGraph(object_feature_extractor, object_node_feature, config, device)
+    
+    def link_objects_to_actions(self, checkpoint: GraphCheckpoint):
+        """
+        Links objects to all actions they appear by
+            1. Iterating through each object
+            2. For each object, iterating through each action (past record) 
+               and linking if any of the object's visits lie within
+               the timeframe of a record
+        Returns:
+            edge_index (torch.LongTensor) containing the edges between objects and actions
+        """
+        def object_affords_action(object_visits: List[List[int]], action_record: ActionRecord):
+            """Whether an object appears in a given action"""
+            action_start, action_end = action_record.start_frame, action_record.end_frame
+            for object_start, object_end in object_visits:
+                if (object_start <= action_end) and (object_end >= action_start):
+                    return True
+            return False
+
+        video_name = checkpoint.video_name
+        current_frame = checkpoint.frame_number
+        past_records = ActionRecord.get_past_action_records(video_name, current_frame)
+        
+        object_src, action_dest = [], []
+        for object_id, object_node in enumerate(checkpoint.nodes.values()):
+            object_visits = object_node["visits"]
+            for action_id, action_record in enumerate(past_records):
+                if object_affords_action(object_visits, action_record):
+                    object_src.append(object_id)
+                    action_dest.append(action_id)
+        
+        edge_index = torch.tensor([object_src, action_dest], dtype=torch.long)
+        return edge_index
+        
+    def assemble(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> HeteroData:
+        ActionData = self.ActionGraph.assemble(checkpoint, y)
+        ObjectData = self.ObjectGraph.assemble(checkpoint, y)
+
+        ActionObjectData = HeteroData()
+        ActionObjectData["action"].x = ActionData.x
+        ActionObjectData["object"].x = ObjectData.x
+        
+        ActionObjectData["action", "next_action", "action"].edge_index = ActionData.edge_index
+        ActionObjectData["object", "next_object", "object"].edge_index = ObjectData.edge_index
+        object_action_edges = self.link_objects_to_actions(checkpoint)
+        ActionObjectData["object", "affords", "action"].edge_index = object_action_edges
+        #TODO for now, I'm skipping edge_attrs 
+
+        ActionObjectData.y = y
+
+        # sanity check
+        assert ActionObjectData.has_isolated_nodes() == False, "Nodes appear to be disconnected"
+
+        return ActionObjectData
+
 
 def create_graph_assembler(
-    graph_type: Literal["object-graph", "action-graph"],
+    graph_type: Literal["object-graph", "action-graph", "action-object-graph"],
     config: DotDict,
     device: str,
     object_node_feature: str = "one-hot",
@@ -157,8 +230,8 @@ def create_graph_assembler(
         graph_type: Type of graph to create ("object-graph" or "action-graph")
         config: Configuration object
         device: Device to use ("cuda" or "cpu")
-        object_node_feature: Type of object node features (only for object-graph)
-        action_node_feature: Type of action node features (only for action-graph)
+        object_node_feature: Type of object node features
+        action_node_feature: Type of action node features
         
     Returns:
         GraphAssembler: The appropriate graph assembler instance
@@ -180,6 +253,21 @@ def create_graph_assembler(
         return ActionGraph(
             node_feature_extractor=node_feature_extractor,
             action_node_feature=action_node_feature,
+            config=config,
+            device=device
+        )
+    elif graph_type == "action-object-graph":
+        action_feature_extractor = get_node_feature_extractor(
+            action_node_feature, device, config
+        )
+        object_feature_extractor = get_node_feature_extractor(
+            object_node_feature, device, config
+        )
+        return ActionObjectGraph(
+            action_feature_extractor=action_feature_extractor,
+            object_feature_extractor=object_feature_extractor,
+            action_node_feature=action_node_feature,
+            object_node_feature=object_node_feature,
             config=config,
             device=device
         )
