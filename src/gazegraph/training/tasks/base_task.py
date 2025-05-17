@@ -7,15 +7,23 @@ from datetime import datetime
 import numpy as np
 from typing import Literal
 from torch.utils.tensorboard import SummaryWriter
-from torch_geometric.loader import DataLoader
-from training.utils import get_optimizer
-from training.dataset import GraphDataset, create_dataloader
-from models.gat_conv import GATForClassification
-from logger import get_logger
+from gazegraph.training.utils import get_optimizer
+from gazegraph.training.dataset import create_dataloader
+from gazegraph.models.gat_conv import GATForClassification
+from gazegraph.logger import get_logger
 from pathlib import Path
 
 class BaseTask:
-    def __init__(self, config, device, task_name, object_node_feature="one-hot", action_node_feature="action-label-embedding", load_cached=False, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
+    def __init__(
+        self,
+        config, 
+        device, 
+        task_name, 
+        object_node_feature="roi-embedding",
+        action_node_feature="action-label-embedding", 
+        load_cached=False, 
+        graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
+    ):
         self.task = task_name
         self.device = device
         self.config = config
@@ -25,6 +33,8 @@ class BaseTask:
         self.action_node_feature = action_node_feature
         self.load_cached = load_cached
         self.graph_type = graph_type
+
+        self.heterogeneous = True if graph_type == 'action-object-graph' else False
         
         self.logger.info(f"Using object node feature type: {object_node_feature}")
         if self.graph_type == "action-graph":
@@ -42,7 +52,10 @@ class BaseTask:
             self.edge_dim, 
             self.num_heads, 
             self.num_layers, 
-            self.res_connect
+            self.res_connect,
+            self.heterogeneous,
+            self.node_types,
+            self.metadata
         )
         self.model.to(self.device)
         
@@ -113,27 +126,34 @@ class BaseTask:
         # Extract dimensions from data
         train_dataset = self.train_loader.dataset
         sample = train_dataset[0]
-        self.input_dim = sample.x.shape[1]
-        self.edge_dim = sample.edge_attr.shape[1]
-        self.hidden_dim = self.config.training.hidden_dim
-        self.num_heads = self.config.training.num_heads
-        self.num_layers = self.config.training.num_layers
+        self.input_dim   = 512 if self.heterogeneous else sample.x.shape[1]   #TODO placeholder for now, can specify in config
+        self.edge_dim    = None if self.heterogeneous else sample.edge_attr.shape[1]
+        self.hidden_dim  = self.config.training.hidden_dim
+        self.num_heads   = self.config.training.num_heads
+        self.num_layers  = self.config.training.num_layers
         self.res_connect = self.config.training.res_connect
+        self.node_types  = sample.node_types if self.heterogeneous else None
+        self.metadata    = sample.metadata() if self.heterogeneous else None
         
         self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")
         self.logger.info(f"Loaded validation dataset with {len(self.test_loader.dataset)} samples")
     
     def _transfer_batch_to_device(self, data):
         """Transfer batch data to device"""
-        x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
-        edge_attr = edge_attr.to(x.dtype)
-        return (
-            x.to(self.device),
-            edge_index.to(self.device),
-            edge_attr.to(self.device),
-            y.to(self.device),
-            batch.to(self.device)
-        )
+        if self.heterogeneous:
+            x = data.x_dict.to(self.device)
+            edge_index = data.edge_index_dict.to(self.device)
+            edge_attr = None
+            y = data.y.to(self.device)
+            batch = None
+        else:
+            x = data.x.to(self.device)
+            edge_index = data.edge_index.to(self.device)
+            edge_attr = data.edge_attr.to(self.device).to(x.dtype)
+            y = data.y.to(self.device)
+            batch = data.batch.to(self.device)
+        
+        return (x, edge_index, edge_attr, y, batch)
     
     @contextlib.contextmanager
     def evaluation_mode(self):

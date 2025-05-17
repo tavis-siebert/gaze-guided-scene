@@ -85,7 +85,7 @@ class GATForClassification(nn.Module):
         num_layers, 
         res_connect=False, 
         heterogeneous=False,
-        node_type=None,
+        node_types=None,
         metadata=None,
     ):
         super().__init__()
@@ -100,7 +100,7 @@ class GATForClassification(nn.Module):
             num_layers=num_layers,
             res_connect=res_connect,
             heterogeneous=heterogeneous,
-            node_types=node_type,
+            node_types=node_types,
             metadata=metadata,
         )
         self.fc = nn.Linear(hidden_dim, num_classes)
