@@ -1,9 +1,8 @@
-from typing import List, Literal
+from typing import Literal
 import torch
 from pathlib import Path
 from torch_geometric.loader import DataLoader
 from gazegraph.training.dataset.graph_dataset import GraphDataset
-from gazegraph.training.dataset.node_features import get_node_feature_extractor
 from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
@@ -14,7 +13,7 @@ def create_dataloader(
     split: str = "train",
     task_mode: str = "future_actions",
     config=None,
-    object_node_feature: str = "one-hot",
+    object_node_feature: str = "roi-embeddings",
     action_node_feature: str = "action-label-embedding",
     device: str = "cuda",
     load_cached: bool = False,
@@ -31,7 +30,7 @@ def create_dataloader(
         action_node_feature: Type of action node features to use
         device: Device to use for processing
         load_cached: Whether to load cached dataset from file
-        graph_type: Type of graph dataset to use ("object-graph" or "action-graph")
+        graph_type: Type of graph dataset to use ("object-graph", "action-graph", "action-object-graph")
         
     Returns:
         PyG DataLoader
@@ -44,7 +43,12 @@ def create_dataloader(
     # Define cache file path
     cache_dir = Path(config.directories.data_dir) / "datasets"
     cache_dir.mkdir(parents=True, exist_ok=True)
-    feature_type = object_node_feature if graph_type == "object-graph" else action_node_feature
+    if graph_type == "action-graph":
+        feature_type = action_node_feature
+    elif graph_type == "object-graph":
+        feature_type = object_node_feature
+    else: 
+        feature_type = action_node_feature + '_' + object_node_feature
     cache_file = cache_dir / f"graph-dataset-{split}-{graph_type}-{feature_type}.pth"
     
     # Try to load cached dataset or create a new one
@@ -58,10 +62,10 @@ def create_dataloader(
         fail = False
 
         # Check for configuration differences and warn and fail if needed
-        if graph_type == "object-graph" and dataset.object_node_feature != object_node_feature:
+        if "object" in graph_type and dataset.object_node_feature != object_node_feature:
             logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' object features, but '{object_node_feature}' was requested")
             fail = True
-        if graph_type == "action-graph" and hasattr(dataset, 'action_node_feature') and dataset.action_node_feature != action_node_feature:
+        if "action" in graph_type and hasattr(dataset, 'action_node_feature') and dataset.action_node_feature != action_node_feature:
             logger.warning(f"Cached dataset uses '{dataset.action_node_feature}' action features, but '{action_node_feature}' was requested")
             fail = True
         if dataset.task_mode != task_mode:
@@ -87,8 +91,8 @@ def create_dataloader(
     
     num_workers = config.processing.dataloader_workers
     if object_node_feature == "roi-embeddings":
-        # Multiprocessing currently unsupported due to unpickable AV instances
-        logger.warning("Multiprocessing currently unsupported for roi-embeddings due to unpickable AV instances")
+        # Multiprocessing currently unsupported due to unpicklable AV instances
+        logger.warning("Multiprocessing currently unsupported for roi-embeddings due to unpicklable AV instances")
         num_workers = 0
 
     return DataLoader(
@@ -99,7 +103,19 @@ def create_dataloader(
     )
 
 
-def create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, action_node_feature, device, cache_file=None, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
+def create_new_dataset(
+    root_dir, 
+    split, 
+    task_mode, 
+    node_drop_p, 
+    max_droppable, 
+    config, 
+    object_node_feature, 
+    action_node_feature, 
+    device,
+    cache_file=None, 
+    graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
+):
     """Create a new GraphDataset and optionally save it to cache.
     
     Args:

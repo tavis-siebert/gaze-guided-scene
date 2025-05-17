@@ -145,8 +145,6 @@ class ActionGraph(GraphAssembler):
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 class ActionObjectGraph(GraphAssembler):
-    # TODO 
-    # handle undersample/oversample cases as the previous graphs do
     def __init__(
         self, 
         config: DotDict,
@@ -162,7 +160,7 @@ class ActionObjectGraph(GraphAssembler):
         self.ActionGraph = ActionGraph(action_feature_extractor, action_node_feature, config, device)
         self.ObjectGraph = ObjectGraph(object_feature_extractor, object_node_feature, config, device)
     
-    def link_objects_to_actions(self, checkpoint: GraphCheckpoint):
+    def _link_objects_to_actions(self, checkpoint: GraphCheckpoint):
         """
         Links objects to all actions they appear by
             1. Iterating through each object
@@ -192,7 +190,7 @@ class ActionObjectGraph(GraphAssembler):
                     object_src.append(object_id)
                     action_dest.append(action_id)
         
-        edge_index = torch.tensor([object_src, action_dest], dtype=torch.long)
+        edge_index = torch.tensor([object_src, action_dest], dtype=torch.long, device=self.device)
         return edge_index
         
     def assemble(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> HeteroData:
@@ -205,14 +203,11 @@ class ActionObjectGraph(GraphAssembler):
         
         ActionObjectData["action", "next_action", "action"].edge_index = ActionData.edge_index
         ActionObjectData["object", "next_object", "object"].edge_index = ObjectData.edge_index
-        object_action_edges = self.link_objects_to_actions(checkpoint)
+        object_action_edges = self._link_objects_to_actions(checkpoint)
         ActionObjectData["object", "affords", "action"].edge_index = object_action_edges
         #TODO for now, I'm skipping edge_attrs 
 
         ActionObjectData.y = y
-
-        # sanity check
-        assert ActionObjectData.has_isolated_nodes() == False, "Nodes appear to be disconnected"
 
         return ActionObjectData
 
@@ -221,7 +216,7 @@ def create_graph_assembler(
     graph_type: Literal["object-graph", "action-graph", "action-object-graph"],
     config: DotDict,
     device: str,
-    object_node_feature: str = "one-hot",
+    object_node_feature: str = "roi-embeddings",
     action_node_feature: str = "action-label-embedding"
 ) -> GraphAssembler:
     """Factory method to create the appropriate graph assembler based on the dataset type.

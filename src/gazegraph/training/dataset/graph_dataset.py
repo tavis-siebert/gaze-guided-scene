@@ -1,9 +1,8 @@
 import random
-import torch
 from pathlib import Path
 from typing import List, Optional, Tuple, Literal
 from torch_geometric.data import Data, Dataset
-from gazegraph.training.dataset.graph_assembler import create_graph_assembler, GraphAssembler
+from gazegraph.training.dataset.graph_assembler import create_graph_assembler
 from tqdm import tqdm
 import numpy as np
 from bisect import bisect_right
@@ -12,9 +11,6 @@ from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManage
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 from gazegraph.training.dataset.augmentations import node_dropping
 from gazegraph.training.dataset.sampling import get_samples
-from gazegraph.training.dataset.node_features import get_node_feature_extractor
-from gazegraph.graph.graph_tracer import GraphTracer
-from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.logger import get_logger
 from gazegraph.config.config_utils import DotDict
 
@@ -36,10 +32,10 @@ class GraphDataset(Dataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        object_node_feature: str = "one-hot",
+        object_node_feature: str = "roi-embeddings",
         action_node_feature: str = "action-label-embedding",
         device: str = "cuda",
-        graph_type: Literal["object-graph", "action-graph"] = "object-graph"
+        graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
     ):
         self.root_dir = Path(root_dir) / split
         self.split = split
@@ -130,7 +126,8 @@ class GraphDataset(Dataset):
         checkpoint, action_labels = self.sample_tuples[idx]
         y = action_labels[self.task_mode]
         data = self._assembler.assemble(checkpoint, y)
-        data = self._apply_augmentations(data)
+        if self.graph_type != "action-object-graph":    #TODO handle aug for hetero
+            data = self._apply_augmentations(data)
         self._data_cache[idx] = data
         return data
 
