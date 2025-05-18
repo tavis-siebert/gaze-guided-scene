@@ -25,7 +25,6 @@ class GraphDataset(Dataset):
         config: DotDict,
         root_dir: str,
         split: str = "train",
-        val_timestamps: Optional[List[float]] = None,
         task_mode: str = "future_actions",
         node_drop_p: float = 0.0,
         max_droppable: int = 0,
@@ -41,21 +40,26 @@ class GraphDataset(Dataset):
         self.split = split
         self.config = config
         self.metadata = VideoMetadata(config)
-        if not config or not hasattr(config, 'training') or not hasattr(config.training, 'val_timestamps'):
-            raise ValueError("Config or config.training.val_timestamps missing")
-        self.val_timestamps = config.training.val_timestamps
-        if self.val_timestamps is None:
-            raise ValueError("No validation timestamps provided")
+
+        if self.split == "val":
+            if not config or not hasattr(config, 'training') or not hasattr(config.training, 'val_timestamps'):
+                raise ValueError("Config or config.training.val_timestamps missing")
+            self.val_timestamps = config.training.val_timestamps
+            if self.val_timestamps is None:
+                raise ValueError("No validation timestamps provided")
+
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p
         self.max_droppable = max_droppable
         self.device = device
+
         self.object_node_feature = object_node_feature
         self.action_node_feature = action_node_feature
         self.graph_type = graph_type
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
             self.sample_tuples : List[Tuple[GraphCheckpoint, dict]] = []
+
         self._load_and_collect_samples()
         # Create the appropriate graph assembler based on the graph type
         self._assembler = create_graph_assembler(
@@ -63,7 +67,8 @@ class GraphDataset(Dataset):
             config=self.config,
             device=self.device,
             object_node_feature=self.object_node_feature,
-            action_node_feature=self.action_node_feature
+            action_node_feature=self.action_node_feature,
+            split=self.split    # primarily for loading caches in heterogeneous graphs
         )
         self._data_cache = {}
         super().__init__(root=str(self.root_dir), transform=transform, pre_transform=pre_transform, pre_filter=pre_filter)

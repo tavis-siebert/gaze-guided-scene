@@ -30,7 +30,7 @@ def create_dataloader(
         action_node_feature: Type of action node features to use
         device: Device to use for processing
         load_cached: Whether to load cached dataset from file
-        graph_type: Type of graph dataset to use ("object-graph", "action-graph", "action-object-graph")
+        graph_type: Type of graph dataset to use ("object-graph", "action-graph", or "action-object-graph")
         
     Returns:
         PyG DataLoader
@@ -87,6 +87,9 @@ def create_dataloader(
     else:
         if load_cached:
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
+            if graph_type == "action-object-graph":
+                logger.info(f"NOTE: if action-graph or object-graph caches exist, they will be loaded during dataset creation")
+
         dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, action_node_feature, device, cache_file, graph_type)
     
     num_workers = config.processing.dataloader_workers
@@ -129,7 +132,7 @@ def create_new_dataset(
         action_node_feature: Type of action node features to use
         device: Device to use for processing
         cache_file: Path to save the dataset cache
-        graph_type: Type of graph dataset to use ("object-graph" or "action-graph")
+        graph_type: Type of graph dataset to use ("object-graph", "action-graph", or "action-object-graph")
         
     Returns:
         GraphDataset: The newly created dataset

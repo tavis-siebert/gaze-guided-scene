@@ -152,15 +152,78 @@ class ActionObjectGraph(GraphAssembler):
         object_feature_extractor: NodeFeatureExtractor,
         action_node_feature: str,
         object_node_feature: str,
-        device: str
+        device: str,
+        split: str
     ):
         self.config = config
         self.device = device
 
-        self.ActionGraph = ActionGraph(action_feature_extractor, action_node_feature, config, device)
-        self.ObjectGraph = ObjectGraph(object_feature_extractor, object_node_feature, config, device)
-    
-    def _link_objects_to_actions(self, checkpoint: GraphCheckpoint):
+        self.action_node_feature = action_node_feature
+        self.object_node_feature = object_node_feature
+        self.action_feature_extractor = action_feature_extractor
+        self.object_feature_extractor = object_feature_extractor
+
+        # Locate caches if action and object embeddings exist individually
+        cache_dir = Path(config.directories.data_dir) / "datasets"
+        self.cache_file_action = cache_dir / f"graph-dataset-{split}-action-graph-{action_node_feature}.pth"
+        self.cache_file_object = cache_dir / f"graph-dataset-{split}-object-graph-{object_node_feature}.pth"
+
+    ### Data-loading functions ###
+    def _assemble_new_graph(self, checkpoint: GraphCheckpoint, y: torch.Tensor, graph_type: str) -> Data:
+        """Calls assembler for individual (action or object) graphs"""
+        if graph_type == "action-graph":
+            assembler = ActionGraph(self.action_feature_extractor, self.action_node_feature, self.config, self.device)
+            data = assembler.assemble(checkpoint, y)
+        elif graph_type == "object-graph":
+            assembler = ObjectGraph(self.object_feature_extractor, self.object_node_feature, self.config, self.device)
+            data = assembler.assemble(checkpoint, y)
+        return data
+
+    def _return_correct_datat(self, checkpoint: GraphCheckpoint, y: torch.Tensor, cache_file: Path, graph_type: str) -> Data:
+        """Checks cache and loads action or object graph, falling back to assembler if it doesn't exist"""
+        logger.info(f"Loading cached object dataset from {cache_file}")
+        try:
+            dataset = torch.load(cache_file)    # a GraphDataset instance
+        except Exception as e:
+            raise RuntimeError(f"Failed to load cached dataset: {e}")
+
+        fail = False
+        if dataset.graph_type != graph_type:
+            logger.warning(f"Cached dataset uses '{dataset.graph_type}' graph type, but '{graph_type}' was requested")
+            fail = True
+        if graph_type == "action-graph" and hasattr(dataset, 'action_node_feature') and dataset.action_node_feature != self.action_node_feature:
+            logger.warning(f"Cached dataset uses '{dataset.action_node_feature}' action features, but '{self.action_node_feature}' was requested")
+            fail = True
+        if graph_type == "object-graph" and hasattr(dataset, 'object_node_feature') and dataset.object_node_feature != self.object_node_feature:
+            logger.warning(f"Cached dataset uses '{dataset.object_node_feature}' action features, but '{self.object_node_feature}' was requested")
+
+        if fail:
+            data = self._assemble_new_graph(checkpoint, y, graph_type)
+        else:
+            samples = dataset.sample_tuples
+            index = next((i for i, (ckpt, _) in enumerate(samples) if ckpt == checkpoint), -1)
+            if index == -1:
+                data = self._assemble_new_graph(checkpoint, y, graph_type)
+            else:
+                data = dataset.get(index)
+        
+        return data
+
+    def _load_action_object_datasets(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> Tuple[Data, Data]:
+        """Loads action and object data from cache, calling assemblers if they don't exist"""
+        if self.cache_file_action.exists():
+            action_data = self._return_correct_datas(self.cache_file_action, "action-graph")
+        else:
+            action_data = self._assemble_new_graph(checkpoint, y, "action-graph")
+        if self.cache_file_object.exists():
+            object_data = self._return_correct_datas(self.cache_file_object, "object-graph")
+        else:
+            object_data = self._assemble_new_graph(checkpoint, y, "object-graph")
+        
+        return action_data, object_data
+
+    ### Combines action and object graphs)
+    def _link_objects_to_actions(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
         """
         Links objects to all actions they appear by
             1. Iterating through each object
@@ -192,10 +255,10 @@ class ActionObjectGraph(GraphAssembler):
         
         edge_index = torch.tensor([object_src, action_dest], dtype=torch.long, device=self.device)
         return edge_index
-        
+    
+    ### Assemble logic ###
     def assemble(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> HeteroData:
-        ActionData = self.ActionGraph.assemble(checkpoint, y)
-        ObjectData = self.ObjectGraph.assemble(checkpoint, y)
+        ActionData, ObjectData = self._load_action_object_datasets(checkpoint, y)
 
         ActionObjectData = HeteroData()
         ActionObjectData["action"].x = ActionData.x
@@ -216,6 +279,7 @@ def create_graph_assembler(
     graph_type: Literal["object-graph", "action-graph", "action-object-graph"],
     config: DotDict,
     device: str,
+    split: str,
     object_node_feature: str = "roi-embeddings",
     action_node_feature: str = "action-label-embedding"
 ) -> GraphAssembler:
@@ -264,7 +328,8 @@ def create_graph_assembler(
             action_node_feature=action_node_feature,
             object_node_feature=object_node_feature,
             config=config,
-            device=device
+            device=device,
+            split=split
         )
     else:
         raise ValueError(f"Unknown graph type: {graph_type}")

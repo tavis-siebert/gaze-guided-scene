@@ -1,6 +1,6 @@
-from training.tasks.base_task import BaseTask
-from training.tasks.next_action import NextActionTask
-from training.tasks.future_actions import FutureActionsTask
+from gazegraph.training.tasks.base_task import BaseTask
+from gazegraph.training.tasks.next_action import NextActionTask
+from gazegraph.training.tasks.future_actions import FutureActionsTask
 
 __all__ = [
     'BaseTask',
