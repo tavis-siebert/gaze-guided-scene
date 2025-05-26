@@ -45,7 +45,8 @@ flowchart TD
     
     %% External Graph Representation
     J["`📊 **Ego Topo Graphs**
-    Visit nodes`"]
+    Per-video graphs
+    Nodes = spatial zones`"]
     
     %% Future Action Prediction - Third level
     subgraph Prediction["🚀 Future Action Prediction"]
