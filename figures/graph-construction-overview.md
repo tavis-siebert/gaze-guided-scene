@@ -23,7 +23,7 @@ flowchart TD
     end
     
     %% Core Processing Pipeline - Second level
-    subgraph Pipeline["🏗️ Gaze-Guided Graphs"]
+    subgraph Pipeline["🏗️ Gaze-Guided Object Graphs"]
         direction LR
         D["`🔍 **Gaze Processing**
         Fixation smoothing
@@ -52,21 +52,27 @@ flowchart TD
     subgraph Prediction["🚀 Future Action Prediction"]
         G["`📊 **Gaze-Augmented
         EgoTopo Graphs**
-        Enhanced visit nodes
-        Attention features`"]
+        Extract visits
+        Build gaze features
+        Fuse with existing features`"]
         
         H["`🌐 **Heterogeneous
         Gaze Graphs**
-        Object subgraph
-        Action subgraph`"]
+        Obtain action intervals
+        Build action and object features
+        Assemble heterogeneous graphs`"]
         
-        I["`🤖 **GCN**
+        I1["`🤖 **EgoTopo GCN**
         Graph neural network
-        Attention-aware reasoning`"]
+        Visit-based reasoning`"]
+        
+        I2["`🤖 **Heterogeneous GCN**
+        Graph neural network
+        Gaze-Action-Object reasoning`"]
         
         %% Internal connections
-        G --> I
-        H --> I
+        G --> I1
+        H --> I2
     end
     
     %% Vertical flow connections
@@ -86,7 +92,7 @@ flowchart TD
     class Dataset,Pipeline,Prediction grayContainer
     class A,B,C inputNode
     class D,E,F processingNode
-    class G,H,I outputNode
+    class G,H,I1,I2 outputNode
     class J externalNode
 ```
 
@@ -116,14 +122,14 @@ flowchart TD
 ### 🎯 **Output Representations**
 
 #### **Gaze-Augmented EgoTopo Graphs**
-- Enhanced visit nodes with gaze attention features
-- Spatial-temporal structure preserving EgoTopo design
-- Attention-weighted object representations
+- Extract visits from original EgoTopo structure
+- Build gaze features from attention patterns
+- Concat with ego topo node features for enhanced representation
 
 #### **Heterogeneous Gaze Graphs**
-- **Object Subgraph**: Spatially-connected attended objects
-- **Action Subgraph**: Temporally-linked past actions
-- **Cross-Modal Edges**: Object-action attention links
+- Obtain action intervals from temporal annotations
+- Construct action and object features from multimodal data
+- Assemble heterogeneous graph from action and object subgraphs
 
 ### 🚀 **Applications**
 - Future action prediction with attention-aware reasoning
