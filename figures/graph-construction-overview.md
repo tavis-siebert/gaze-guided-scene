@@ -34,18 +34,17 @@ flowchart LR
 
         D["`🔍 **Gaze Processing**
         Fixation smoothing
-        Spatial stability
-        Saccade reclassification`"]
+        Noise interpolation`"]
         
         E["`🤖 **Object Detection**
-        YOLO-World prompts
+        YOLO-World Model
         Gaze-bbox intersection
-        Multi-component scoring`"]
+        Fixation stability`"]
         
         F["`🔗 **Graph Construction**
-        Node matching/creation
-        Bidirectional edges
-        8-bin angular features`"]
+        Visit-based node creation
+        Temporal edge linking
+        Gaze attention features`"]
         
         dummy ~~~ D
         D --> E
@@ -100,19 +99,18 @@ flowchart LR
 ### ⚙️ **Object Graph Construction Pipeline**
 
 #### 1. **Gaze Processing**
-- Consecutive fixation smoothed with configurable threshold (default: 5 frames)
-- Spatial stability analysis using sliding window and distance thresholds
-- Saccade reclassification to fixations based on spatial consistency and lookahead
+- Fixation window filtering with minimum threshold (default: 4 frames)
+- Noisy gaze point interpolation using neighbor distance (0.2 threshold)
 
 #### 2. **Object Detection**
-- YOLO-World inference with text prompts from action noun vocabulary
-- Gaze-bbox intersection analysis with configurable margin for attention detection
-- Multi-component scoring: confidence (geometric mean), stability (IoU), proximity (inverse distance), duration weighting
+- YOLO-World Model (640px, conf=0.15, IoU=0.5) with noun vocabulary prompts
+- Gaze-bbox intersection analysis with 10px margin expansion
+- Weighted scoring: duration, bbox stability, gaze proximity, confidence (geometric mean ≥0.3)
 
 #### 3. **Graph Construction**
-- Node matching by object label or dynamic creation with visit record tracking
-- Bidirectional edge generation between consecutive nodes with spatial relationship encoding
-- 8-bin angular features computed from gaze position transitions between fixations
+- Visit-based node creation with minimum 4-frame fixation and 0.5 frame ratio thresholds
+- Temporal edge linking between consecutive attended objects
+- Gaze attention features with maximum 3 visits sampled per node
 
 ### 🎯 **Output Representations**
 
