@@ -22,8 +22,9 @@ flowchart LR
         200 categories
         Verb-noun pairs`"]
         
-        A --- B
-        B --- C
+        %% hide the edges while preserving the layout
+        A ~~~ B
+        B ~~~ C
     end
     
     %% Core Processing Pipeline
