@@ -68,9 +68,16 @@ flowchart TD
         I2["`🤖 **Heterogeneous GCN**
         Graph neural network`"]
         
+        K["`📊 **Evaluation**
+        Future action prediction
+        vs ground truth labels
+        mAP, Precision, Recall`"]
+        
         %% Internal connections
         G --> I1
         H --> I2
+        I1 --> K
+        I2 --> K
     end
     
     %% Vertical flow connections
@@ -90,7 +97,7 @@ flowchart TD
     class Dataset,Pipeline,Prediction grayContainer
     class A,B,C inputNode
     class D,E,F processingNode
-    class G,H,I1,I2 outputNode
+    class G,H,I1,I2,K outputNode
     class J externalNode
 ```
 
@@ -128,6 +135,12 @@ flowchart TD
 - Obtain action intervals from temporal annotations
 - Construct action and object features from multimodal data
 - Assemble heterogeneous graph from action and object subgraphs
+
+#### **Evaluation Framework**
+- **Task**: Future action prediction from multi-label classification
+- **Ground Truth**: Action annotations with verb-noun structure (200 categories)
+- **Metrics**: Mean Average Precision (mAP), Precision, Recall, per-class F1 scores
+- **Validation**: Train/validation split evaluation with confusion matrix analysis
 
 ### 🚀 **Applications**
 - Future action prediction with attention-aware reasoning
