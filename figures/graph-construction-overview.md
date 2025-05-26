@@ -44,13 +44,13 @@ flowchart TD
     end
     
     %% External Graph Representation
-    J["`📊 **Ego Topo Graphs**
+    J["`🗺️ **Ego Topo Graphs**
     Per-video graphs
     Nodes = spatial zones`"]
     
     %% Future Action Prediction - Third level
     subgraph Prediction["🚀 Future Action Prediction"]
-        G["`📊 **Gaze-Augmented
+        G["`🎯 **Gaze-Augmented
         EgoTopo Graphs**
         Extract visits
         Build gaze features
