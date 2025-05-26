@@ -42,9 +42,9 @@ flowchart LR
         Multi-component scoring`"]
         
         F["`🔗 **Graph Construction**
-        Visit-based node creation
-        Temporal edge linking
-        Gaze attention features`"]
+        Fixation-driven node creation
+        Object-based node merging
+        Temporal edge linking`"]
         
         dummy ~~~ D
         D --> E
@@ -108,9 +108,9 @@ flowchart LR
 - Multi-component scoring: confidence (geometric mean ≥0.3), bbox stability (IoU), gaze proximity, fixation ratio
 
 #### 3. **Graph Construction**
-- Visit-based node creation with minimum 4-frame fixation and 0.5 frame ratio thresholds
-- Temporal edge linking between consecutive attended objects
-- Gaze attention features with maximum 3 visits sampled per node
+- Node creation for new objects or visit updates for existing nodes with matching labels
+- Bidirectional edge creation between consecutive fixated objects (except from root)
+- Spatial relationship encoding: 8-bin angular features, gaze position transitions, distance
 
 ### 🎯 **Output Representations**
 
