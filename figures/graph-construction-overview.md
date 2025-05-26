@@ -72,28 +72,22 @@ flowchart TD
     %% Vertical flow connections
     Dataset --> Pipeline
     Dataset --> J
-    Pipeline --> G
-    Pipeline --> H
+    Pipeline --> Prediction
     J --> G
     
-    %% Styling for academic presentation
-    classDef dataset fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
-    classDef pipeline fill:#fce4ec,stroke:#6c757d,stroke-width:3px
-    classDef prediction fill:#fff3e0,stroke:#6c757d,stroke-width:3px
-    classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef processing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef output fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef external fill:#f0f0f0,stroke:#666666,stroke-width:2px
-    classDef gcn fill:#ffecb3,stroke:#ff8f00,stroke-width:2px
+    %% Gray containers with distinct node colors
+    classDef grayContainer fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
+    classDef inputNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef processingNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef outputNode fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef externalNode fill:#f5f5f5,stroke:#666666,stroke-width:2px
     
-    class Dataset dataset
-    class Pipeline pipeline
-    class Prediction prediction
-    class A,B,C input
-    class D,E,F processing
-    class G,H output
-    class J external
-    class I gcn
+    %% Apply gray to containers only, keep distinct node colors
+    class Dataset,Pipeline,Prediction grayContainer
+    class A,B,C inputNode
+    class D,E,F processingNode
+    class G,H,I outputNode
+    class J externalNode
 ```
 
 ## Key System Components
