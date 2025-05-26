@@ -37,9 +37,9 @@ flowchart LR
         Noise interpolation`"]
         
         E["`🤖 **Object Detection**
-        YOLO-World Model
-        Gaze-bbox intersection
-        Fixation stability`"]
+        YOLO-World noun prompts
+        Gaze-BBox intersection
+        Multi-component scoring`"]
         
         F["`🔗 **Graph Construction**
         Visit-based node creation
@@ -103,9 +103,9 @@ flowchart LR
 - Noisy gaze point interpolation using neighbor distance (0.2 threshold)
 
 #### 2. **Object Detection**
-- YOLO-World Model (640px, conf=0.15, IoU=0.5) with noun vocabulary prompts
+- YOLO-World inference (640px, conf=0.15, IoU=0.5) with noun vocabulary prompts
 - Gaze-bbox intersection analysis with 10px margin expansion
-- Weighted scoring: duration, bbox stability, gaze proximity, confidence (geometric mean ≥0.3)
+- Multi-component scoring: confidence (geometric mean ≥0.3), bbox stability (IoU), gaze proximity, fixation ratio
 
 #### 3. **Graph Construction**
 - Visit-based node creation with minimum 4-frame fixation and 0.5 frame ratio thresholds
