@@ -28,8 +28,10 @@ flowchart LR
     end
     
     %% Core Processing Pipeline
-    subgraph Pipeline["🏗️ Object Graph Construction"]
+    subgraph Pipeline["🏗️ Gaze-Attended Object Graph Construction"]
         direction TB
+        dummy(( )):::spacer
+
         D["`🔍 **Gaze Processing**
         Consecutive fixation validation
         Spatial stability with lookahead
@@ -45,6 +47,7 @@ flowchart LR
         Bidirectional edge generation
         8-bin angular features`"]
         
+        dummy ~~~ D
         D --> E
         E --> F
     end
@@ -71,6 +74,7 @@ flowchart LR
     H --> I
     
     %% Styling for academic presentation
+    classDef spacer fill:transparent,stroke:transparent,stroke-width:0px
     classDef dataset fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
     classDef pipeline fill:#fce4ec,stroke:#6c757d,stroke-width:3px
     classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
