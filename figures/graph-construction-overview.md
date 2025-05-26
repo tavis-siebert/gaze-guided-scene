@@ -3,10 +3,9 @@
 This diagram presents the high-level architecture of the gaze-guided scene graph construction system, suitable for poster presentation and academic papers.
 
 ```mermaid
-flowchart LR
-    %% Dataset Container
+flowchart TD
+    %% Dataset Container - Top level with horizontal alignment
     subgraph Dataset["🗂️ EGTEA Gaze+ Dataset"]
-        direction TB
         A["`📹 **HD Videos**
         720P resolution
         ~29 hours total
@@ -21,17 +20,11 @@ flowchart LR
         15K+ instances
         200 categories
         Verb-noun pairs`"]
-        
-        %% hide the edges while preserving the layout
-        A ~~~ B
-        B ~~~ C
     end
     
-    %% Core Processing Pipeline
+    %% Core Processing Pipeline - Second level
     subgraph Pipeline["🏗️ Gaze-Attended Object Graph Construction"]
-        direction TB
-        dummy(( )):::spacer
-
+        direction LR
         D["`🔍 **Gaze Processing**
         Fixation smoothing
         Noise interpolation`"]
@@ -46,36 +39,39 @@ flowchart LR
         Object-based node merging
         Temporal edge linking`"]
         
-        dummy ~~~ D
         D --> E
         E --> F
     end
     
-    Dataset --> Pipeline
+    %% Output Representations - Third level
+    subgraph Outputs["📊 Graph Representations"]
+        direction LR
+        G["`📊 **Gaze-Augmented
+        EgoTopo Graphs**
+        Enhanced visit nodes
+        Attention features`"]
+        
+        H["`🌐 **Heterogeneous
+        Gaze Graphs**
+        Object subgraph
+        Action subgraph`"]
+    end
     
-    %% Output Representations
-    Pipeline --> G["`📊 **Gaze-Augmented
-    EgoTopo Graphs**
-    Enhanced visit nodes
-    Attention features`"]
-    
-    Pipeline --> H["`🌐 **Heterogeneous
-    Gaze Graphs**
-    Object subgraph
-    Action subgraph`"]
-    
-    %% Downstream Tasks
-    G --> I["`🚀 **Future Action
+    %% Downstream Tasks - Fourth level
+    I["`🚀 **Future Action
     Prediction**
     GNN-based models
     Attention-aware reasoning`"]
     
-    H --> I
+    %% Vertical flow connections
+    Dataset --> Pipeline
+    Pipeline --> Outputs
+    Outputs --> I
     
     %% Styling for academic presentation
-    classDef spacer fill:transparent,stroke:transparent,stroke-width:0px
     classDef dataset fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
     classDef pipeline fill:#fce4ec,stroke:#6c757d,stroke-width:3px
+    classDef outputs fill:#e8f5e8,stroke:#6c757d,stroke-width:3px
     classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef processing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef output fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
@@ -83,6 +79,7 @@ flowchart LR
     
     class Dataset dataset
     class Pipeline pipeline
+    class Outputs outputs
     class A,B,C input
     class D,E,F processing
     class G,H output
