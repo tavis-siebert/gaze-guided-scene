@@ -45,7 +45,6 @@ flowchart TD
     
     %% External Graph Representation
     J["`📊 **Ego Topo Graphs**
-    Original structure
     Visit nodes`"]
     
     %% Future Action Prediction - Third level
@@ -63,12 +62,10 @@ flowchart TD
         Assemble heterogeneous graphs`"]
         
         I1["`🤖 **EgoTopo GCN**
-        Graph neural network
-        Visit-based reasoning`"]
+        Graph neural network`"]
         
         I2["`🤖 **Heterogeneous GCN**
-        Graph neural network
-        Gaze-Action-Object reasoning`"]
+        Graph neural network`"]
         
         %% Internal connections
         G --> I1
