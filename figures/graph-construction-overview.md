@@ -9,13 +9,13 @@ flowchart LR
         direction TB
         A["`📹 **HD Videos**
         720P resolution
-        ~29 hours
+        ~29 hours total
         86 sessions`"]
         
         B["`👁️ **Gaze Tracking**
         SMI eye-tracker
         2D coordinates
-        Fixation/Saccade types`"]
+        Fixation/Saccade`"]
         
         C["`🏷️ **Action Annotations**
         15K+ instances
@@ -33,18 +33,18 @@ flowchart LR
         dummy(( )):::spacer
 
         D["`🔍 **Gaze Processing**
-        Consecutive fixation validation
-        Spatial stability with lookahead
+        Fixation smoothing
+        Spatial stability
         Saccade reclassification`"]
         
         E["`🤖 **Object Detection**
-        YOLO-World with noun prompts
-        Gaze-bbox intersection analysis
-        Multi-component scoring system`"]
+        YOLO-World prompts
+        Gaze-bbox intersection
+        Multi-component scoring`"]
         
         F["`🔗 **Graph Construction**
-        Node matching and creation
-        Bidirectional edge generation
+        Node matching/creation
+        Bidirectional edges
         8-bin angular features`"]
         
         dummy ~~~ D
@@ -100,7 +100,7 @@ flowchart LR
 ### ⚙️ **Object Graph Construction Pipeline**
 
 #### 1. **Gaze Processing**
-- Consecutive fixation validation with configurable threshold (default: 5 frames)
+- Consecutive fixation smoothed with configurable threshold (default: 5 frames)
 - Spatial stability analysis using sliding window and distance thresholds
 - Saccade reclassification to fixations based on spatial consistency and lookahead
 
