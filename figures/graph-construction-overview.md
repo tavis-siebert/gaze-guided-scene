@@ -4,46 +4,53 @@ This diagram presents the high-level architecture of the gaze-guided scene graph
 
 ```mermaid
 flowchart LR
-    %% Input Data
-    A["`**Egocentric Video**
-    RGB frames
-    30 FPS`"] --> B["`**Gaze Data**
-    Eye tracking
-    Fixations/Saccades`"]
-    
-    B --> C["`**Action Labels**
-    Temporal annotations
-    Verb-noun pairs`"]
+    %% Dataset Container
+    subgraph Dataset["🗂️ EGTEA Gaze+ Dataset"]
+        A["`📹 **HD Videos**
+        720P → VGA
+        ~29 hours
+        86 sessions`"]
+        
+        B["`👁️ **Gaze Tracking**
+        SMI eye-tracker
+        2D coordinates
+        Fixation/Saccade types`"]
+        
+        C["`🏷️ **Action Annotations**
+        15K+ instances
+        200 categories
+        Verb-noun pairs`"]
+    end
     
     %% Core Processing Pipeline
-    C --> D["`**Gaze Processing**
-    🔍 Fixation Detection
+    Dataset --> D["`🔍 **Gaze Processing**
+    Fixation Detection
     📊 Stability Analysis
     🎯 Object Attention`"]
     
-    D --> E["`**Object Detection**
-    🤖 YOLO-World
+    D --> E["`🤖 **Object Detection**
+    YOLO-World
     📝 Text Prompts
     🎯 Gaze-Object Matching`"]
     
-    E --> F["`**Graph Construction**
-    🔗 Node Creation
+    E --> F["`🔗 **Graph Construction**
+    Node Creation
     📐 Spatial Relations
     ⏱️ Temporal Links`"]
     
     %% Output Representations
-    F --> G["`**Gaze-Augmented
+    F --> G["`📊 **Gaze-Augmented
     EgoTopo Graphs**
     Enhanced visit nodes
     Attention features`"]
     
-    F --> H["`**Heterogeneous
+    F --> H["`🌐 **Heterogeneous
     Gaze Graphs**
     Object subgraph
     Action subgraph`"]
     
     %% Downstream Tasks
-    G --> I["`**Future Action
+    G --> I["`🚀 **Future Action
     Prediction**
     GNN-based models
     Attention-aware reasoning`"]
@@ -51,11 +58,13 @@ flowchart LR
     H --> I
     
     %% Styling for academic presentation
+    classDef dataset fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
     classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef processing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef output fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef task fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     
+    class Dataset dataset
     class A,B,C input
     class D,E,F processing
     class G,H output
@@ -64,10 +73,10 @@ flowchart LR
 
 ## Key System Components
 
-### 📥 **Input Modalities**
-- **Egocentric Video**: First-person RGB video streams (30 FPS)
-- **Gaze Data**: Eye tracking with fixation/saccade classification
-- **Action Labels**: Temporal verb-noun annotations for supervision
+### 📥 **EGTEA Gaze+ Dataset**
+- **HD Videos**: 720P→VGA resolution, ~29 hours from 86 sessions of 32 subjects
+- **Gaze Tracking**: SMI eye-tracker with 2D coordinates and fixation/saccade types
+- **Action Annotations**: 15K+ instances across 200 categories with verb-noun structure
 
 ### ⚙️ **Core Processing Pipeline**
 
