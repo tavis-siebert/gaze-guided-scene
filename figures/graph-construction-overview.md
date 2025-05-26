@@ -43,9 +43,13 @@ flowchart TD
         E --> F
     end
     
-    %% Output Representations - Third level
-    subgraph Outputs["📊 Graph Representations"]
-        direction LR
+    %% External Graph Representation
+    J["`📊 **Ego Topo Graphs**
+    Original structure
+    Visit nodes`"]
+    
+    %% Future Action Prediction - Third level
+    subgraph Prediction["🚀 Future Action Prediction"]
         G["`📊 **Gaze-Augmented
         EgoTopo Graphs**
         Enhanced visit nodes
@@ -55,35 +59,41 @@ flowchart TD
         Gaze Graphs**
         Object subgraph
         Action subgraph`"]
+        
+        I["`🤖 **GCN**
+        Graph neural network
+        Attention-aware reasoning`"]
+        
+        %% Internal connections
+        G --> I
+        H --> I
     end
-    
-    %% Downstream Tasks - Fourth level
-    I["`🚀 **Future Action
-    Prediction**
-    GNN-based models
-    Attention-aware reasoning`"]
     
     %% Vertical flow connections
     Dataset --> Pipeline
-    Pipeline --> Outputs
-    Outputs --> I
+    Dataset --> J
+    Pipeline --> G
+    Pipeline --> H
+    J --> G
     
     %% Styling for academic presentation
     classDef dataset fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
     classDef pipeline fill:#fce4ec,stroke:#6c757d,stroke-width:3px
-    classDef outputs fill:#e8f5e8,stroke:#6c757d,stroke-width:3px
+    classDef prediction fill:#fff3e0,stroke:#6c757d,stroke-width:3px
     classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef processing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef output fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef task fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef external fill:#f0f0f0,stroke:#666666,stroke-width:2px
+    classDef gcn fill:#ffecb3,stroke:#ff8f00,stroke-width:2px
     
     class Dataset dataset
     class Pipeline pipeline
-    class Outputs outputs
+    class Prediction prediction
     class A,B,C input
     class D,E,F processing
     class G,H output
-    class I task
+    class J external
+    class I gcn
 ```
 
 ## Key System Components
