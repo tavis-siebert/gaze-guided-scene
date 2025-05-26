@@ -6,8 +6,9 @@ This diagram presents the high-level architecture of the gaze-guided scene graph
 flowchart LR
     %% Dataset Container
     subgraph Dataset["🗂️ EGTEA Gaze+ Dataset"]
+        direction TB
         A["`📹 **HD Videos**
-        720P → VGA
+        720P resolution
         ~29 hours
         86 sessions`"]
         
@@ -20,24 +21,28 @@ flowchart LR
         15K+ instances
         200 categories
         Verb-noun pairs`"]
+        
+        A --- B
+        B --- C
     end
     
     %% Core Processing Pipeline
     subgraph Pipeline["🏗️ Object Graph Construction"]
+        direction TB
         D["`🔍 **Gaze Processing**
-        Fixation/saccade classification
-        Spatial stability analysis
-        Multi-frame consistency`"]
+        Consecutive fixation validation
+        Spatial stability with lookahead
+        Saccade reclassification`"]
         
         E["`🤖 **Object Detection**
-        YOLO-World inference
-        Gaze-bbox intersection
-        Multi-component scoring`"]
+        YOLO-World with noun prompts
+        Gaze-bbox intersection analysis
+        Multi-component scoring system`"]
         
         F["`🔗 **Graph Construction**
-        Dynamic node creation
-        8-directional spatial edges
-        Visit record tracking`"]
+        Node matching and creation
+        Bidirectional edge generation
+        8-bin angular features`"]
         
         D --> E
         E --> F
@@ -83,26 +88,26 @@ flowchart LR
 ## Key System Components
 
 ### 📥 **EGTEA Gaze+ Dataset**
-- **HD Videos**: 720P→VGA resolution, ~29 hours from 86 sessions of 32 subjects
+- **HD Videos**: 720P resolution, ~29 hours from 86 sessions of 32 subjects
 - **Gaze Tracking**: SMI eye-tracker with 2D coordinates and fixation/saccade types
 - **Action Annotations**: 15K+ instances across 200 categories with verb-noun structure
 
-### ⚙️ **Gaze-Attended Object Graph Construction**
+### ⚙️ **Object Graph Construction Pipeline**
 
 #### 1. **Gaze Processing**
-- Fixation/saccade classification with spatial stability analysis
-- Multi-frame consistency validation and noise filtering
-- Temporal lookahead for robust gaze type determination
+- Consecutive fixation validation with configurable threshold (default: 5 frames)
+- Spatial stability analysis using sliding window and distance thresholds
+- Saccade reclassification to fixations based on spatial consistency and lookahead
 
 #### 2. **Object Detection**
-- YOLO-World inference with text prompt conditioning from action nouns
-- Gaze-bbox intersection analysis with multi-component scoring
-- Confidence, stability, proximity, and duration weighting
+- YOLO-World inference with text prompts from action noun vocabulary
+- Gaze-bbox intersection analysis with configurable margin for attention detection
+- Multi-component scoring: confidence (geometric mean), stability (IoU), proximity (inverse distance), duration weighting
 
 #### 3. **Graph Construction**
-- Dynamic node creation with visit record tracking
-- 8-directional spatial relationship encoding between gaze positions
-- Bidirectional edge creation with temporal sequencing
+- Node matching by object label or dynamic creation with visit record tracking
+- Bidirectional edge generation between consecutive nodes with spatial relationship encoding
+- 8-bin angular features computed from gaze position transitions between fixations
 
 ### 🎯 **Output Representations**
 
