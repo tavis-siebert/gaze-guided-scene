@@ -219,7 +219,7 @@ flowchart TD
     classDef processing fill:#f3e5f5
     classDef gaze fill:#e8f5e8
     classDef detection fill:#fff3e0
-    classDef graph fill:#fce4ec
+    classDef graphConstruction fill:#fce4ec
     classDef storage fill:#f1f8e9
     classDef decision fill:#fff8e1
     
@@ -227,7 +227,7 @@ flowchart TD
     class B,C,D,E,F processing
     class G,H,I,J,R,S gaze
     class L,X,Y,Z,AA detection
-    class M,DD,EE,FF,GG graph
+    class M,DD,EE,FF,GG graphConstruction
     class N,HH,II,JJ,OO,PP,QQ storage
     class T,MM decision
 ```
