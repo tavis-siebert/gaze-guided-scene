@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Export Mermaid diagrams from markdown files to PDF format.
+"""Export Mermaid diagrams from markdown files to PDF or PNG format.
 
 This script scans all .md files in the figures directory, extracts mermaid
-diagram content, and exports each diagram to a PDF file in figures/out.
+diagram content, and exports each diagram to a PDF or PNG file in figures/out.
+Supports transparent backgrounds (recommended for PNG format).
 """
 
+import argparse
 import os
 import re
 import subprocess
@@ -21,9 +23,19 @@ def extract_mermaid_blocks(markdown_content: str) -> List[str]:
 
 
 def export_to_pdf(
-    mermaid_content: str, output_filename: str = "heterogeneous_graph_mermaid.pdf"
+    mermaid_content: str,
+    output_filename: str = "heterogeneous_graph_mermaid.pdf",
+    background_color: str = "transparent",
+    output_format: str = "pdf",
 ) -> bool:
-    """Export Mermaid diagram to PDF using mermaid-cli."""
+    """Export Mermaid diagram to PDF/PNG using mermaid-cli.
+
+    Args:
+        mermaid_content: The mermaid diagram content
+        output_filename: Output file path
+        background_color: Background color ('white', 'transparent', or any valid color)
+        output_format: Output format ('pdf' or 'png')
+    """
     try:
         # Create temporary file with mermaid content
         with tempfile.NamedTemporaryFile(
@@ -37,29 +49,31 @@ def export_to_pdf(
             temp_file_path = temp_file.name
 
         try:
-            # Use mermaid-cli to convert to PDF
+            # Use mermaid-cli to convert to specified format
+            cmd = [
+                "mmdc",
+                "-i",
+                temp_file_path,
+                "-o",
+                output_filename,
+                "-f",
+                output_format,
+                "--backgroundColor",
+                background_color,
+            ]
+
             result = subprocess.run(
-                [
-                    "mmdc",
-                    "-i",
-                    temp_file_path,
-                    "-o",
-                    output_filename,
-                    "-f",
-                    "pdf",
-                    "--backgroundColor",
-                    "white",
-                ],
+                cmd,
                 capture_output=True,
                 text=True,
                 check=True,
             )
 
-            print(f"✓ Successfully exported PDF: {output_filename}")
+            print(f"✓ Successfully exported {output_format.upper()}: {output_filename}")
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"✗ Error exporting PDF: {e}")
+            print(f"✗ Error exporting {output_format.upper()}: {e}")
             print(f"  stdout: {e.stdout}")
             print(f"  stderr: {e.stderr}")
             print(
@@ -87,16 +101,21 @@ def find_markdown_files(figures_dir: Path) -> List[Path]:
     return list(figures_dir.glob("*.md"))
 
 
-def generate_output_filename(md_file: Path, diagram_index: int = 0) -> str:
-    """Generate output PDF filename based on markdown file name."""
+def generate_output_filename(
+    md_file: Path, diagram_index: int = 0, output_format: str = "pdf"
+) -> str:
+    """Generate output filename based on markdown file name and format."""
     base_name = md_file.stem
+    extension = output_format.lower()
     if diagram_index > 0:
-        return f"{base_name}_diagram_{diagram_index + 1}.pdf"
-    return f"{base_name}.pdf"
+        return f"{base_name}_diagram_{diagram_index + 1}.{extension}"
+    return f"{base_name}.{extension}"
 
 
-def process_markdown_files(figures_dir: Path, output_dir: Path) -> None:
-    """Process all markdown files and export mermaid diagrams to PDFs."""
+def process_markdown_files(
+    figures_dir: Path, output_dir: Path, background_color: str, output_format: str
+) -> None:
+    """Process all markdown files and export mermaid diagrams to specified format."""
     # Ensure output directory exists
     output_dir.mkdir(exist_ok=True)
 
@@ -129,12 +148,14 @@ def process_markdown_files(figures_dir: Path, output_dir: Path) -> None:
 
         for i, mermaid_content in enumerate(mermaid_blocks):
             total_diagrams += 1
-            output_filename = generate_output_filename(md_file, i)
+            output_filename = generate_output_filename(md_file, i, output_format)
             output_path = output_dir / output_filename
 
             print(f"  Exporting diagram {i + 1} to {output_filename}")
 
-            if export_to_pdf(mermaid_content, str(output_path)):
+            if export_to_pdf(
+                mermaid_content, str(output_path), background_color, output_format
+            ):
                 successful_exports += 1
 
     print(f"\n{'=' * 50}")
@@ -161,7 +182,27 @@ def main():
     print(f"Scanning for markdown files in: {figures_dir}")
     print(f"Output directory: {output_dir}")
 
-    process_markdown_files(figures_dir, output_dir)
+    parser = argparse.ArgumentParser(
+        description="Export Mermaid diagrams to PDF or PNG"
+    )
+    parser.add_argument(
+        "--background-color",
+        type=str,
+        default="transparent",
+        help="Background color for the diagrams (e.g., 'white', 'transparent', '#ffffff')",
+    )
+    parser.add_argument(
+        "--output-format",
+        type=str,
+        default="pdf",
+        choices=["pdf", "png"],
+        help="Output format for the diagrams (pdf or png)",
+    )
+    args = parser.parse_args()
+
+    process_markdown_files(
+        figures_dir, output_dir, args.background_color, args.output_format
+    )
 
 
 if __name__ == "__main__":
