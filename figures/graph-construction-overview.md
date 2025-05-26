@@ -66,7 +66,7 @@ flowchart LR
     
     %% Styling for academic presentation
     classDef dataset fill:#f8f9fa,stroke:#6c757d,stroke-width:3px
-    classDef pipeline fill:#fce4ec,stroke:#c2185b,stroke-width:3px
+    classDef pipeline fill:#fce4ec,stroke:#6c757d,stroke-width:3px
     classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef processing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef output fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
