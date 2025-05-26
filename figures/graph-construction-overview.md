@@ -23,7 +23,7 @@ flowchart TD
     end
     
     %% Core Processing Pipeline - Second level
-    subgraph Pipeline["🏗️ Object Graph Construction"]
+    subgraph Pipeline["🏗️ Gaze-Guided Graphs"]
         direction LR
         D["`🔍 **Gaze Processing**
         Fixation smoothing
