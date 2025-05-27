@@ -52,15 +52,13 @@ flowchart TD
     subgraph Prediction["🚀 Future Action Prediction"]
         G["`🎯 **Gaze-Augmented
         EgoTopo Graphs**
-        Extract visits
-        Build gaze features
-        Fuse with existing features`"]
+        Visit extraction
+        Gaze feature fusion`"]
         
         H["`🌐 **Heterogeneous
         Gaze Graphs**
-        Obtain action intervals
-        Build action and object features
-        Assemble heterogeneous graphs`"]
+        Action/object feature and subgraph building
+        Graph assembly`"]
         
         I1["`🤖 **EgoTopo GCN**
         Graph neural network`"]
