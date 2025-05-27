@@ -44,7 +44,7 @@ flowchart TD
     end
     
     %% External Graph Representation
-    J["`🗺️ **Ego Topo Graphs**
+    J["`🗺️ **EgoTopo Graphs**
     Per-video graphs
     Nodes = spatial zones`"]
     
@@ -60,16 +60,13 @@ flowchart TD
         Action/object feature and subgraph building
         Graph assembly`"]
         
-        I1["`🤖 **EgoTopo GCN**
-        Graph neural network`"]
+        I1["`🤖 **EgoTopo GCN**`"]
         
-        I2["`🤖 **Heterogeneous GCN**
-        Graph neural network`"]
+        I2["`🤖 **Heterogeneous GCN**`"]
         
         K["`📊 **Evaluation**
-        Future action prediction
-        vs ground truth labels
-        mAP, Precision, Recall`"]
+        Future actions predicted
+        mAP over action classes`"]
         
         %% Internal connections
         G --> I1
@@ -127,7 +124,7 @@ flowchart TD
 #### **Gaze-Augmented EgoTopo Graphs**
 - Extract visits from original EgoTopo structure
 - Build gaze features from attention patterns
-- Concat with ego topo node features for enhanced representation
+- Concat with EgoTopo node features for enhanced representation
 
 #### **Heterogeneous Gaze Graphs**
 - Obtain action intervals from temporal annotations
