@@ -14,77 +14,31 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 ## Project Structure
 
 ```
-├── pyproject.toml           # Project configuration and dependencies
-├── uv.lock                  # Lockfile for reproducible builds
-├── conftest.py              # Global pytest configuration
-├── pytest.ini              # Pytest settings
-├── README.md, LICENSE       # Documentation and licensing
-
 src/gazegraph/               # Main package code
 ├── config/                  # YAML configuration files and utilities
-│   ├── default_config.yaml     # Base configuration
-│   ├── student_cluster_config.yaml, euler_cluster_config.yaml  # Environment configs
-│   └── config_utils.py         # Configuration loading utilities
 ├── datasets/                # Dataset loaders and processors
-│   ├── egtea_gaze/          # EGTEA Gaze+ dataset specific code
-│   │   ├── action_record.py     # Action annotation handling
-│   │   ├── video_processor.py   # Video processing utilities
-│   │   ├── video_metadata.py    # Video metadata management
-│   │   └── constants.py         # Dataset constants
-│   └── node_embeddings.py   # Node feature extraction utilities
+│   └── egtea_gaze/          # EGTEA Gaze+ dataset specific code
 ├── graph/                   # Scene graph construction and processing
 │   ├── dashboard/           # Interactive visualization dashboard
-│   │   ├── components/      # UI components (VideoDisplay, GraphDisplay, etc.)
-│   │   ├── playback/        # Event handling and graph state management
+│   │   ├── components/      # UI components (video, graph display, controls)
+│   │   ├── playback/        # Event handling and state management
 │   │   └── utils/           # Dashboard utilities and SVG generation
-│   ├── graph_builder.py     # Processes single video to build scene graph
-│   ├── graph_processor.py   # Handles multi-video processing with parallel execution
-│   ├── graph_tracer.py      # Records trace data during graph construction
-│   ├── visualizer.py        # Visualizes graph construction process
-│   ├── checkpoint_manager.py # Graph processing checkpoint management
-│   ├── object_detection.py  # Object detection integration
-│   ├── graph.py, node.py    # Core data structures
-│   ├── gaze.py, edge.py     # Gaze processing and edge relationships
-│   └── utils.py             # Graph utilities
-├── models/                  # Feature extraction and object detection
-│   ├── clip.py              # CLIP model for object identification
-│   ├── sift.py              # SIFT feature extraction
-│   ├── gat_conv.py          # Graph Attention Network layers
-│   ├── yolo_world.py        # YOLO-World base implementation
-│   ├── yolo_world_model.py, yolo_world_onnx.py, yolo_world_ultralytics.py  # YOLO variants
-│   └── onnx_utils.py        # ONNX model utilities
+│   └── *.py                 # Core graph processing (builder, tracer, visualizer)
+├── models/                  # Feature extraction and object detection (CLIP, SIFT, YOLO-World)
 ├── training/                # Training infrastructure
 │   ├── dataset/             # Graph datasets, dataloaders, and augmentations
 │   ├── evaluation/          # Metrics and evaluation utilities
-│   ├── tasks/               # Task definitions (next_action, future_actions)
-│   └── utils.py             # Training utilities
-├── logger.py                # Centralized logging
-├── main.py                  # Main entry point
+│   └── tasks/               # Task definitions (next_action, future_actions)
+├── logger.py, main.py       # Logging and main entry point
 └── setup_scratch.py         # Dataset setup utilities
 
-datasets/                    # Generated data and scene graphs
-├── graphs/                  # Scene graph files
-│   ├── train/               # Training graph data (.pth files)
-│   └── val/                 # Validation graph data (.pth files)
-└── *.pth                    # Processed dataset files
+datasets/graphs/             # Generated scene graph files
+├── train/                   # Training data
+└── val/                     # Validation data
 
 figures/                     # Documentation and visualization outputs
-├── *.md                     # Diagram source files
-└── out/                     # Generated PDF diagrams
-
-logs/                        # Training and execution logs
-├── future_actions/, next_action/  # Task-specific training logs
-└── *.out, *.log             # Build and execution logs
-
-out/                         # Analysis and processing outputs
-├── dataset_*/               # Dataset analysis results
-│   └── analysis/            # Statistical analysis and plots
-└── *.json, *.csv            # Processing metadata and summaries
-
-scripts/                     # Utility and build scripts
-tests/                       # Test suite
-├── datasets/, graph/, models/, training/  # Component-specific tests
-└── resources/               # Test data and fixtures
+scripts/                     # Utility and build scripts  
+tests/                       # Test suite with component-specific tests and fixtures
 ```
 
 ## Setup
