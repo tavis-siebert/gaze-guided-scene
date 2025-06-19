@@ -1,6 +1,6 @@
 # Graph Construction Pipeline: System Overview
 
-This diagram presents the high-level architecture of the gaze-guided scene graph construction system, suitable for poster presentation and academic papers.
+This diagram presents the high-level architecture of the gaze-guided scene graph construction system.
 
 ```mermaid
 flowchart TD
@@ -144,4 +144,4 @@ flowchart TD
 
 ---
 
-*This pipeline enables structured reasoning about human intentions by combining gaze attention with scene understanding, providing rich priors for egocentric action prediction tasks.* 
+*This pipeline enables structured reasoning about human intentions by combining gaze attention with scene understanding, providing priors for egocentric action prediction tasks.* 

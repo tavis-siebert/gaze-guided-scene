@@ -2,16 +2,6 @@
 
 This diagram represents a heterogeneous graph with activity and object nodes in separate grouped boxes.
 
-## Features
-- Horizontal layout with activity nodes on the left, object nodes on the right
-- Larger round nodes for both activities and objects
-- Undirected action-object (gaze) edges
-- Loops between Grocery Bag ↔ Fridge Drawer and Tomato ↔ Knife
-- Inverted Cutting Board → Knife direction
-- Consistent edge styling with different colors for edge types
-- Grouped nodes in dashed boxes for visual organization
-- Clean edges without labels for better readability
-
 ```mermaid
 flowchart LR
     %% Node styling with larger size
