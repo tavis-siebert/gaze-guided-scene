@@ -32,10 +32,6 @@ src/gazegraph/               # Main package code
 ├── logger.py, main.py       # Logging and main entry point
 └── setup_scratch.py         # Dataset setup utilities
 
-datasets/graphs/             # Generated scene graph files
-├── train/                   # Training data
-└── val/                     # Validation data
-
 figures/                     # Documentation and visualization outputs
 scripts/                     # Utility and build scripts  
 tests/                       # Test suite with component-specific tests and fixtures
