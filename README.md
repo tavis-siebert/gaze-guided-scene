@@ -11,56 +11,48 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 3. Extracts features at specified timestamps for downstream tasks
 4. Provides interactive visualization of the graph construction process
 
-## Testing
-
-### Running Tests Locally
-
-To run tests locally (using mock models):
-
-```bash
-# Run all tests, automatically skipping those requiring real models
-pytest tests/
-
-# Run only unit tests
-pytest tests/unit/
-
-# Force run tests requiring real models
-pytest --run-real-model tests/
-```
-
-### Running Tests on Cluster
-
-For more resource-intensive tests, you can submit a job to the cluster:
-
-```bash
-# Submit test job to cluster
-sbatch src/gazegraph/scripts/run_tests.sh
-```
-
-Test logs will be written to `logs/tests.out`.
-
 ## Project Structure
 
 ```
 src/gazegraph/           # Main package code
-├── config/              # Configuration files and utilities
+├── config/              # YAML configuration files and utilities
 ├── datasets/            # Dataset loaders and processors
-│   └── egtea_gaze/      # EGTEA Gaze+ dataset specific code
+│   ├── egtea_gaze/      # EGTEA Gaze+ dataset specific code (ActionRecord, VideoProcessor, etc.)
+│   └── node_embeddings.py  # Node feature extraction utilities
 ├── graph/               # Scene graph construction and processing
-├── models/              # Neural network models
-├── scripts/             # Utility scripts
+│   ├── dashboard/       # Interactive visualization dashboard
+│   │   ├── components/  # UI components (VideoDisplay, GraphDisplay, PlaybackControls, MetaInfo)
+│   │   ├── playback/    # Event handling and graph state management
+│   │   └── utils/       # Dashboard utilities and SVG generation
+│   ├── graph_builder.py    # Processes single video to build scene graph
+│   ├── graph_processor.py  # Handles multi-video processing with parallel execution
+│   ├── graph_tracer.py     # Records trace data during graph construction
+│   ├── visualizer.py       # Visualizes graph construction process
+│   ├── graph.py, node.py   # Core data structures
+│   └── gaze.py, edge.py     # Gaze processing and edge relationships
+├── models/              # Feature extraction and object detection
+│   ├── clip.py          # CLIP model for object identification
+│   ├── sift.py          # SIFT feature extraction
+│   ├── yolo_world*.py   # YOLO-World object detection variants
+│   └── onnx_utils.py    # ONNX model utilities
 ├── training/            # Training infrastructure
-├── logger.py            # Logging utilities
-└── main.py              # Main entry point
+│   ├── dataset/         # Graph datasets, dataloaders, and augmentations
+│   ├── evaluation/      # Metrics and evaluation utilities
+│   ├── tasks/           # Task definitions (next_action, future_actions)
+│   └── utils.py         # Training utilities
+├── logger.py            # Centralized logging
+├── main.py              # Main entry point
+└── setup_scratch.py     # Dataset setup utilities
 
-data/                    # Data storage
-├── egtea_gaze/          # EGTEA Gaze+ dataset
-│   ├── action_annotation/
-│   └── gaze_data/
-├── graphs/              # Generated scene graphs
-└── traces/              # Execution traces for visualization
+datasets/                # Generated scene graphs
+├── graphs/
+│   ├── train/          # Training graph data
+│   └── val/            # Validation graph data
 
+figures/                 # Documentation and visualization outputs
 logs/                    # Training and execution logs
+scripts/                 # Utility and build scripts
+tests/                   # Test suite with dataset, graph, model, and training tests
 ```
 
 ## Setup
@@ -136,24 +128,6 @@ logs/                    # Training and execution logs
    ./run.sh visualize --video-name VIDEO_NAME
    ```
 
-## Component Descriptions
-
-- **graph/**: Scene graph construction and visualization
-  - **Core Components**: 
-    - **Graph, Node**: Core data structures
-    - **GraphBuilder**: Processes a single video to build a scene graph
-    - **GraphProcessor**: Handles multi-video processing with parallel execution
-    - **GraphTracer**: Records trace data during graph construction
-    - **GraphVisualizer**: Visualizes the graph construction process
-  - **dashboard/**: Interactive visualization dashboard
-    - **components/**: UI components (VideoDisplay, GraphDisplay, PlaybackControls, MetaInfo)
-    - **playback/**: Event handling and graph state management
-    - **utils/**: Utility functions and constants
-  - **Key Features**: Processes gaze data, builds scene graphs, extracts features, visualizes construction
-- **models/**: Feature extraction (SIFT) and object detection (CLIP)
-- **config/**: Configuration files and utilities
-- **logger.py**: Centralized logging
-
 ## Configuration System
 
 The project uses YAML configuration files with a hierarchical structure:
@@ -199,6 +173,34 @@ The project supports configuration via environment variables in a `.env` file in
 Environment variables take precedence over defaults in the code. When specified, `CONFIG_PATH` 
 determines which configuration file is loaded by default, but can still be overridden with the
 `--config` command-line argument.
+
+## Testing
+
+### Running Tests Locally
+
+To run tests locally (using mock models):
+
+```bash
+# Run all tests, automatically skipping those requiring real models
+pytest tests/
+
+# Run only unit tests
+pytest tests/unit/
+
+# Force run tests requiring real models
+pytest --run-real-model tests/
+```
+
+### Running Tests on Cluster
+
+For more resource-intensive tests, you can submit a job to the cluster:
+
+```bash
+# Submit test job to cluster
+sbatch src/gazegraph/scripts/run_tests.sh
+```
+
+Test logs will be written to `logs/tests.out`.
 
 ## TensorBoard Integration
 
