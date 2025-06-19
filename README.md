@@ -11,56 +11,34 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 3. Extracts features at specified timestamps for downstream tasks
 4. Provides interactive visualization of the graph construction process
 
-## Testing
-
-### Running Tests Locally
-
-To run tests locally (using mock models):
-
-```bash
-# Run all tests, automatically skipping those requiring real models
-pytest tests/
-
-# Run only unit tests
-pytest tests/unit/
-
-# Force run tests requiring real models
-pytest --run-real-model tests/
-```
-
-### Running Tests on Cluster
-
-For more resource-intensive tests, you can submit a job to the cluster:
-
-```bash
-# Submit test job to cluster
-sbatch src/gazegraph/scripts/run_tests.sh
-```
-
-Test logs will be written to `logs/tests.out`.
-
 ## Project Structure
 
 ```
-src/gazegraph/           # Main package code
-├── config/              # Configuration files and utilities
-├── datasets/            # Dataset loaders and processors
-│   └── egtea_gaze/      # EGTEA Gaze+ dataset specific code
-├── graph/               # Scene graph construction and processing
-├── models/              # Neural network models
-├── scripts/             # Utility scripts
-├── training/            # Training infrastructure
-├── logger.py            # Logging utilities
-└── main.py              # Main entry point
+src/gazegraph/               # Main package code
+├── config/                  # YAML configuration files and utilities
+├── datasets/                # Dataset loaders and processors
+│   └── egtea_gaze/          # EGTEA Gaze+ dataset specific code
+├── graph/                   # Scene graph construction and processing
+│   ├── dashboard/           # Interactive visualization dashboard
+│   │   ├── components/      # UI components (video, graph display, controls)
+│   │   ├── playback/        # Event handling and state management
+│   │   └── utils/           # Dashboard utilities and SVG generation
+│   └── *.py                 # Core graph processing (builder, tracer, visualizer)
+├── models/                  # Feature extraction and object detection (CLIP, SIFT, YOLO-World)
+├── training/                # Training infrastructure
+│   ├── dataset/             # Graph datasets, dataloaders, and augmentations
+│   ├── evaluation/          # Metrics and evaluation utilities
+│   └── tasks/               # Task definitions (next_action, future_actions)
+├── logger.py, main.py       # Logging and main entry point
+└── setup_scratch.py         # Dataset setup utilities
 
-data/                    # Data storage
-├── egtea_gaze/          # EGTEA Gaze+ dataset
-│   ├── action_annotation/
-│   └── gaze_data/
-├── graphs/              # Generated scene graphs
-└── traces/              # Execution traces for visualization
+datasets/graphs/             # Generated scene graph files
+├── train/                   # Training data
+└── val/                     # Validation data
 
-logs/                    # Training and execution logs
+figures/                     # Documentation and visualization outputs
+scripts/                     # Utility and build scripts  
+tests/                       # Test suite with component-specific tests and fixtures
 ```
 
 ## Setup
@@ -108,51 +86,33 @@ logs/                    # Training and execution logs
 
 3. **Download dataset**:
    ```bash
-   ./run.sh setup-scratch
+   scripts/run.sh setup-scratch
    ```
 
 4. **Build scene graphs**:
    ```bash
-   ./run.sh build-graphs
+   scripts/run.sh build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   ./run.sh build-graphs --videos VIDEO_NAME --enable-tracing
+   scripts/run.sh build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
 5. **Train a model**:
    ```bash
-   ./run.sh train --task future_actions
+   scripts/run.sh train --task future_actions
    ```
    
    Or for next action prediction:
    ```bash
-   ./run.sh train --task next_action
+   scripts/run.sh train --task next_action
    ```
 
 6. **Visualize graph construction** (requires prior trace generation):
    ```bash
-   ./run.sh visualize --video-name VIDEO_NAME
+   scripts/run.sh visualize --video-name VIDEO_NAME
    ```
-
-## Component Descriptions
-
-- **graph/**: Scene graph construction and visualization
-  - **Core Components**: 
-    - **Graph, Node**: Core data structures
-    - **GraphBuilder**: Processes a single video to build a scene graph
-    - **GraphProcessor**: Handles multi-video processing with parallel execution
-    - **GraphTracer**: Records trace data during graph construction
-    - **GraphVisualizer**: Visualizes the graph construction process
-  - **dashboard/**: Interactive visualization dashboard
-    - **components/**: UI components (VideoDisplay, GraphDisplay, PlaybackControls, MetaInfo)
-    - **playback/**: Event handling and graph state management
-    - **utils/**: Utility functions and constants
-  - **Key Features**: Processes gaze data, builds scene graphs, extracts features, visualizes construction
-- **models/**: Feature extraction (SIFT) and object detection (CLIP)
-- **config/**: Configuration files and utilities
-- **logger.py**: Centralized logging
 
 ## Configuration System
 
@@ -200,16 +160,44 @@ Environment variables take precedence over defaults in the code. When specified,
 determines which configuration file is loaded by default, but can still be overridden with the
 `--config` command-line argument.
 
+## Testing
+
+### Running Tests Locally
+
+To run tests locally (using mock models):
+
+```bash
+# Run all tests, automatically skipping those requiring real models
+pytest tests/
+
+# Run only unit tests
+pytest tests/unit/
+
+# Force run tests requiring real models
+pytest --run-real-model tests/
+```
+
+### Running Tests on Cluster
+
+For more resource-intensive tests, you can submit a job to the cluster:
+
+```bash
+# Submit test job to cluster
+sbatch scripts/run_tests.sh
+```
+
+Test logs will be written to `logs/tests.out`.
+
 ## TensorBoard Integration
 
 The project includes TensorBoard integration for visualizing training metrics and model performance. The logs are stored under `logs/{task}/` by default.
 
 ```bash
 # Run training with TensorBoard logging
-./run.sh train --task next_action --device gpu
+scripts/run.sh train --task next_action --device gpu
 
 # Run training with TensorBoard logging
-./run.sh train --task future_actions --device gpu
+scripts/run.sh train --task future_actions --device gpu
 
 # Launch TensorBoard to view metrics
 tensorboard --logdir logs
@@ -218,7 +206,7 @@ tensorboard --logdir logs
 ## Command-Line Interface
 
 ```bash
-./run.sh [options] <command>
+scripts/run.sh [options] <command>
 ```
 
 **Commands**:
