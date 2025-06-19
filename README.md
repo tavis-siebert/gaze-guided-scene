@@ -86,32 +86,32 @@ tests/                       # Test suite with component-specific tests and fixt
 
 3. **Download dataset**:
    ```bash
-   ./run.sh setup-scratch
+   scripts/run.sh setup-scratch
    ```
 
 4. **Build scene graphs**:
    ```bash
-   ./run.sh build-graphs
+   scripts/run.sh build-graphs
    ```
    
    To enable tracing for visualization:
    ```bash
-   ./run.sh build-graphs --videos VIDEO_NAME --enable-tracing
+   scripts/run.sh build-graphs --videos VIDEO_NAME --enable-tracing
    ```
 
 5. **Train a model**:
    ```bash
-   ./run.sh train --task future_actions
+   scripts/run.sh train --task future_actions
    ```
    
    Or for next action prediction:
    ```bash
-   ./run.sh train --task next_action
+   scripts/run.sh train --task next_action
    ```
 
 6. **Visualize graph construction** (requires prior trace generation):
    ```bash
-   ./run.sh visualize --video-name VIDEO_NAME
+   scripts/run.sh visualize --video-name VIDEO_NAME
    ```
 
 ## Configuration System
@@ -183,7 +183,7 @@ For more resource-intensive tests, you can submit a job to the cluster:
 
 ```bash
 # Submit test job to cluster
-sbatch src/gazegraph/scripts/run_tests.sh
+sbatch scripts/run_tests.sh
 ```
 
 Test logs will be written to `logs/tests.out`.
@@ -194,10 +194,10 @@ The project includes TensorBoard integration for visualizing training metrics an
 
 ```bash
 # Run training with TensorBoard logging
-./run.sh train --task next_action --device gpu
+scripts/run.sh train --task next_action --device gpu
 
 # Run training with TensorBoard logging
-./run.sh train --task future_actions --device gpu
+scripts/run.sh train --task future_actions --device gpu
 
 # Launch TensorBoard to view metrics
 tensorboard --logdir logs
@@ -206,7 +206,7 @@ tensorboard --logdir logs
 ## Command-Line Interface
 
 ```bash
-./run.sh [options] <command>
+scripts/run.sh [options] <command>
 ```
 
 **Commands**:
