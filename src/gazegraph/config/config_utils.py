@@ -214,15 +214,18 @@ def load_config(config_path: Optional[str] = None) -> DotDict:
 
 
 def get_config(config_path: Optional[str] = None) -> DotDict:
-    """Retrieve a cached global config. If no config_path is provided, the default config will be loaded.
+    """Retrieve a cached global config. If no config_path is provided, the CONFIG_PATH env var or default config will be loaded.
 
     Args:
-        config_path: Path to the config file to load. If None, loads default config.
+        config_path: Path to the config file to load. If None, uses CONFIG_PATH env var or loads default config.
 
     Returns:
         DotDict: Configuration object that supports both dictionary and dot notation access
     """
     global _GLOBAL_CONFIG
     if _GLOBAL_CONFIG is None:
+        if config_path is None:
+            # Use CONFIG_PATH environment variable if available
+            config_path = os.environ.get("CONFIG_PATH")
         _GLOBAL_CONFIG = load_config(config_path)
     return _GLOBAL_CONFIG
