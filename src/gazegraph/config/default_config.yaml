@@ -27,7 +27,7 @@ dataset:
     action_annotations: ${directories.egtea}/action_annotation
     noun_idx_file: ${dataset.egtea.action_annotations}/noun_idx.txt
     verb_idx_file: ${dataset.egtea.action_annotations}/verb_idx.txt
-  
+
   # Sampling settings for graph dataset
   sampling:
     # Sampling strategy for selecting graph checkpoints or frames:
@@ -38,11 +38,16 @@ dataset:
     # If allow_duplicates is true, repeated samples are allowed for 'uniform' and 'random' if needed.
     # If oversampling is true, sampling is performed over all valid frames (using latest checkpoint for each frame),
     #   otherwise only checkpoint frames are used.
-    strategy: all  # 'all', 'uniform', or 'random'
-    samples_per_video: 0  # number of samples per video; 0 = use all
-    allow_duplicates: false  # whether sampling can include the same sample multiple times
-    random_seed: 42  # seed for reproducible sampling; null for no fixed seed
-    oversampling: false  # whether to sample all frames (not just checkpoint frames)
+    strategy: all # 'all', 'uniform', or 'random'
+    samples_per_video: 0 # number of samples per video; 0 = use all
+    allow_duplicates: false # whether sampling can include the same sample multiple times
+    random_seed: 42 # seed for reproducible sampling; null for no fixed seed
+    oversampling: false # whether to sample all frames (not just checkpoint frames)
+
+    # Action recognition specific sampling parameters
+    action_completion_ratio: 1.0 # ratio of action completion for sampling (1.0 = at action end)
+    min_nodes_threshold: 1 # minimum number of nodes required after filtering
+    visit_lookback_frames: 0 # frames before action start to include visits (0 = no lookback)
 
   # Ego-topo data paths
   ego_topo:
@@ -53,12 +58,12 @@ dataset:
       train_test: ${dataset.ego_topo.data_dir}/train_test_splits.json
       train_video_lengths: ${dataset.ego_topo.data_dir}/split/train_S1_nframes.csv
       val_video_lengths: ${dataset.ego_topo.data_dir}/split/val_S1_nframes.csv
-      
+
   # Embeddings settings
   embeddings:
     object_label_embedding_path: ${directories.data_dir}/datasets/noun_label_embeddings.pth
     action_label_embedding_path: ${directories.data_dir}/datasets/action_label_embeddings.pth
-    max_visit_sample: 3  # Maximum number of visits to sample per node (0 = use all visits)
+    max_visit_sample: 3 # Maximum number of visits to sample per node (0 = use all visits)
 
 # Model settings and paths
 models:
@@ -66,7 +71,7 @@ models:
     model_dir: ${directories.scratch.egtea}/clip_model
     model_id: "openai/clip-vit-base-patch16"
   yolo_world:
-    backend: "onnx"  # "ultralytics" or "onnx"
+    backend: "onnx" # "ultralytics" or "onnx"
     paths:
       onnx: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.onnx
       ultralytics: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.pt
@@ -108,51 +113,51 @@ processing:
   n_cores: 2
   dataloader_workers: 2
 
-# Gaze preprocessing settings 
+# Gaze preprocessing settings
 gaze:
   preprocess_gaze: True # Whether to proprecess the gaze data
-  fixation_window_threshold: 4  # Minimum number of consecutive fixation frames to treat as a true fixation
+  fixation_window_threshold: 4 # Minimum number of consecutive fixation frames to treat as a true fixation
   reclassify_saccades: False # Whether to convert spatially stable saccades into fixations
   spatial_window_size: 3 # Number of frames used to compute spatial stability
   spatial_distance_threshold: 0.05 # Max median distance allowed for spatial stability
   interpolate_unknown: True # Whether to interpolate UNKNOWN gaze points
   unknown_neighbor_distance: 0.2 # Max distance between neighbors to treat as fixation
-  
+
 # Graph and fixation detection settings
 graph:
   fixated_object_detection:
     # Basic fixation parameters
     min_fixation_frame_threshold: 4 # Mininum number of frames an object must be fixated on during the fixation period
-    min_fixation_frame_ratio: 0.5  # Minimum fraction of frames an object must be fixated on during the fixation period, relative to the total number of frames any object was fixated
+    min_fixation_frame_ratio: 0.5 # Minimum fraction of frames an object must be fixated on during the fixation period, relative to the total number of frames any object was fixated
     bbox_margin: 10 # Number of pixels to increase bounding boxes for detecting gaze intersection
 
     # Weights for different components of fixation score
     weights:
       # Weight for detection duration (higher gives more importance to objects fixated for longer periods)
       duration: 1.0
-      
+
       # Weight for bounding box stability (higher gives more importance to objects with stable positions)
       bbox_stability: 1.0
-      
+
       # Weight for gaze proximity (higher gives more importance to objects closer to gaze point)
       gaze_proximity: 1.0
-      
+
       # Weight for detection confidence (higher gives more importance to confident detections)
       confidence: 1.0
-    
+
     # Thresholds for component scores (objects with scores below thresholds will be filtered out)
     thresholds:
       # Bounding box stability threshold (0.0-1.0)
       # Higher values require more stable bounding boxes
       # 0.0 = No stability required, 1.0 = Perfect stability required (identical boxes)
       bbox_stability: 0
-      
+
       # Gaze proximity threshold (0.0-1.0)
       # Higher values require gaze points to be closer to bbox centers
       # 0.0 = No proximity requirement, 1.0 = Very close proximity required
       # Value is normalized with 1.0/(1.0 + distance), so closer distances = higher values
       gaze_proximity: 0
-      
+
       # Confidence threshold (0.0-1.0)
       # Higher values require more confident detections
       # This is the geometric mean of detection confidences across frames
