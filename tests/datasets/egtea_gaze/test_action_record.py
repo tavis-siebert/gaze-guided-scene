@@ -108,18 +108,18 @@ def test_load_name_mappings_success(setup_mock_files, mock_config):
     ):
         ActionRecord._load_name_mappings()
     assert ActionRecord._verb_id_to_name == {
-        1: "take",
-        2: "put",
-        3: "open",
-        4: "close",
-        5: "wash",
+        0: "take",
+        1: "put",
+        2: "open",
+        3: "close",
+        4: "wash",
     }
     assert ActionRecord._noun_id_to_name == {
-        1: "cup",
-        2: "bowl",
-        3: "knife",
-        4: "microwave",
-        5: "fridge",
+        0: "cup",
+        1: "bowl",
+        2: "knife",
+        3: "microwave",
+        4: "fridge",
     }
 
 
@@ -249,9 +249,11 @@ def test_api_methods(mock_action_records, mock_records_by_video):
 def test_create_future_action_labels(mock_records_by_video):
     ActionRecord._ensure_initialized = classmethod(lambda *args, **kwargs: None)
     ActionRecord._action_to_idx = {(1, 3): 0, (2, 1): 1}
-    ActionRecord.get_records_for_video = lambda v: mock_records_by_video.get(v, [])
-    assert ActionRecord.create_future_action_labels("none", 0) is None
-    res = ActionRecord.create_future_action_labels("video_1", 5, num_action_classes=2)
+    ActionRecord.get_records_for_video = lambda video_name: mock_records_by_video.get(
+        video_name, []
+    )
+    assert ActionRecord.create_future_action_labels("none", 0) == {}
+    res = ActionRecord.create_future_action_labels("video_1", 5)
     assert res and res["next_action"].item() == 0
 
 
