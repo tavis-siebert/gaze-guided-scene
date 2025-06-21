@@ -6,24 +6,26 @@ from torch_geometric.typing import Size
 
 from typing import Dict
 
+
 class GATBackbone(nn.Module):
-    '''
+    """
     An encoder backbone which can be modified with a head for different tasks
     or RNN (see ordered future tasks)
-    '''
+    """
+
     def __init__(
-        self, 
-        input_dim, 
-        hidden_dim, 
-        edge_dim, 
-        num_heads=1, 
-        num_layers=3, 
-        res_connect=False, 
-        heterogeneous=False, 
-        node_types=None, 
+        self,
+        input_dim,
+        hidden_dim,
+        edge_dim,
+        num_heads=1,
+        num_layers=3,
+        res_connect=False,
+        heterogeneous=False,
+        node_types=None,
         metadata=None,
     ):
-        super().__init__() 
+        super().__init__()
         assert hidden_dim % num_heads == 0, "hidden_dim must be divisible by num_heads"
 
         self.heterogeneous = heterogeneous
@@ -41,18 +43,24 @@ class GATBackbone(nn.Module):
                 )
             else:
                 self.GATLayers.append(
-                    gnn.GATv2Conv(in_channels=input_dim, out_channels=hidden_dim // num_heads, edge_dim=edge_dim, heads=num_heads, residual=res_connect)
+                    gnn.GATv2Conv(
+                        in_channels=input_dim,
+                        out_channels=hidden_dim // num_heads,
+                        edge_dim=edge_dim,
+                        heads=num_heads,
+                        residual=res_connect,
+                    )
                 )
             input_dim = hidden_dim
 
     def forward(
-        self, 
-        x: torch.Tensor | Dict[str, torch.Tensor], 
-        edge_index: torch.Tensor | Dict[str, torch.Tensor], 
-        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None, 
-        batch: Size | None
+        self,
+        x: torch.Tensor | Dict[str, torch.Tensor],
+        edge_index: torch.Tensor | Dict[str, torch.Tensor],
+        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None,
+        batch: Size | None,
     ):
-        '''
+        """
         if heterogeneous
             x, edge_index should be dicts;
             edge_attr should be a dict if edge features exist, else None;
@@ -61,11 +69,11 @@ class GATBackbone(nn.Module):
             x, edge_index should be tensors;
             edge_attr should be a tensor if edge features exist, else None
             batch should be a Size instanc returned by torch_geometric.loader.DataLoader
-        '''
+        """
         if self.heterogeneous:
             for node_type, data in x.items():
                 x[node_type] = self.lin_dict[node_type](data).relu_()
-        
+
         for GATLayer in self.GATLayers:
             if self.heterogeneous:
                 x = GATLayer(x, edge_index)
@@ -74,16 +82,17 @@ class GATBackbone(nn.Module):
                 x = F.relu(x)
         return x
 
+
 class GATForClassification(nn.Module):
     def __init__(
-        self, 
-        num_classes, 
-        input_dim, 
-        hidden_dim, 
-        edge_dim, 
-        num_heads, 
-        num_layers, 
-        res_connect=False, 
+        self,
+        num_classes,
+        input_dim,
+        hidden_dim,
+        edge_dim,
+        num_heads,
+        num_layers,
+        res_connect=False,
         heterogeneous=False,
         node_type=None,
         metadata=None,
@@ -106,27 +115,27 @@ class GATForClassification(nn.Module):
         self.fc = nn.Linear(hidden_dim, num_classes)
 
     def forward(
-        self, 
-        x: torch.Tensor | Dict[str, torch.Tensor], 
-        edge_index: torch.Tensor | Dict[str, torch.Tensor], 
-        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None, 
-        batch: Size | None
+        self,
+        x: torch.Tensor | Dict[str, torch.Tensor],
+        edge_index: torch.Tensor | Dict[str, torch.Tensor],
+        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None,
+        batch: Size | None,
     ):
-        '''
+        """
         if heterogeneous
             x, edge_index, edge_attr should be dicts;
             batch should be None
         else
             x, edge_index, edge_attr should be tensors;
             batch should be a Size instanc returned by torch_geometric.loader.DataLoader
-        '''
+        """
         x = self.GAT(x, edge_index, edge_attr, batch)
         if self.heterogeneous:
-            #NOTE currently using last action's embedding as context
+            # NOTE currently using last action's embedding as context
             # we can edit this in the future to whatever works better (e.g. pool all actions)
-            x = self.fc(x['action'][-1])
+            x = self.fc(x["action"][-1])
         else:
             x = gnn.global_mean_pool(x, batch)
-            #NOTE if doing BCE, use BCEWithLogits. This is done to keep one model for both BCE and CE loss
+            # NOTE if doing BCE, use BCEWithLogits. This is done to keep one model for both BCE and CE loss
             x = self.fc(x)
         return x

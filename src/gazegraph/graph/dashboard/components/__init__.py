@@ -7,9 +7,9 @@ from gazegraph.graph.dashboard.components.playback_controls import PlaybackContr
 from gazegraph.graph.dashboard.components.meta_info import MetaInfo
 
 __all__ = [
-    'BaseComponent',
-    'VideoDisplay',
-    'GraphDisplay',
-    'PlaybackControls',
-    'MetaInfo',
-] 
+    "BaseComponent",
+    "VideoDisplay",
+    "GraphDisplay",
+    "PlaybackControls",
+    "MetaInfo",
+]

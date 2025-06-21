@@ -3,7 +3,7 @@ Tests for action recognition sampling functionality.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from gazegraph.training.dataset.action_recognition_sampling import (
     ActionRecognitionSampler,
     get_action_recognition_samples,

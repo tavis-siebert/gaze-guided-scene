@@ -2,4 +2,4 @@
 
 from gazegraph.graph.dashboard.components.base.base_component import BaseComponent
 
-__all__ = ['BaseComponent'] 
+__all__ = ["BaseComponent"]

@@ -3,8 +3,7 @@ Tests for graph dataset integration with action recognition.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, patch
 from gazegraph.training.dataset.graph_dataset import GraphDataset
 from gazegraph.config.config_utils import DotDict
 

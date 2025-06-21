@@ -1,9 +1,8 @@
-import os
 import shutil
 from pathlib import Path
 from tqdm import tqdm
 import dropbox
-from typing import Optional, List
+from typing import Optional
 import subprocess
 import requests
 from transformers import CLIPProcessor, CLIPModel
@@ -14,18 +13,21 @@ from gazegraph.config.config_utils import DotDict
 # Initialize logger for this module
 logger = get_logger(__name__)
 
-def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: Path) -> None:
+
+def download_from_dropbox(
+    dbx: dropbox.Dropbox, shared_link: str, target_path: Path
+) -> None:
     try:
         _, response = dbx.sharing_get_shared_link_file(url=shared_link)
-        total_size = int(response.headers.get('Content-Length', 0))
+        total_size = int(response.headers.get("Content-Length", 0))
 
-        with open(target_path, 'wb') as f:
+        with open(target_path, "wb") as f:
             if total_size:
                 # Use progress bar if we know the size
                 with tqdm(
                     desc=target_path.name,
                     total=total_size,
-                    unit='iB',
+                    unit="iB",
                     unit_scale=True,
                     unit_divisor=1024,
                 ) as pbar:
@@ -40,15 +42,19 @@ def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: P
     except dropbox.exceptions.AuthError as e:
         if target_path.exists():
             target_path.unlink()  # Clean up partial download
-        
+
         # Check if it's an expired token error
-        if 'expired_access_token' in str(e):
+        if "expired_access_token" in str(e):
             logger.error("Dropbox token has expired. Please generate a new token:")
             logger.error("1. Go to https://www.dropbox.com/developers/apps/")
             logger.error("2. Select your app")
             logger.error("3. Generate a new OAuth 2.0 token")
-            logger.error("4. Update your .env file with: DROPBOX_TOKEN=your_new_token_here")
-            raise Exception("Dropbox authentication failed: Your access token has expired")
+            logger.error(
+                "4. Update your .env file with: DROPBOX_TOKEN=your_new_token_here"
+            )
+            raise Exception(
+                "Dropbox authentication failed: Your access token has expired"
+            )
         else:
             logger.error(f"Dropbox authentication error: {str(e)}")
             logger.error("Please check your Dropbox token and permissions")
@@ -58,10 +64,11 @@ def download_from_dropbox(dbx: dropbox.Dropbox, shared_link: str, target_path: P
             target_path.unlink()  # Clean up partial download
         raise Exception(f"Failed to download from Dropbox: {str(e)}")
 
+
 def download_from_url(url: str, target_path: Path) -> None:
     """
     Download a file from a direct URL.
-    
+
     Args:
         url: URL to download from
         target_path: Path to save the downloaded file
@@ -69,16 +76,16 @@ def download_from_url(url: str, target_path: Path) -> None:
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
-        
-        total_size = int(response.headers.get('Content-Length', 0))
-        
-        with open(target_path, 'wb') as f:
+
+        total_size = int(response.headers.get("Content-Length", 0))
+
+        with open(target_path, "wb") as f:
             if total_size:
                 # Use progress bar if we know the size
                 with tqdm(
                     desc=target_path.name,
                     total=total_size,
-                    unit='iB',
+                    unit="iB",
                     unit_scale=True,
                     unit_divisor=1024,
                 ) as pbar:
@@ -95,30 +102,34 @@ def download_from_url(url: str, target_path: Path) -> None:
             target_path.unlink()  # Clean up partial download
         raise Exception(f"Failed to download from URL: {str(e)}")
 
-def download_raw_videos(dbx: dropbox.Dropbox, links_file_path: Path, raw_videos_dir: Path) -> None:
+
+def download_raw_videos(
+    dbx: dropbox.Dropbox, links_file_path: Path, raw_videos_dir: Path
+) -> None:
     """Download raw videos from links in the provided text file."""
-    with open(links_file_path, 'r') as f:
+    with open(links_file_path, "r") as f:
         video_links = [line.strip() for line in f if line.strip()]
 
     for link in tqdm(video_links, desc="Downloading raw videos"):
         # Get clean filename without the ?dl=0 suffix
-        video_name = Path(link).name.split('?')[0]
+        video_name = Path(link).name.split("?")[0]
         target_path = raw_videos_dir / video_name
-        
+
         if target_path.exists():
             logger.info(f"Skipping {video_name} - already exists")
             continue
-            
+
         try:
             download_from_dropbox(dbx, link, target_path)
         except Exception as e:
             logger.error(f"Failed to download {video_name}: {e}")
 
+
 class ScratchDirectories:
     def __init__(self, config: DotDict):
         """
         Initialize directory paths from configuration.
-        
+
         Args:
             config: Configuration dictionary with paths
         """
@@ -130,15 +141,15 @@ class ScratchDirectories:
         self.tmp_dir = Path(config.directories.scratch.tmp)
         self.ego_topo_dir = Path(config.directories.scratch.ego_topo)
         self.clip_model_dir = Path(config.models.clip.model_dir)
-        
+
         # YOLO model paths
         self.yolo_model_dir = Path(self.scratch_egtea_dir) / "yolo_world_model"
         self.backend = config.models.yolo_world.backend
         self.yolo_model_paths = {
             "onnx": self.yolo_model_dir / "yolov8x-worldv2.onnx",
-            "ultralytics": self.yolo_model_dir / "yolov8x-worldv2.pt"
+            "ultralytics": self.yolo_model_dir / "yolov8x-worldv2.pt",
         }
-        
+
         # URLs
         self.cropped_clips_url = config.external.urls.dropbox_cropped_clips
         self.video_links_url = config.external.urls.dropbox_video_links
@@ -146,25 +157,30 @@ class ScratchDirectories:
         self.clip_model_id = config.models.clip.model_id
         self.yolo_world_model_urls = {
             "onnx": config.external.urls.yolo_world_model_onnx,
-            "ultralytics": config.external.urls.yolo_world_model_ultralytics
+            "ultralytics": config.external.urls.yolo_world_model_ultralytics,
         }
 
     def create_all(self) -> None:
         """Create all required directories."""
         for directory in [
-            self.scratch_egtea_dir, 
-            self.raw_videos_dir, 
-            self.cropped_videos_dir, 
-            self.tmp_dir, 
+            self.scratch_egtea_dir,
+            self.raw_videos_dir,
+            self.cropped_videos_dir,
+            self.tmp_dir,
             self.clip_model_dir,
-            self.yolo_model_dir
+            self.yolo_model_dir,
         ]:
             directory.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created directory: {directory}")
 
     def is_cropped_videos_empty(self) -> bool:
         """Check if the cropped videos directory is empty."""
-        return not any(self.cropped_videos_dir.iterdir()) if self.cropped_videos_dir.exists() else True
+        return (
+            not any(self.cropped_videos_dir.iterdir())
+            if self.cropped_videos_dir.exists()
+            else True
+        )
+
 
 def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> None:
     """Download and extract cropped video clips."""
@@ -183,11 +199,14 @@ def setup_cropped_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) 
     shutil.unpack_archive(cropped_clips_tar_path, temp_dir)
     # Move contents directly to target
     for file_path in (temp_dir / "cropped_clips").iterdir():
-        shutil.move(str(file_path), str(directories.cropped_videos_dir / file_path.name))
-    
+        shutil.move(
+            str(file_path), str(directories.cropped_videos_dir / file_path.name)
+        )
+
     logger.info("Cleaning up temporary files...")
     cropped_clips_tar_path.unlink()
     shutil.rmtree(temp_dir)
+
 
 def setup_raw_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> None:
     """Download raw videos using links from the video_links.txt file."""
@@ -202,13 +221,19 @@ def setup_raw_videos(dbx: dropbox.Dropbox, directories: ScratchDirectories) -> N
     logger.info("Cleaning up temporary files...")
     video_links_path.unlink()
 
+
 def setup_ego_topo(directories: ScratchDirectories) -> None:
     """Clone ego-topo repository and download train/val splits."""
     if not directories.ego_topo_dir.exists():
         logger.info("Cloning ego-topo repository...")
         subprocess.run(
-            ["git", "clone", directories.ego_topo_repo_url, str(directories.ego_topo_dir)],
-            check=True
+            [
+                "git",
+                "clone",
+                directories.ego_topo_repo_url,
+                str(directories.ego_topo_dir),
+            ],
+            check=True,
         )
     else:
         logger.info("ego-topo repository already exists, skipping clone...")
@@ -217,56 +242,63 @@ def setup_ego_topo(directories: ScratchDirectories) -> None:
     download_script = Path("scripts/download_splits.sh")
     if not download_script.exists():
         logger.error("download_splits.sh script not found in scripts directory")
-        raise FileNotFoundError("download_splits.sh script not found in scripts directory")
+        raise FileNotFoundError(
+            "download_splits.sh script not found in scripts directory"
+        )
 
     subprocess.run(["chmod", "+x", str(download_script)], check=True)
-    
+
     # Create data directory in ego-topo if it doesn't exist
     data_dir = directories.ego_topo_dir / "data"
     data_dir.mkdir(exist_ok=True)
-    
+
     logger.info("Downloading train/val splits...")
     subprocess.run(
-        [str(download_script.absolute())],
-        cwd=str(directories.ego_topo_dir),
-        check=True
+        [str(download_script.absolute())], cwd=str(directories.ego_topo_dir), check=True
     )
+
 
 def setup_clip_model(directories: ScratchDirectories) -> None:
     """Download CLIP model and processor for offline use."""
     model_dir = directories.clip_model_dir
     model_dir.mkdir(exist_ok=True)
-    
+
     logger.info("Downloading CLIP model and processor...")
-    
+
     # Download and save model
     model = CLIPModel.from_pretrained(directories.clip_model_id)
     processor = CLIPProcessor.from_pretrained(directories.clip_model_id)
-    
+
     model.save_pretrained(model_dir)
     processor.save_pretrained(model_dir)
     logger.info(f"CLIP model and processor saved to {model_dir}")
+
 
 def setup_yolo_world_model(directories: ScratchDirectories) -> None:
     """Download YOLO-World models for both ONNX and Ultralytics backends."""
     # Create model directory
     directories.yolo_model_dir.mkdir(exist_ok=True)
-    
+
     # Download models for each backend
     for backend, model_path in directories.yolo_model_paths.items():
         if model_path.exists():
-            logger.info(f"YOLO-World {backend} model already exists at {model_path}, skipping download...")
+            logger.info(
+                f"YOLO-World {backend} model already exists at {model_path}, skipping download..."
+            )
             continue
-            
+
         # Download the model
         logger.info(f"Downloading YOLO-World {backend} model to {model_path}")
         download_from_url(directories.yolo_world_model_urls[backend], model_path)
         logger.info(f"YOLO-World {backend} model download complete")
 
+
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
     """Setup the scratch directory for the Egtea Gaze dataset."""
     if not access_token:
-        logger.error("Dropbox access token is missing. Please add it to your .env file:")
+        logger.error(
+            "Dropbox access token is missing. Please add it to your .env file:"
+        )
         logger.error("1. Create an app at https://www.dropbox.com/developers/apps/")
         logger.error("2. Enable sharing.read permission")
         logger.error("3. Generate an OAuth 2.0 token")
@@ -275,29 +307,31 @@ def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:
 
     directories = ScratchDirectories(config)
     directories.create_all()
-    
+
     try:
         dbx = dropbox.Dropbox(access_token)
-        
+
         # Step 1: Setup cropped videos
         setup_cropped_videos(dbx, directories)
-        
+
         # Step 2: Setup raw videos
         setup_raw_videos(dbx, directories)
-        
+
         # Step 3: Setup ego-topo repository and splits
         setup_ego_topo(directories)
-        
+
         # Step 4: Download CLIP model for offline use
         setup_clip_model(directories)
-        
+
         # Step 5: Download YOLO-World model for offline use
         setup_yolo_world_model(directories)
-        
+
         logger.info("Setup complete!")
     except Exception as e:
         if "access token has expired" in str(e):
-            logger.error("Setup failed due to expired Dropbox token. Please update your token and try again.")
+            logger.error(
+                "Setup failed due to expired Dropbox token. Please update your token and try again."
+            )
         else:
             logger.error(f"Setup failed: {str(e)}")
         raise
