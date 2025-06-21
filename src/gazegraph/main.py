@@ -96,7 +96,12 @@ def setup_parser() -> argparse.ArgumentParser:
     train_parser.add_argument(
         "--task",
         type=str,
-        choices=["future_actions", "next_action"],
+        choices=[
+            "future_actions",
+            "next_action",
+            "action_recognition",
+            "object_recognition",
+        ],
         required=True,
         help="Task to train the model on",
     )
