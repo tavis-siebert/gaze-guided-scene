@@ -1,6 +1,7 @@
 from typing import Literal
 import torch
 from pathlib import Path
+from tqdm import tqdm
 from torch_geometric.loader import DataLoader
 from gazegraph.training.dataset.graph_dataset import GraphDataset
 from gazegraph.logger import get_logger
@@ -90,7 +91,7 @@ def create_dataloader(
             if graph_type == "action-object-graph":
                 logger.info(f"NOTE: if action-graph or object-graph caches exist, they will be loaded during dataset creation")
 
-        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, action_node_feature, device, cache_file, graph_type)
+        dataset = create_new_dataset(root_dir, split, task_mode, node_drop_p, max_droppable, config, object_node_feature, action_node_feature, device, graph_type)
     
     num_workers = config.processing.dataloader_workers
     if object_node_feature == "roi-embeddings":
@@ -98,12 +99,29 @@ def create_dataloader(
         logger.warning("Multiprocessing currently unsupported for roi-embeddings due to unpicklable AV instances")
         num_workers = 0
 
-    return DataLoader(
+    dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers
     )
+
+    # Populate cache with parallelism
+    logger.info(f"Populating data cache for {split} dataset")
+    for _ in tqdm(dataloader):  # this will call get() and write cache
+        pass
+    
+    # TODO this doesn't work as of now due to some issues with pickling in torch.save
+    # future cleanups should use InMemoryDataset or store just the .cache attribute
+    # currently left as is for compatability reasons
+    if cache_file is not None:
+        try:
+            logger.info(f"Saving dataset to cache: {cache_file}")
+            torch.save(dataset, cache_file)
+        except Exception as e:
+            logger.error(f"Failed to save dataset to cache: {e}")
+
+    return dataloader
 
 
 def create_new_dataset(
@@ -116,7 +134,6 @@ def create_new_dataset(
     object_node_feature, 
     action_node_feature, 
     device,
-    cache_file=None, 
     graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
 ):
     """Create a new GraphDataset and optionally save it to cache.
@@ -149,13 +166,5 @@ def create_new_dataset(
         device=device,
         graph_type=graph_type
     )
-    
-    # Save the dataset to cache if a cache file is provided
-    if cache_file is not None:
-        try:
-            logger.info(f"Saving dataset to cache: {cache_file}")
-            torch.save(dataset, cache_file)
-        except Exception as e:
-            logger.error(f"Failed to save dataset to cache: {e}")
     
     return dataset 

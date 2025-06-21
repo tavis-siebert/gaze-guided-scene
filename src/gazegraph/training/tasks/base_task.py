@@ -45,6 +45,7 @@ class BaseTask:
         self._setup_data()
         
         # Initialize model
+        self._setup_model_params()
         self.model = GATForClassification(
             self.num_classes,
             self.input_dim, 
@@ -123,11 +124,13 @@ class BaseTask:
             graph_type=self.graph_type
         )
         
-        # Extract dimensions from data
-        train_dataset = self.train_loader.dataset
-        sample = train_dataset[0]
-        #TODO input dim is a placeholder for now, can specify in config
-        # probably want to make this consistent with the embedding model used e.g. ViT-L vs ViT-B
+        self.logger.info(f"Loaded train dataset with {len(self.train_loader.dataset)} samples")
+        self.logger.info(f"Loaded validation dataset with {len(self.test_loader.dataset)} samples")
+    
+    def _setup_model_params(self):
+        sample = self.train_loader.dataset[0]
+
+        #TODO input dim is a placeholder for now, can maybe specify in config later
         self.input_dim   = 768 if self.heterogeneous else sample.x.shape[1]
         self.edge_dim    = None if self.heterogeneous else sample.edge_attr.shape[1]
         self.hidden_dim  = self.config.training.hidden_dim
@@ -136,10 +139,7 @@ class BaseTask:
         self.res_connect = self.config.training.res_connect
         self.node_types  = sample.node_types if self.heterogeneous else None
         self.metadata    = sample.metadata() if self.heterogeneous else None
-        
-        self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")
-        self.logger.info(f"Loaded validation dataset with {len(self.test_loader.dataset)} samples")
-    
+
     def _transfer_batch_to_device(self, data):
         """Transfer batch data to device"""
         if self.heterogeneous:

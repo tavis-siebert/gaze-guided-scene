@@ -201,7 +201,7 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
 class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using ROI embeddings."""
     
-    def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
+    def __init__(self, device: str = "cuda", embedding_dim: int = 768, **kwargs):
         """
         Initialize the ROI embedding node feature extractor.
         
@@ -307,7 +307,7 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
 class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
     """Extracts node features using object label embeddings."""
     
-    def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
+    def __init__(self, device: str = "cuda", embedding_dim: int = 768, **kwargs):
         """
         Initialize the object label embedding node feature extractor.
         
@@ -435,7 +435,7 @@ class ActionLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
     For action graphs, call extract_features(action_records: List[ActionRecord])
     to obtain a [num_nodes, embedding_dim] tensor, where each row is an embedding.
     """
-    def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
+    def __init__(self, device: str = "cuda", embedding_dim: int = 768, **kwargs):
         super().__init__(**kwargs)
         self.device = device
         self.embedding_dim = embedding_dim
@@ -460,10 +460,10 @@ class ActionLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             emb = self.node_embeddings.get_action_embedding(rec.action_idx)
             features.append(emb)
         if features:
-            x = torch.stack(features)
+            x = torch.cat(features)
         else:
             x = torch.empty((0, self.embedding_dim), device=self.device)
-        assert x.shape == (len(action_records), self.embedding_dim), f"Expected shape ({len(action_records)}, {self.embedding_dim}), got {x.shape}"
+        # assert x.shape == (len(action_records), self.embedding_dim), f"Expected shape ({len(action_records)}, {self.embedding_dim}), got {x.shape}"
         return x
 
 

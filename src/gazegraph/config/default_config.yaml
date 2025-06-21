@@ -81,13 +81,13 @@ models:
 # Training
 training:
   batch_size: 128
-  num_epochs: 150
-  optimizer: "Adam"
+  num_epochs: 200
+  optimizer: "AdamW"
   lr: 0.001
   num_classes: 106
   num_heads: 4
-  hidden_dim: 256
-  num_layers: 3
+  hidden_dim: 512
+  num_layers: 4
   res_connect: false
   node_dropping: true
   node_drop_p: 0
@@ -101,7 +101,8 @@ external:
     dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
     dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
     ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
-    yolo_world_model: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
+    yolo_world_model_onnx: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
+    yolo_world_model_ultralytics: "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8x-worldv2.pt"
 
 # Processing settings
 processing:

@@ -1,3 +1,5 @@
+import os
+import torch
 import torch.nn as nn
 from gazegraph.training.evaluation.metrics import accuracy
 from gazegraph.training.tasks.base_task import BaseTask
@@ -14,9 +16,21 @@ class NextActionTask(BaseTask):
         train_acc = self.test(self.train_loader)
         test_acc = self.test(self.test_loader)
         
-        self.log_metric('train_loss', epoch_loss / num_samples)
-        self.log_metric('train_acc', train_acc)
-        self.log_metric('test_acc', test_acc)
+        self.log_metric('train_loss', epoch_loss / num_samples, epoch)
+        self.log_metric('train_acc', train_acc, epoch)
+        self.log_metric('test_acc', test_acc, epoch)
+
+        if test_acc >= max(self.metrics['test_acc']):
+            model_save_path = os.path.join(self.writer.file_writer.get_logdir(), "bestl_model.pt")
+            state = {
+                'config': self.config.to_dict(),
+                'state_dict': self.model.state_dict()
+            }
+            torch.save(state, model_save_path)
+            self.logger.info(f"Epoch {epoch}: Best model saved")
+
+        # Log per-class metrics
+        #TODO detailed logging every 5 epochs (e.g. using fine-grained noun and verb labels?)
     
     def print_progress(self, epoch, epoch_loss, num_samples):
         self.logger.info(f'Epoch: {epoch+1}')

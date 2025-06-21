@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default Python version if not specified
-PYTHON_VERSION=${1:-"3.12.0"}
+PYTHON_VERSION=${1:-"3.12.8"}
 
 # Get current Python version or "0" if not found
 CURRENT_VERSION=$(python --version 2>&1 | cut -d' ' -f2 || echo "0")

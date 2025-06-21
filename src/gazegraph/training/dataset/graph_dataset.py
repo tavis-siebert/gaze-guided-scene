@@ -1,7 +1,7 @@
 import random
 from pathlib import Path
 from typing import List, Optional, Tuple, Literal
-from torch_geometric.data import Data, Dataset
+from torch_geometric.data import Data, Dataset, InMemoryDataset
 from gazegraph.training.dataset.graph_assembler import create_graph_assembler
 from tqdm import tqdm
 import numpy as np
@@ -36,7 +36,7 @@ class GraphDataset(Dataset):
         device: str = "cuda",
         graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
     ):
-        self.root_dir = Path(root_dir) / split
+        self.root_dir = Path(root_dir) / split  # use `/ (split + "_small")` if you want to test
         self.split = split
         self.config = config
         self.metadata = VideoMetadata(config)
