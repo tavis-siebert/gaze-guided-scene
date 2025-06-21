@@ -12,9 +12,6 @@ from gazegraph.graph.checkpoint_manager import GraphCheckpoint, CheckpointManage
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 from gazegraph.training.dataset.augmentations import node_dropping
 from gazegraph.training.dataset.sampling import get_samples
-from gazegraph.training.dataset.node_features import get_node_feature_extractor
-from gazegraph.graph.graph_tracer import GraphTracer
-from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.logger import get_logger
 from gazegraph.config.config_utils import DotDict
 

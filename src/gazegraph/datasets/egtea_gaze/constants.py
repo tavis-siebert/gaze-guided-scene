@@ -13,4 +13,4 @@ GAZE_TYPE_UNTRACKED = 0  # No gaze point available
 GAZE_TYPE_FIXATION = 1  # Pause of gaze
 GAZE_TYPE_SACCADE = 2  # Jump of gaze
 GAZE_TYPE_UNKNOWN = 3  # Unknown gaze type returned by BeGaze
-GAZE_TYPE_TRUNCATED = 4  # Gaze out of range of the video 
+GAZE_TYPE_TRUNCATED = 4  # Gaze out of range of the video

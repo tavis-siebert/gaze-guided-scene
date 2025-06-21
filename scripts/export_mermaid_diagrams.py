@@ -159,7 +159,7 @@ def process_markdown_files(
                 successful_exports += 1
 
     print(f"\n{'=' * 50}")
-    print(f"Export Summary:")
+    print("Export Summary:")
     print(f"  Total diagrams found: {total_diagrams}")
     print(f"  Successfully exported: {successful_exports}")
     print(f"  Failed exports: {total_diagrams - successful_exports}")

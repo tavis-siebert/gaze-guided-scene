@@ -9,11 +9,11 @@ from gazegraph.graph.dashboard.components.meta_info import MetaInfo
 from gazegraph.graph.dashboard.dashboard import Dashboard
 
 __all__ = [
-    'GraphEvent',
-    'Playback',
-    'VideoDisplay',
-    'GraphDisplay',
-    'PlaybackControls',
-    'MetaInfo',
-    'Dashboard',
-] 
+    "GraphEvent",
+    "Playback",
+    "VideoDisplay",
+    "GraphDisplay",
+    "PlaybackControls",
+    "MetaInfo",
+    "Dashboard",
+]
