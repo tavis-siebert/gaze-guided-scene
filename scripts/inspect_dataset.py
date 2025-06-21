@@ -110,7 +110,7 @@ def analyze_dataset(dataset_path: str, max_depth: int = 5) -> None:
     """
     print(f"Loading dataset from: {dataset_path}")
     try:
-        dataset = torch.load(dataset_path)
+        dataset = torch.load(dataset_path, weights_only=False)
         print("\nDataset Structure:")
         explore_dataset_structure(dataset, max_depth=max_depth)
     except Exception as e:
