@@ -67,6 +67,10 @@ class NodeFeatureExtractor(ABC):
         # Get the device from the instance if available, otherwise use CPU
         device = getattr(self, "device", "cpu")
 
+        # Ensure device is available (fallback to CPU if CUDA not available)
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
+
         # Create temporal features tensor on the appropriate device
         temporal_features = torch.tensor(
             [
@@ -152,6 +156,9 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
 
     def __init__(self, device: str = "cuda", **kwargs):
         super().__init__(**kwargs)
+        # Ensure device is available (fallback to CPU if CUDA not available)
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
         self.device = device
 
     def extract_features(self, checkpoint: GraphCheckpoint) -> torch.Tensor:
@@ -219,6 +226,9 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             node_embeddings: Optional NodeEmbeddings instance (for testing)
         """
         super().__init__(**kwargs)
+        # Ensure device is available (fallback to CPU if CUDA not available)
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
         self.device = device
         self.embedding_dim = embedding_dim
         self.tracer = None
@@ -259,6 +269,11 @@ class ROIEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
         if not node_data:
             logger.warning(f"Node ID {node_id} not found in checkpoint")
             return torch.zeros(self.embedding_dim)
+        # Check that tracer and video are available
+        if self.tracer is None or self.video is None:
+            logger.warning("Tracer or video not available for ROI embedding")
+            return torch.zeros(self.embedding_dim)
+
         # Get embedding (caching is handled in NodeEmbeddings)
         roi_embedding = self.node_embeddings.get_object_node_embedding_roi(
             checkpoint, self.tracer, self.video, node_id
@@ -333,6 +348,9 @@ class ObjectLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
             node_embeddings: Optional NodeEmbeddings instance (for testing)
         """
         super().__init__(**kwargs)
+        # Ensure device is available (fallback to CPU if CUDA not available)
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
         self.device = device
         self.embedding_dim = embedding_dim
 
@@ -415,6 +433,9 @@ class OneHotActionNodeFeatureExtractor(NodeFeatureExtractor):
 
     def __init__(self, device: str = "cuda", **kwargs):
         super().__init__(**kwargs)
+        # Ensure device is available (fallback to CPU if CUDA not available)
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
         self.device = device
         from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 
@@ -461,6 +482,9 @@ class ActionLabelEmbeddingNodeFeatureExtractor(NodeFeatureExtractor):
 
     def __init__(self, device: str = "cuda", embedding_dim: int = 512, **kwargs):
         super().__init__(**kwargs)
+        # Ensure device is available (fallback to CPU if CUDA not available)
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
         self.device = device
         self.embedding_dim = embedding_dim
         if self.node_embeddings is None:

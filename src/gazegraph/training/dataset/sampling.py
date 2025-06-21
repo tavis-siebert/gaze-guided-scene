@@ -129,6 +129,11 @@ def _sample_potential(potential, strategy, samples_per_video, allow_duplicates):
     if not potential:
         return []
 
+    # Validate strategy early
+    valid_strategies = {"all", "uniform", "random"}
+    if strategy not in valid_strategies:
+        raise ValueError(f"Unknown sampling strategy: {strategy}")
+
     if strategy == "all" or samples_per_video == 0:
         return potential
 
@@ -149,5 +154,3 @@ def _sample_potential(potential, strategy, samples_per_video, allow_duplicates):
         return [potential[i] for i in indices]
     elif strategy == "random":
         return random.sample(potential, samples_per_video)
-    else:
-        raise ValueError(f"Unknown sampling strategy: {strategy}")
