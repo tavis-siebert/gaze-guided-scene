@@ -1,11 +1,9 @@
 import pytest
 import torch
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.training.dataset.graph_assembler import (
-    ActionGraph,
     ObjectGraph,
     create_graph_assembler,
 )

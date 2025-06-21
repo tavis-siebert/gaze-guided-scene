@@ -33,7 +33,11 @@ class TestNodeFeatureExtractors:
 
     def test_one_hot_extractor(self, mock_config, mock_checkpoint):
         """Test the OneHotNodeFeatureExtractor for object and action graphs"""
-        for device in ["cpu", "cuda"]:
+        devices = ["cpu"]
+        if torch.cuda.is_available():
+            devices.append("cuda")
+
+        for device in devices:
             extractor = OneHotNodeFeatureExtractor(config=mock_config, device=device)
             # Object graph mode
             features = extractor.extract_features(mock_checkpoint)
@@ -104,7 +108,11 @@ class TestNodeFeatureExtractors:
         mock_node_embeddings.get_object_node_embedding_label.return_value = (
             mock_embedding
         )
-        for device in ["cpu", "cuda"]:
+        devices = ["cpu"]
+        if torch.cuda.is_available():
+            devices.append("cuda")
+
+        for device in devices:
             extractor = ObjectLabelEmbeddingNodeFeatureExtractor(
                 config=mock_config,
                 device=device,
@@ -120,7 +128,11 @@ class TestNodeFeatureExtractors:
         embedding_dim = 16
         mock_embedding = torch.ones(embedding_dim)
         mock_node_embeddings.get_object_node_embedding_roi.return_value = mock_embedding
-        for device in ["cpu", "cuda"]:
+        devices = ["cpu"]
+        if torch.cuda.is_available():
+            devices.append("cuda")
+
+        for device in devices:
             extractor = ROIEmbeddingNodeFeatureExtractor(
                 config=mock_config,
                 device=device,

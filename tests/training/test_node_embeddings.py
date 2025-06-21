@@ -96,8 +96,8 @@ def test_get_action_embedding_invalid_action(mock_node_embeddings):
         "gazegraph.datasets.egtea_gaze.action_record.ActionRecord.get_action_name_by_idx",
         return_value=None,
     ):
-        embedding = mock_node_embeddings.get_action_embedding(9999)
-        assert embedding is None
+        with pytest.raises(ValueError, match="Action index 9999 not found"):
+            mock_node_embeddings.get_action_embedding(9999)
 
 
 @pytest.mark.unit
@@ -568,7 +568,10 @@ def test_prepopulate_caches(device, mock_clip_model):
 
             # Initialize with prepopulate_caches=True and ensure caches are empty
             node_embeddings = NodeEmbeddings(
-                device=device, prepopulate_caches=False, clip_model=mock_clip_model
+                config=mock_config,
+                device=device,
+                prepopulate_caches=False,
+                clip_model=mock_clip_model,
             )
             node_embeddings._object_label_embedding_cache = {}
             node_embeddings._action_label_embedding_cache = {}
@@ -641,7 +644,10 @@ def test_load_caches(device, mock_clip_model):
 
     # Initialize with prepopulate_caches=False to test only loading
     node_embeddings = NodeEmbeddings(
-        device=device, prepopulate_caches=False, clip_model=mock_clip_model
+        config=config,
+        device=device,
+        prepopulate_caches=False,
+        clip_model=mock_clip_model,
     )
 
     # Check that caches were loaded correctly
@@ -702,7 +708,10 @@ def test_prepopulate_and_load_caches_integration(device, mock_clip_model):
             # We need to patch the property directly to avoid loading existing caches
             with patch.object(NodeEmbeddings, "_load_caches", return_value=None):
                 first_instance = NodeEmbeddings(
-                    device=device, prepopulate_caches=True, clip_model=mock_clip_model
+                    config=mock_config,
+                    device=device,
+                    prepopulate_caches=True,
+                    clip_model=mock_clip_model,
                 )
                 # Manually call prepopulate_caches to ensure it runs with our mocks
                 first_instance.prepopulate_caches()
@@ -733,7 +742,10 @@ def test_prepopulate_and_load_caches_integration(device, mock_clip_model):
             # Second instance: should load from cache files
             # Clear the caches to ensure we're loading from files
             second_instance = NodeEmbeddings(
-                device=device, prepopulate_caches=False, clip_model=mock_clip_model
+                config=mock_config,
+                device=device,
+                prepopulate_caches=False,
+                clip_model=mock_clip_model,
             )
             second_instance._object_label_embedding_cache = {}
             second_instance._action_label_embedding_cache = {}

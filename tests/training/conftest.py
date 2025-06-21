@@ -36,9 +36,14 @@ def mock_config():
                         {
                             "object_label_embedding_path": "mock_object_embeddings.pth",
                             "action_label_embedding_path": "mock_action_embeddings.pth",
-                            "roi_embedding_samples": 3,
+                            "max_visit_sample": 3,
                         }
-                    )
+                    ),
+                    "sampling": DotDict(
+                        {
+                            "random_seed": 42,
+                        }
+                    ),
                 }
             )
         }
@@ -54,9 +59,15 @@ def device():
 @pytest.fixture(scope="session")
 def clip_model():
     """Fixture to provide a persistent CLIP model instance for tests."""
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = ClipModel(device=device)
-    return model
+    try:
+        from gazegraph.models.clip import ClipModel
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = ClipModel(device=device)
+        return model
+    except ImportError:
+        # Return a mock if CLIP model is not available
+        return MagicMock()
 
 
 @pytest.fixture
