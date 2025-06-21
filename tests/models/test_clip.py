@@ -8,9 +8,11 @@ from gazegraph.models.clip import ClipModel
 
 
 @pytest.mark.unit
-def test_initialization():
-    model = ClipModel(device="cpu")
-    assert model.device == "cpu"
+@pytest.mark.gpu
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_initialization(device):
+    model = ClipModel(device=device)
+    assert model.device == device
     assert model.name == "ViT-L/14"
     assert model.model is not None
     assert model.preprocess is not None
