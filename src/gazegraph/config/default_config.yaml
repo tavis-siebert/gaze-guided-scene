@@ -71,17 +71,10 @@ models:
     model_dir: ${directories.scratch.egtea}/clip_model
     model_id: "openai/clip-vit-base-patch16"
   yolo_world:
-    backend: "onnx" # "ultralytics" or "onnx"
-    paths:
-      onnx: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.onnx
-      ultralytics: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.pt
+    model_path: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.onnx
     image_size: 640
-    onnx:
-      conf_threshold: 0.15
-      iou_threshold: 0.5
-    ultralytics:
-      conf_threshold: 0.15
-      iou_threshold: 0.5
+    conf_threshold: 0.15
+    iou_threshold: 0.5
 
 # Training
 training:

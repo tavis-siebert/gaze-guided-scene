@@ -164,8 +164,7 @@ class ObjectDetector:
         self.tracer = tracer
         self.config = config
 
-        # Backend selection
-        backend = config.models.yolo_world.backend
+        # Model configuration
 
         # Fixation parameters
         self.min_fixation_frame_threshold = (
@@ -196,9 +195,7 @@ class ObjectDetector:
             config.graph.fixated_object_detection.thresholds.confidence
         )
 
-        logger.info(
-            f"Initializing YOLO-World model: {model_path.name} (backend={backend})"
-        )
+        logger.info(f"Initializing YOLO-World model: {model_path.name}")
 
         logger.info(
             f"Fixation detection with thresholds: "
@@ -210,8 +207,8 @@ class ObjectDetector:
 
         # Set up model
         self.model = YOLOWorldModel(
-            conf_threshold=self.config.models.yolo_world.onnx.conf_threshold,
-            iou_threshold=self.config.models.yolo_world.onnx.iou_threshold,
+            conf_threshold=self.config.models.yolo_world.conf_threshold,
+            iou_threshold=self.config.models.yolo_world.iou_threshold,
         )
         num_workers = getattr(config.processing, "n_cores", None)
         self.model.load_model(model_path, num_workers)

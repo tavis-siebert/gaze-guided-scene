@@ -144,21 +144,14 @@ class ScratchDirectories:
 
         # YOLO model paths
         self.yolo_model_dir = Path(self.scratch_egtea_dir) / "yolo_world_model"
-        self.backend = config.models.yolo_world.backend
-        self.yolo_model_paths = {
-            "onnx": self.yolo_model_dir / "yolov8x-worldv2.onnx",
-            "ultralytics": self.yolo_model_dir / "yolov8x-worldv2.pt",
-        }
+        self.yolo_model_path = self.yolo_model_dir / "yolov8x-worldv2.onnx"
 
         # URLs
         self.cropped_clips_url = config.external.urls.dropbox_cropped_clips
         self.video_links_url = config.external.urls.dropbox_video_links
         self.ego_topo_repo_url = config.external.urls.ego_topo_repo
         self.clip_model_id = config.models.clip.model_id
-        self.yolo_world_model_urls = {
-            "onnx": config.external.urls.yolo_world_model_onnx,
-            "ultralytics": config.external.urls.yolo_world_model_ultralytics,
-        }
+        self.yolo_world_model_url = config.external.urls.yolo_world_model
 
     def create_all(self) -> None:
         """Create all required directories."""
@@ -275,22 +268,20 @@ def setup_clip_model(directories: ScratchDirectories) -> None:
 
 
 def setup_yolo_world_model(directories: ScratchDirectories) -> None:
-    """Download YOLO-World models for both ONNX and Ultralytics backends."""
+    """Download YOLO-World ONNX model."""
     # Create model directory
     directories.yolo_model_dir.mkdir(exist_ok=True)
 
-    # Download models for each backend
-    for backend, model_path in directories.yolo_model_paths.items():
-        if model_path.exists():
-            logger.info(
-                f"YOLO-World {backend} model already exists at {model_path}, skipping download..."
-            )
-            continue
+    # Download the model
+    if directories.yolo_model_path.exists():
+        logger.info(
+            f"YOLO-World model already exists at {directories.yolo_model_path}, skipping download..."
+        )
+        return
 
-        # Download the model
-        logger.info(f"Downloading YOLO-World {backend} model to {model_path}")
-        download_from_url(directories.yolo_world_model_urls[backend], model_path)
-        logger.info(f"YOLO-World {backend} model download complete")
+    logger.info(f"Downloading YOLO-World model to {directories.yolo_model_path}")
+    download_from_url(directories.yolo_world_model_url, directories.yolo_model_path)
+    logger.info("YOLO-World model download complete")
 
 
 def setup_scratch(config: DotDict, access_token: Optional[str] = None) -> None:

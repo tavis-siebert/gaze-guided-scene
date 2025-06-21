@@ -155,11 +155,7 @@ def mock_config():
     config = DotDict(
         {
             "models": {
-                "yolo_world": {
-                    "backend": "onnx",
-                    "onnx": {"conf_threshold": 0.15, "iou_threshold": 0.5},
-                    "ultralytics": {"conf_threshold": 0.15, "iou_threshold": 0.5},
-                },
+                "yolo_world": {"conf_threshold": 0.15, "iou_threshold": 0.5},
             },
             "graph": {
                 "fixated_object_detection": {
@@ -571,8 +567,7 @@ class TestObjectDetector:
                 "cup": scores["cup"]["final_score"]
             }
 
-    @patch("gazegraph.graph.object_detection.Image")
-    def test_perform_detection(self, mock_image, mock_detector):
+    def test_perform_detection(self, mock_detector):
         # Mock frame and gaze point
         frame = torch.zeros(3, 100, 100)
         gaze_x, gaze_y = 50, 50
