@@ -24,20 +24,33 @@ def top_k_accuracy(predictions, targets, k=5):
         Top-k accuracy as a float
     """
     if isinstance(predictions, torch.Tensor):
-        predictions = predictions.detach().cpu().numpy()
-    if isinstance(targets, torch.Tensor):
-        targets = targets.detach().cpu().numpy()
+        predictions = predictions.detach().cpu()
+        targets = (
+            targets.detach().cpu()
+            if isinstance(targets, torch.Tensor)
+            else torch.tensor(targets)
+        )
 
-    # Get top-k predictions
-    top_k_preds = np.argsort(predictions, axis=1)[:, -k:]
+        # Use torch's topk for efficiency
+        _, top_k_preds = torch.topk(predictions, k, dim=1)
+        targets_expanded = targets.unsqueeze(1).expand_as(top_k_preds)
+        correct = (top_k_preds == targets_expanded).any(dim=1).sum().item()
+        return correct / len(targets)
+    else:
+        # Fallback to numpy implementation
+        predictions = np.array(predictions)
+        targets = np.array(targets)
 
-    # Check if true label is in top-k predictions
-    correct = 0
-    for i, target in enumerate(targets):
-        if target in top_k_preds[i]:
-            correct += 1
+        # Get top-k predictions
+        top_k_preds = np.argsort(predictions, axis=1)[:, -k:]
 
-    return correct / len(targets)
+        # Check if true label is in top-k predictions
+        correct = 0
+        for i, target in enumerate(targets):
+            if target in top_k_preds[i]:
+                correct += 1
+
+        return correct / len(targets)
 
 
 def confusion_matrix(pred, targets):
