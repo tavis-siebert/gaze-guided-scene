@@ -4,7 +4,6 @@ Tests for the training metrics module.
 
 import numpy as np
 import torch
-import pytest
 
 from gazegraph.training.evaluation.metrics import (
     accuracy,
