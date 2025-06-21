@@ -6,21 +6,33 @@ from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 
 
-class ActionRecognitionTask(BaseTask):
-    """Task for recognizing actions from object graph snapshots."""
+class ObjectRecognitionTask(BaseTask):
+    """Task for recognizing objects from object graph snapshots."""
 
     def __init__(self, config, device, task_name, **kwargs):
+        # Override num_classes to use noun count instead of action count
+        original_num_classes = config.training.num_classes
+
+        # Get the number of noun classes from ActionRecord
+        ActionRecord._ensure_initialized()
+        noun_names = ActionRecord.get_noun_names()
+        config.training.num_classes = len(noun_names)
+
         super().__init__(config=config, device=device, task_name=task_name, **kwargs)
+
+        # Restore original config
+        config.training.num_classes = original_num_classes
+
         self.criterion = nn.CrossEntropyLoss(reduction="sum")
 
         self.metadata = VideoMetadata(config)
-        self.action_names = ActionRecord.get_action_names()
+        self.noun_names = {i: name for i, name in enumerate(noun_names)}
         self.logger.info(
-            f"Loaded {len(self.action_names)} action names for action recognition"
+            f"Loaded {len(self.noun_names)} noun names for object recognition"
         )
 
     def compute_loss(self, output, y):
-        """Compute cross-entropy loss for multi-class action recognition."""
+        """Compute cross-entropy loss for multi-class object recognition."""
         return self.criterion(output, y.long())
 
     def calculate_epoch_metrics(self, epoch, epoch_loss, num_samples):
@@ -38,28 +50,24 @@ class ActionRecognitionTask(BaseTask):
         # Log per-class metrics every 5 epochs
         if epoch % 5 == 0:
             for class_idx, metrics in test_class_metrics.items():
-                action_name = self.action_names.get(class_idx, f"action_{class_idx}")
-                action_tag = action_name.replace(" ", "_")
+                noun_name = self.noun_names.get(class_idx, f"noun_{class_idx}")
+                noun_tag = noun_name.replace(" ", "_")
 
                 self.writer.add_scalar(
-                    f"class/{action_tag}/precision", metrics["precision"], epoch
+                    f"class/{noun_tag}/precision", metrics["precision"], epoch
                 )
                 self.writer.add_scalar(
-                    f"class/{action_tag}/recall", metrics["recall"], epoch
+                    f"class/{noun_tag}/recall", metrics["recall"], epoch
                 )
-                self.writer.add_scalar(f"class/{action_tag}/f1", metrics["f1"], epoch)
+                self.writer.add_scalar(f"class/{noun_tag}/f1", metrics["f1"], epoch)
 
             # Log prediction distribution
             if hasattr(self, "test_pred_distribution"):
                 for class_idx, count in enumerate(self.test_pred_distribution):
-                    if class_idx in self.action_names:
-                        action_name = self.action_names.get(
-                            class_idx, f"action_{class_idx}"
-                        )
-                        action_tag = action_name.replace(" ", "_")
-                        self.writer.add_scalar(
-                            f"distribution/{action_tag}", count, epoch
-                        )
+                    if class_idx in self.noun_names:
+                        noun_name = self.noun_names.get(class_idx, f"noun_{class_idx}")
+                        noun_tag = noun_name.replace(" ", "_")
+                        self.writer.add_scalar(f"distribution/{noun_tag}", count, epoch)
 
     def print_progress(self, epoch, epoch_loss, num_samples):
         """Print training progress."""

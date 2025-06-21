@@ -17,6 +17,9 @@ from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
 from gazegraph.training.dataset.action_recognition_sampling import (
     get_action_recognition_samples,
 )
+from gazegraph.training.dataset.object_recognition_sampling import (
+    get_object_recognition_samples,
+)
 from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
@@ -60,6 +63,16 @@ def get_samples(
     # Handle action recognition sampling
     if task_mode == "action_recognition":
         return get_action_recognition_samples(
+            checkpoints=checkpoints_sorted,
+            video_name=video_name,
+            samples_per_action=samples_per_video,
+            metadata=metadata,
+            **kwargs,
+        )
+
+    # Handle object recognition sampling
+    if task_mode == "object_recognition":
+        return get_object_recognition_samples(
             checkpoints=checkpoints_sorted,
             video_name=video_name,
             samples_per_action=samples_per_video,
