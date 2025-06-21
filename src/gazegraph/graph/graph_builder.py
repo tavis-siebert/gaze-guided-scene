@@ -52,8 +52,7 @@ class GraphBuilder:
         self.tracer = GraphTracer(self.config.directories.traces, "", enabled=False)
 
         # Initialize YOLO-World model path
-        backend = self.config.models.yolo_world.backend
-        self.yolo_model_path = Path(self.config.models.yolo_world.paths[backend])
+        self.yolo_model_path = Path(self.config.models.yolo_world.model_path)
 
         # Create object detector (will be re-initialized for each video with proper tracer)
         self.object_detector = None

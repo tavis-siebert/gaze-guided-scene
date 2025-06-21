@@ -15,12 +15,7 @@ def mock_config():
     """Create a mock configuration for testing."""
     config = DotDict(
         {
-            "models": {
-                "yolo_world": {
-                    "backend": "onnx",
-                    "onnx": {"conf_threshold": 0.15, "iou_threshold": 0.5},
-                }
-            },
+            "models": {"yolo_world": {"conf_threshold": 0.15, "iou_threshold": 0.5}},
             "graph": {
                 "fixated_object_detection": {
                     "min_fixation_frame_threshold": 4,
