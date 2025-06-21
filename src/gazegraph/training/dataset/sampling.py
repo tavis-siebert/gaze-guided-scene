@@ -13,10 +13,8 @@ import numpy as np
 
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
-from gazegraph.training.dataset.action_recognition_sampling import (
+from gazegraph.training.dataset.recognition_sampling import (
     get_action_recognition_samples,
-)
-from gazegraph.training.dataset.object_recognition_sampling import (
     get_object_recognition_samples,
 )
 from gazegraph.logger import get_logger
@@ -114,19 +112,29 @@ def _potential_from_oversampling(checkpoints: List[GraphCheckpoint], valid_frame
     return potential
 
 def _sample_potential(potential, strategy, samples_per_video, allow_duplicates):
-    """Sample from a list of (checkpoint, labels) pairs according to strategy."""
+    """Sample from potential samples based on strategy."""
     if not potential:
         return []
-    if strategy == 'all' or samples_per_video <= 0:
+
+    if strategy == "all" or samples_per_video == 0:
         return potential
-    if strategy == 'uniform':
-        if samples_per_video >= len(potential):
-            return random.choices(potential, k=samples_per_video) if allow_duplicates else potential
-        indices = np.linspace(0, len(potential) - 1, samples_per_video, dtype=int).tolist()
+
+    if len(potential) <= samples_per_video:
+        if allow_duplicates and samples_per_video > len(potential):
+            # Repeat samples to reach desired count
+            repeat_factor = samples_per_video // len(potential)
+            remainder = samples_per_video % len(potential)
+            result = potential * repeat_factor
+            if remainder > 0:
+                result.extend(random.sample(potential, remainder))
+            return result
+        else:
+            return potential
+
+    if strategy == "uniform":
+        indices = np.linspace(0, len(potential) - 1, samples_per_video, dtype=int)
         return [potential[i] for i in indices]
-    if strategy == 'random':
-        if samples_per_video >= len(potential):
-            return random.choices(potential, k=samples_per_video) if allow_duplicates else potential
-        return random.choices(potential, k=samples_per_video) if allow_duplicates else random.sample(potential, samples_per_video)
-    raise ValueError(f"Unknown sampling strategy: {strategy}")
- 
+    elif strategy == "random":
+        return random.sample(potential, samples_per_video)
+    else:
+        raise ValueError(f"Unknown sampling strategy: {strategy}")
