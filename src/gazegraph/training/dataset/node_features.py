@@ -164,9 +164,6 @@ class OneHotNodeFeatureExtractor(NodeFeatureExtractor):
         Returns:
             Tensor of node features
         """
-        # Get device from temporal features if available
-        device = getattr(self, "device", "cpu")
-
         features_list = []
         for node_id, node_data in checkpoint.nodes.items():
             # Get temporal features

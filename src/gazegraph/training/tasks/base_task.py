@@ -8,6 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gazegraph.training.utils import get_optimizer
 from gazegraph.training.dataset import create_dataloader
 from gazegraph.models.gat_conv import GATForClassification
+from gazegraph.training.evaluation.metrics import compute_overall_metrics
 from logger import get_logger
 from pathlib import Path
 
@@ -141,9 +142,9 @@ class BaseTask:
         self.num_layers = self.config.training.num_layers
         self.res_connect = self.config.training.res_connect
 
-        self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")
+        self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")  # type: ignore
         self.logger.info(
-            f"Loaded validation dataset with {len(self.test_loader.dataset)} samples"
+            f"Loaded validation dataset with {len(self.test_loader.dataset)} samples"  # type: ignore
         )
 
     def _transfer_batch_to_device(self, data):
@@ -258,6 +259,74 @@ class BaseTask:
             name: Name of the histogram
         """
         self.writer.add_histogram(name, values, epoch)
+
+    def test_recognition(self, dset):
+        """Common test method for recognition tasks.
+
+        Returns:
+            Tuple of (accuracy, top5_accuracy, per_class_metrics, prediction_distribution)
+        """
+        all_targets = []
+        all_predictions = []
+        all_outputs = []
+
+        with self.evaluation_mode():
+            for data in dset:
+                x, edge_index, edge_attr, y, batch = self._transfer_batch_to_device(
+                    data
+                )
+
+                output = self.model(x, edge_index, edge_attr, batch)
+                pred = output.argmax(dim=-1)
+
+                all_targets.append(y.detach().cpu().numpy())
+                all_predictions.append(pred.detach().cpu().numpy())
+                all_outputs.append(output.detach().cpu().numpy())
+
+        # Use the metrics module to compute all metrics
+        return compute_overall_metrics(
+            all_outputs, all_targets, all_predictions, self.num_classes
+        )
+
+    def log_class_metrics_to_tensorboard(
+        self, class_metrics, epoch, class_names, prefix="class"
+    ):
+        """Log per-class metrics to tensorboard with proper naming.
+
+        Args:
+            class_metrics: Dictionary with class indices as keys and metric dictionaries as values
+            epoch: Current epoch
+            class_names: Dictionary mapping class indices to names
+            prefix: Prefix for tensorboard tags
+        """
+        for class_idx, metrics in class_metrics.items():
+            class_name = class_names.get(class_idx, f"class_{class_idx}")
+            class_tag = class_name.replace(" ", "_")
+
+            self.writer.add_scalar(
+                f"{prefix}/{class_tag}/precision", metrics["precision"], epoch
+            )
+            self.writer.add_scalar(
+                f"{prefix}/{class_tag}/recall", metrics["recall"], epoch
+            )
+            self.writer.add_scalar(f"{prefix}/{class_tag}/f1", metrics["f1"], epoch)
+
+    def log_prediction_distribution(
+        self, pred_distribution, epoch, class_names, prefix="distribution"
+    ):
+        """Log prediction distribution to tensorboard.
+
+        Args:
+            pred_distribution: Array of prediction counts per class
+            epoch: Current epoch
+            class_names: Dictionary mapping class indices to names
+            prefix: Prefix for tensorboard tags
+        """
+        for class_idx, count in enumerate(pred_distribution):
+            if class_idx in class_names:
+                class_name = class_names.get(class_idx, f"class_{class_idx}")
+                class_tag = class_name.replace(" ", "_")
+                self.writer.add_scalar(f"{prefix}/{class_tag}", count, epoch)
 
     def train(self):
         for epoch in range(self.num_epochs):

@@ -1,11 +1,12 @@
 """
-Action recognition sampling functionality for graph datasets.
+Recognition sampling functionality for graph datasets.
 
-This module provides specialized sampling strategies for action recognition tasks,
+This module provides shared sampling strategies for recognition tasks,
 focusing on sampling at action completion with object relevance filtering.
 """
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Callable
+from abc import ABC
 
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
 from gazegraph.datasets.egtea_gaze.video_metadata import VideoMetadata
@@ -15,13 +16,13 @@ from gazegraph.logger import get_logger
 logger = get_logger(__name__)
 
 
-class ActionRecognitionSampler:
-    """Specialized sampler for action recognition tasks."""
+class BaseRecognitionSampler(ABC):
+    """Base class for recognition samplers with shared functionality."""
 
     def __init__(self, metadata: VideoMetadata):
         self.metadata = metadata
 
-    def get_action_recognition_samples(
+    def get_recognition_samples(
         self,
         checkpoints: List[GraphCheckpoint],
         video_name: str,
@@ -29,8 +30,10 @@ class ActionRecognitionSampler:
         action_completion_ratio: float = 1.0,
         min_nodes_threshold: int = 1,
         visit_lookback_frames: int = 0,
+        label_extractor: Optional[Callable[[ActionRecord], Optional[int]]] = None,
+        label_key: str = "recognition",
     ) -> List[Tuple[GraphCheckpoint, Dict]]:
-        """Sample checkpoints for action recognition at action completion.
+        """Sample checkpoints for recognition at action completion.
 
         Args:
             checkpoints: List of available checkpoints
@@ -39,9 +42,11 @@ class ActionRecognitionSampler:
             action_completion_ratio: Ratio of action completion for sampling (1.0 = at action end)
             min_nodes_threshold: Minimum number of nodes required after filtering
             visit_lookback_frames: Frames before action start to include visits
+            label_extractor: Function to extract label from action record
+            label_key: Key name for the label in the returned dictionary
 
         Returns:
-            List of (checkpoint, action_labels) tuples for action recognition
+            List of (checkpoint, labels) tuples for recognition
         """
         if not checkpoints:
             return []
@@ -56,7 +61,9 @@ class ActionRecognitionSampler:
         samples = []
 
         for action_record in action_records:
-            if action_record.action_idx is None:
+            # Extract label using the provided function
+            label_value = label_extractor(action_record) if label_extractor else None
+            if label_value is None:
                 continue
 
             # Sample at action completion point
@@ -84,12 +91,12 @@ class ActionRecognitionSampler:
             if filtered_checkpoint is None:
                 continue
 
-            # Create action label
-            action_label = {"action_recognition": action_record.action_idx}
-            samples.append((filtered_checkpoint, action_label))
+            # Create label dictionary
+            label_dict = {label_key: label_value}
+            samples.append((filtered_checkpoint, label_dict))
 
         logger.info(
-            f"Generated {len(samples)} action recognition samples for video {video_name}"
+            f"Generated {len(samples)} {label_key} samples for video {video_name}"
         )
         return samples
 
@@ -184,6 +191,56 @@ class ActionRecognitionSampler:
         return filtered_checkpoint
 
 
+class ActionRecognitionSampler(BaseRecognitionSampler):
+    """Specialized sampler for action recognition tasks."""
+
+    def get_action_recognition_samples(
+        self,
+        checkpoints: List[GraphCheckpoint],
+        video_name: str,
+        samples_per_action: int = 1,
+        action_completion_ratio: float = 1.0,
+        min_nodes_threshold: int = 1,
+        visit_lookback_frames: int = 0,
+    ) -> List[Tuple[GraphCheckpoint, Dict]]:
+        """Sample checkpoints for action recognition at action completion."""
+        return self.get_recognition_samples(
+            checkpoints=checkpoints,
+            video_name=video_name,
+            samples_per_action=samples_per_action,
+            action_completion_ratio=action_completion_ratio,
+            min_nodes_threshold=min_nodes_threshold,
+            visit_lookback_frames=visit_lookback_frames,
+            label_extractor=lambda record: record.action_idx,
+            label_key="action_recognition",
+        )
+
+
+class ObjectRecognitionSampler(BaseRecognitionSampler):
+    """Specialized sampler for object recognition tasks."""
+
+    def get_object_recognition_samples(
+        self,
+        checkpoints: List[GraphCheckpoint],
+        video_name: str,
+        samples_per_action: int = 1,
+        action_completion_ratio: float = 1.0,
+        min_nodes_threshold: int = 1,
+        visit_lookback_frames: int = 0,
+    ) -> List[Tuple[GraphCheckpoint, Dict]]:
+        """Sample checkpoints for object recognition at action completion."""
+        return self.get_recognition_samples(
+            checkpoints=checkpoints,
+            video_name=video_name,
+            samples_per_action=samples_per_action,
+            action_completion_ratio=action_completion_ratio,
+            min_nodes_threshold=min_nodes_threshold,
+            visit_lookback_frames=visit_lookback_frames,
+            label_extractor=lambda record: record.noun_id,
+            label_key="object_recognition",
+        )
+
+
 def get_action_recognition_samples(
     checkpoints: List[GraphCheckpoint],
     video_name: str,
@@ -205,6 +262,34 @@ def get_action_recognition_samples(
     """
     sampler = ActionRecognitionSampler(metadata)
     return sampler.get_action_recognition_samples(
+        checkpoints=checkpoints,
+        video_name=video_name,
+        samples_per_action=samples_per_action,
+        **kwargs,
+    )
+
+
+def get_object_recognition_samples(
+    checkpoints: List[GraphCheckpoint],
+    video_name: str,
+    samples_per_action: int,
+    metadata: VideoMetadata,
+    **kwargs,
+) -> List[Tuple[GraphCheckpoint, Dict]]:
+    """Main entry point for object recognition sampling.
+
+    Args:
+        checkpoints: List of checkpoints to sample from
+        video_name: Name of the video
+        samples_per_action: Number of samples per action
+        metadata: VideoMetadata object
+        **kwargs: Additional sampling parameters
+
+    Returns:
+        List of (checkpoint, object_labels) tuples
+    """
+    sampler = ObjectRecognitionSampler(metadata)
+    return sampler.get_object_recognition_samples(
         checkpoints=checkpoints,
         video_name=video_name,
         samples_per_action=samples_per_action,
