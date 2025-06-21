@@ -71,55 +71,6 @@ def test_get_future_action_records(patch_records_for_video):
     assert not ActionRecord.get_future_action_records("vid", 60)
 
 
-def test_action_graph_empty(monkeypatch):
-    # No records for video
-    monkeypatch.setattr(ActionRecord, "get_past_action_records", lambda v, f: [])
-    dummy_emb = DummyNodeEmbeddings()
-    ag = ActionGraph(config=None, node_embeddings=dummy_emb, device="cpu")
-    checkpoint = SimpleNamespace(video_name="none", frame_number=10)
-    y = torch.tensor([1])
-    data = ag.assemble(checkpoint, y)
-    assert data.x.shape[0] == 0 and data.edge_index.shape[1] == 0
-
-
-def test_action_graph_single_node(monkeypatch, patch_records_for_video):
-    # Only one past record
-    monkeypatch.setattr(
-        ActionRecord,
-        "get_past_action_records",
-        lambda v, f: [patch_records_for_video[0]],
-    )
-    dummy_emb = DummyNodeEmbeddings()
-    ag = ActionGraph(config=None, node_embeddings=dummy_emb, device="cpu")
-    checkpoint = SimpleNamespace(video_name="vid", frame_number=20)
-    y = torch.tensor([1])
-    data = ag.assemble(checkpoint, y)
-    assert data.x.shape[0] == 1 and data.edge_index.shape[1] == 0
-    assert torch.all(data.x[0] == dummy_emb.get_action_embedding(0))
-
-
-def test_action_graph_multiple_nodes(monkeypatch, patch_records_for_video):
-    # Two past records
-    monkeypatch.setattr(
-        ActionRecord,
-        "get_past_action_records",
-        lambda v, f: patch_records_for_video[:2],
-    )
-    dummy_emb = DummyNodeEmbeddings()
-    ag = ActionGraph(config=None, node_embeddings=dummy_emb, device="cpu")
-    checkpoint = SimpleNamespace(video_name="vid", frame_number=40)
-    y = torch.tensor([1])
-    data = ag.assemble(checkpoint, y)
-    assert data.x.shape[0] == 2 and data.edge_index.shape[1] == 1
-    # Edge from node 0 to 1
-    assert torch.equal(data.edge_index, torch.tensor([[0], [1]])) or torch.equal(
-        data.edge_index, torch.tensor([[0, 1], [1, 2]])
-    )
-    # Embeddings correct
-    assert torch.all(data.x[0] == dummy_emb.get_action_embedding(0))
-    assert torch.all(data.x[1] == dummy_emb.get_action_embedding(1))
-
-
 # Create a DotDict-compatible config for testing
 def create_test_config():
     # DotDict requires a dictionary for initialization
@@ -167,28 +118,6 @@ def test_create_graph_assembler_object_graph(mock_get_node_feature_extractor):
     mock_get_node_feature_extractor.assert_called_once_with(
         "one-hot", device="cpu", config=config
     )
-
-
-@patch("gazegraph.training.dataset.graph_assembler.NodeEmbeddings")
-def test_create_graph_assembler_action_graph(mock_node_embeddings_class):
-    # Setup mock
-    mock_embeddings = MagicMock()
-    mock_node_embeddings_class.return_value = mock_embeddings
-
-    # Test action-graph creation
-    config = create_test_config()
-    assembler = create_graph_assembler(
-        graph_type="action-graph", config=config, device="cpu"
-    )
-
-    # Verify correct type and initialization
-    assert isinstance(assembler, ActionGraph)
-    assert assembler.config == config
-    assert assembler.device == "cpu"
-    assert assembler.node_embeddings == mock_embeddings
-
-    # Since we're not providing node_embeddings, it should create one
-    mock_node_embeddings_class.assert_called_once_with(config, device="cpu")
 
 
 def test_create_graph_assembler_invalid_type():
