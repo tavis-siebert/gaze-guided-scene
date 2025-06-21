@@ -4,7 +4,7 @@ from torch_geometric.data import Data
 import torch
 from gazegraph.datasets.egtea_gaze.video_processor import Video
 from gazegraph.graph.checkpoint_manager import GraphCheckpoint
-from typing import Tuple, Literal
+from typing import Tuple, Literal, Dict
 
 from gazegraph.training.dataset.node_features import (
     NodeFeatureExtractor,
@@ -44,7 +44,14 @@ class ObjectGraph(GraphAssembler):
 
     def assemble(self, checkpoint: GraphCheckpoint, y: torch.Tensor) -> Data:
         node_features = self._extract_node_features(checkpoint)
-        edge_index, edge_attr = self._extract_edge_features(checkpoint)
+
+        # Create mapping from original node IDs to consecutive indices
+        original_node_ids = sorted(checkpoint.nodes.keys())
+        node_id_mapping = {
+            original_id: new_id for new_id, original_id in enumerate(original_node_ids)
+        }
+
+        edge_index, edge_attr = self._extract_edge_features(checkpoint, node_id_mapping)
         return Data(x=node_features, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
     def _extract_node_features(self, checkpoint):
@@ -100,17 +107,29 @@ class ObjectGraph(GraphAssembler):
         return video
 
     def _extract_edge_features(
-        self, checkpoint: GraphCheckpoint
+        self, checkpoint: GraphCheckpoint, node_id_mapping: Dict[int, int]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         edge_feature_dim = 1
 
-        edge_list = (
-            [(e["source_id"], e["target_id"]) for e in checkpoint.edges]
-            if checkpoint.edges
-            else []
-        )
+        # Remap edge node IDs to consecutive indices
+        edge_list = []
+        if checkpoint.edges:
+            for e in checkpoint.edges:
+                source_id = e["source_id"]
+                target_id = e["target_id"]
+                # Only include edges where both nodes exist in the mapping
+                if source_id in node_id_mapping and target_id in node_id_mapping:
+                    remapped_source = node_id_mapping[source_id]
+                    remapped_target = node_id_mapping[target_id]
+                    edge_list.append((remapped_source, remapped_target))
+
         edge_attrs = (
-            [[e.get("angle", 0.0)] for e in checkpoint.edges]
+            [
+                [e.get("angle", 0.0)]
+                for e in checkpoint.edges
+                if e["source_id"] in node_id_mapping
+                and e["target_id"] in node_id_mapping
+            ]
             if checkpoint.edges
             else []
         )
@@ -206,8 +225,8 @@ class ActionGraph(GraphAssembler):
             edge_index = torch.zeros((2, 0), dtype=torch.long, device=self.device)
             edge_attr = torch.zeros((0, 1), dtype=torch.float, device=self.device)
 
-        assert edge_index.shape == (2, len(past_records)), (
-            f"edge_index.shape: {edge_index.shape}, expected (2, {len(past_records)})"
+        assert edge_index.shape == (2, len(past_records) - 1), (
+            f"edge_index.shape: {edge_index.shape}, expected (2, {len(past_records) - 1})"
         )
         assert edge_attr.shape == (len(past_records) - 1, 1), (
             f"edge_attr.shape: {edge_attr.shape}, expected ({len(past_records) - 1}, 1)"

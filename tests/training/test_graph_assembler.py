@@ -9,6 +9,7 @@ from gazegraph.training.dataset.graph_assembler import (
 )
 from gazegraph.training.dataset.node_features import NodeFeatureExtractor
 from gazegraph.config.config_utils import DotDict
+from gazegraph.graph.checkpoint_manager import GraphCheckpoint
 
 
 class DummyNodeEmbeddings:
@@ -69,6 +70,42 @@ def test_get_future_action_records(patch_records_for_video):
     assert not ActionRecord.get_future_action_records("vid", 60)
 
 
+@pytest.fixture
+def mock_node_feature_extractor():
+    """Mock node feature extractor for testing."""
+    extractor = MagicMock(spec=NodeFeatureExtractor)
+    extractor.feature_dim = 5
+    extractor.extract_features.return_value = torch.randn(3, 5)  # 3 nodes, 5 features
+    return extractor
+
+
+@pytest.fixture
+def mock_checkpoint_with_non_consecutive_ids():
+    """Create a mock checkpoint with non-consecutive node IDs that would cause index out of bounds."""
+    nodes = {
+        0: {"object_label": "object1", "visits": [[10, 20]]},
+        5: {"object_label": "object2", "visits": [[30, 40]]},
+        232: {"object_label": "object3", "visits": [[50, 60]]},  # High node ID
+    }
+
+    # Edges referencing the non-consecutive node IDs
+    edges = [
+        {"source_id": 0, "target_id": 5, "angle": 0.5},
+        {"source_id": 5, "target_id": 232, "angle": 1.0},  # This will cause issues
+    ]
+
+    return GraphCheckpoint(
+        nodes=nodes,
+        edges=edges,
+        adjacency={0: [5], 5: [232], 232: []},
+        frame_number=100,
+        non_black_frame_count=100,
+        video_name="test_video",
+        object_label_to_id={"object1": 0, "object2": 1, "object3": 2},
+        video_length=500,
+    )
+
+
 # Create a DotDict-compatible config for testing
 def create_test_config():
     # DotDict requires a dictionary for initialization
@@ -88,6 +125,46 @@ def create_test_config():
         }
     )
     return config
+
+
+def test_object_graph_with_non_consecutive_node_ids(
+    mock_checkpoint_with_non_consecutive_ids, mock_node_feature_extractor
+):
+    """Test that ObjectGraph handles non-consecutive node IDs correctly."""
+    config = create_test_config()
+
+    assembler = ObjectGraph(
+        node_feature_extractor=mock_node_feature_extractor,
+        object_node_feature="one-hot",
+        config=config,
+        device="cpu",
+    )
+
+    y = torch.tensor([1])  # Dummy target
+
+    # This should not raise an error and should produce valid edge indices
+    data = assembler.assemble(mock_checkpoint_with_non_consecutive_ids, y)
+
+    # Check that data components are not None
+    assert data.x is not None, "Node features should not be None"
+    assert data.edge_index is not None, "Edge index should not be None"
+    assert data.edge_attr is not None, "Edge attributes should not be None"
+
+    # Check that edge indices are within valid range
+    num_nodes = data.x.size(0)
+    max_edge_index = data.edge_index.max().item() if data.edge_index.numel() > 0 else -1
+
+    # This assertion should pass - edge indices should be < num_nodes
+    assert max_edge_index < num_nodes, (
+        f"Edge index {max_edge_index} >= num_nodes {num_nodes}"
+    )
+
+    # Verify the graph structure is valid
+    assert data.x.size(0) == 3  # Should have 3 nodes
+    assert data.edge_index.size(0) == 2  # Should be 2 x num_edges
+    assert data.edge_attr.size(0) == data.edge_index.size(
+        1
+    )  # Edge attributes should match edge count
 
 
 @patch("gazegraph.training.dataset.graph_assembler.get_node_feature_extractor")
