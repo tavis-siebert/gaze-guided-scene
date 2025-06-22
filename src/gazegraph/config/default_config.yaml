@@ -74,13 +74,13 @@ models:
 # Training
 training:
   batch_size: 128
-  num_epochs: 150
-  optimizer: "Adam"
+  num_epochs: 200
+  optimizer: "AdamW"
   lr: 0.001
   num_classes: 106
   num_heads: 4
-  hidden_dim: 256
-  num_layers: 3
+  hidden_dim: 512
+  num_layers: 4
   res_connect: false
   node_drop_p: 0
   max_nodes_droppable: 4
