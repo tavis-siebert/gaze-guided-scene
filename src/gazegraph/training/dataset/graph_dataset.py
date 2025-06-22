@@ -31,7 +31,7 @@ class GraphDataset(Dataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        object_node_feature: str = "roi-embeddings",
+        object_node_feature: str = "object-label-embeddings",
         action_node_feature: str = "action-label-embedding",
         device: str = "cuda",
         graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
@@ -40,13 +40,16 @@ class GraphDataset(Dataset):
         self.split = split
         self.config = config
         self.metadata = VideoMetadata(config)
-
-        if self.split == "val":
-            if not config or not hasattr(config, 'training') or not hasattr(config.training, 'val_timestamps'):
-                raise ValueError("Config or config.training.val_timestamps missing")
-            self.val_timestamps = config.training.val_timestamps
-            if self.val_timestamps is None:
-                raise ValueError("No validation timestamps provided")
+        
+        if (
+            not config
+            or not hasattr(config, "training")
+            or not hasattr(config.training, "val_timestamps")  # type: ignore
+        ):
+            raise ValueError("Config or config.training.val_timestamps missing")
+        self.val_timestamps = config.training.val_timestamps  # type: ignore
+        if self.val_timestamps is None:
+            raise ValueError("No validation timestamps provided")
 
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p
@@ -88,8 +91,12 @@ class GraphDataset(Dataset):
 
     def _add_train_samples(self, checkpoints: List[GraphCheckpoint], video_name: str):
         sampling_cfg = None
-        if self.config and hasattr(self.config, 'dataset') and hasattr(self.config.dataset, 'sampling'):
-            sampling_cfg = self.config.dataset.sampling
+        if (
+            self.config
+            and hasattr(self.config, "dataset")
+            and hasattr(self.config.dataset, "sampling")  # type: ignore
+        ):
+            sampling_cfg = self.config.dataset.sampling  # type: ignore
         else:
             raise ValueError("Sampling configuration not found in config")
         if getattr(sampling_cfg, 'random_seed', None) is not None:
@@ -109,16 +116,92 @@ class GraphDataset(Dataset):
     def _add_val_samples(self, checkpoints: List[GraphCheckpoint]):
         if not checkpoints:
             return
-        video_length = checkpoints[0].video_length
-        timestamp_frames = [int(r * video_length) for r in self.val_timestamps]
-        frame_to_cp = {cp.frame_number: cp for cp in checkpoints}
-        frames_sorted = sorted(frame_to_cp.keys())
-        for target in timestamp_frames:
-            idx = bisect_right(frames_sorted, target)
-            closest = frame_to_cp[frames_sorted[0]] if idx == 0 else frame_to_cp[frames_sorted[idx - 1]]
-            labels = closest.get_future_action_labels(closest.frame_number, self.metadata)
-            if labels is not None:
-                self.sample_tuples.append((closest, labels))
+
+        # For action_recognition and object_recognition tasks, use the same
+        # sampling approach as training to get ALL annotated actions
+        if self.task_mode in ["action_recognition", "object_recognition"]:
+            # Extract video name from checkpoint
+            video_name = checkpoints[0].video_name
+
+            # Get sampling configuration
+            sampling_cfg = (
+                self.config.dataset.sampling  # type: ignore
+                if hasattr(self.config, "dataset")
+                and hasattr(self.config.dataset, "sampling")  # type: ignore
+                else None
+            )
+
+            # Prepare sampling parameters
+            sampling_kwargs = {}
+            if sampling_cfg is not None:
+                if self.task_mode == "action_recognition":
+                    sampling_kwargs.update(
+                        {
+                            "action_completion_ratio": getattr(
+                                sampling_cfg, "action_completion_ratio", 1.0
+                            ),
+                            "min_nodes_threshold": getattr(
+                                sampling_cfg, "min_nodes_threshold", 1
+                            ),
+                            "visit_lookback_frames": getattr(
+                                sampling_cfg, "visit_lookback_frames", 0
+                            ),
+                        }
+                    )
+                elif self.task_mode == "object_recognition":
+                    sampling_kwargs.update(
+                        {
+                            "action_completion_ratio": getattr(
+                                sampling_cfg, "action_completion_ratio", 1.0
+                            ),
+                            "min_nodes_threshold": getattr(
+                                sampling_cfg, "min_nodes_threshold", 1
+                            ),
+                            "visit_lookback_frames": getattr(
+                                sampling_cfg, "visit_lookback_frames", 0
+                            ),
+                        }
+                    )
+            else:
+                # Fallback to default sampling parameters
+                sampling_kwargs = {
+                    "action_completion_ratio": 1.0,
+                    "min_nodes_threshold": 1,
+                    "visit_lookback_frames": 0,
+                }
+
+            # Use get_samples to get properly labeled samples for ALL actions
+            # Use "all" strategy to get all annotated actions, not just timestamp-based samples
+            samples = get_samples(
+                checkpoints=checkpoints,
+                video_name=video_name,
+                strategy="all",  # Use all annotated actions
+                samples_per_video=0,  # 0 means use all available samples
+                allow_duplicates=False,
+                oversampling=False,
+                metadata=self.metadata,
+                task_mode=self.task_mode,
+                **sampling_kwargs,
+            )
+            self.sample_tuples.extend(samples)
+        else:
+            # For future action tasks, use the original timestamp-based approach
+            video_length = checkpoints[0].video_length
+            timestamp_frames = [int(r * video_length) for r in self.val_timestamps]
+            frame_to_cp = {cp.frame_number: cp for cp in checkpoints}
+            frames_sorted = sorted(frame_to_cp.keys())
+            for target in timestamp_frames:
+                idx = bisect_right(frames_sorted, target)
+                closest = (
+                    frame_to_cp[frames_sorted[0]]
+                    if idx == 0
+                    else frame_to_cp[frames_sorted[idx - 1]]
+                )
+                labels = closest.get_future_action_labels(
+                    closest.frame_number, self.metadata
+                )
+                if labels is not None:
+                    self.sample_tuples.append((closest, labels))
 
     def len(self) -> int:
         """Get the number of samples in the dataset."""

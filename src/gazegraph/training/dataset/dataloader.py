@@ -18,10 +18,10 @@ def create_dataloader(
     action_node_feature: str = "action-label-embedding",
     device: str = "cuda",
     load_cached: bool = False,
-    graph_type: str = "object-graph"
+    graph_type: str = "object-graph",
 ) -> DataLoader:
     """Create a PyG DataLoader for graph data.
-    
+
     Args:
         root_dir: Root directory containing graph checkpoints
         split: Dataset split ("train" or "val")
@@ -32,7 +32,6 @@ def create_dataloader(
         device: Device to use for processing
         load_cached: Whether to load cached dataset from file
         graph_type: Type of graph dataset to use ("object-graph", "action-graph", or "action-object-graph")
-        
     Returns:
         PyG DataLoader
     """
@@ -40,18 +39,20 @@ def create_dataloader(
     shuffle = True if split == "train" else False
     node_drop_p = config.training.node_drop_p if split == "train" else 0.0
     max_droppable = config.training.max_nodes_droppable if split == "train" else 0
-    
+
     # Define cache file path
     cache_dir = Path(config.directories.data_dir) / "datasets"
     cache_dir.mkdir(parents=True, exist_ok=True)
+
     if graph_type == "action-graph":
         feature_type = action_node_feature
     elif graph_type == "object-graph":
         feature_type = object_node_feature
     else: 
         feature_type = action_node_feature + '_' + object_node_feature
+
     cache_file = cache_dir / f"graph-dataset-{split}-{graph_type}-{feature_type}.pth"
-    
+
     # Try to load cached dataset or create a new one
     if load_cached and cache_file.exists():
         logger.info(f"Loading cached dataset from {cache_file}")
@@ -59,7 +60,7 @@ def create_dataloader(
             dataset = torch.load(cache_file)
         except Exception as e:
             raise RuntimeError(f"Failed to load cached dataset: {e}")
-        
+
         fail = False
 
         # Check for configuration differences and warn and fail if needed
@@ -70,21 +71,33 @@ def create_dataloader(
             logger.warning(f"Cached dataset uses '{dataset.action_node_feature}' action features, but '{action_node_feature}' was requested")
             fail = True
         if dataset.task_mode != task_mode:
-            logger.warning(f"Cached dataset uses '{dataset.task_mode}' task mode, but '{task_mode}' was requested")
+            logger.warning(
+                f"Cached dataset uses '{dataset.task_mode}' task mode, but '{task_mode}' was requested"
+            )
             fail = True
         if dataset.node_drop_p != node_drop_p:
-            logger.warning(f"Cached dataset uses {dataset.node_drop_p} node_drop_p, but {node_drop_p} was requested")
+            logger.warning(
+                f"Cached dataset uses {dataset.node_drop_p} node_drop_p, but {node_drop_p} was requested"
+            )
             fail = True
         if dataset.max_droppable != max_droppable:
-            logger.warning(f"Cached dataset uses {dataset.max_droppable} max_droppable, but {max_droppable} was requested")
+            logger.warning(
+                f"Cached dataset uses {dataset.max_droppable} max_droppable, but {max_droppable} was requested"
+            )
             fail = True
         if dataset.graph_type != graph_type:
-            logger.warning(f"Cached dataset uses '{dataset.graph_type}' graph type, but '{graph_type}' was requested")
+            logger.warning(
+                f"Cached dataset uses '{dataset.graph_type}' graph type, but '{graph_type}' was requested"
+            )
             fail = True
-        
+
         if fail:
-            logger.warning("Cached dataset does not match requested parameters. Run again without --load_cached to create a new dataset.")
-            raise RuntimeError("Cached dataset does not match requested parameters. Rerun without --load_cached to create a new dataset.")
+            logger.warning(
+                "Cached dataset does not match requested parameters. Run again without --load_cached to create a new dataset."
+            )
+            raise RuntimeError(
+                "Cached dataset does not match requested parameters. Rerun without --load_cached to create a new dataset."
+            )
     else:
         if load_cached:
             logger.info(f"No cached dataset found at {cache_file}, creating new dataset")
@@ -100,10 +113,7 @@ def create_dataloader(
         num_workers = 0
 
     return DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers
+        dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers
     )
 
 
@@ -121,7 +131,7 @@ def create_new_dataset(
     graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
 ):
     """Create a new GraphDataset and optionally save it to cache.
-    
+
     Args:
         root_dir: Root directory containing graph checkpoints
         split: Dataset split ("train" or "val")
@@ -134,7 +144,6 @@ def create_new_dataset(
         device: Device to use for processing
         cache_file: Path to save the dataset cache
         graph_type: Type of graph dataset to use ("object-graph", "action-graph", or "action-object-graph")
-        
     Returns:
         GraphDataset: The newly created dataset
     """
@@ -151,19 +160,21 @@ def create_new_dataset(
         graph_type=graph_type,
     )
 
-    # Populate cache
+    # Populate dataset's cache
     logger.info(f"Populating data cache for {split} dataset")
     for i in tqdm(range(len(dataset))):
         _ = dataset[i]
     
+    # Save the dataset to cache if a cache file is provided
     # TODO this doesn't work as of now due to some issues with pickling in torch.save
     # future cleanups should use InMemoryDataset or store just the .cache attribute
     # currently left as is for compatability reasons
+
     if cache_file is not None:
         try:
             logger.info(f"Saving dataset to cache: {cache_file}")
             torch.save(dataset, cache_file)
         except Exception as e:
             logger.error(f"Failed to save dataset to cache: {e}")
-    
-    return dataset 
+
+    return dataset

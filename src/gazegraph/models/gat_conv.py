@@ -6,24 +6,26 @@ from torch_geometric.typing import Size
 
 from typing import Dict
 
+
 class GATBackbone(nn.Module):
-    '''
+    """
     An encoder backbone which can be modified with a head for different tasks
     or RNN (see ordered future tasks)
-    '''
+    """
+
     def __init__(
-        self, 
-        input_dim, 
-        hidden_dim, 
-        edge_dim, 
-        num_heads=1, 
-        num_layers=3, 
-        res_connect=False, 
-        heterogeneous=False, 
-        node_types=None, 
+        self,
+        input_dim,
+        hidden_dim,
+        edge_dim,
+        num_heads=1,
+        num_layers=3,
+        res_connect=False,
+        heterogeneous=False,
+        node_types=None,
         metadata=None,
     ):
-        super().__init__() 
+        super().__init__()
         assert hidden_dim % num_heads == 0, "hidden_dim must be divisible by num_heads"
 
         self.heterogeneous = heterogeneous
@@ -41,7 +43,13 @@ class GATBackbone(nn.Module):
                 )
             else:
                 self.GATLayers.append(
-                    gnn.GATv2Conv(in_channels=input_dim, out_channels=hidden_dim // num_heads, edge_dim=edge_dim, heads=num_heads, residual=res_connect)
+                    gnn.GATv2Conv(
+                        in_channels=input_dim,
+                        out_channels=hidden_dim // num_heads,
+                        edge_dim=edge_dim,
+                        heads=num_heads,
+                        residual=res_connect,
+                    )
                 )
             input_dim = hidden_dim
 
@@ -52,7 +60,7 @@ class GATBackbone(nn.Module):
         edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None, 
         batch: Size | Dict[str, Size]
     ):
-        '''
+        """
         if heterogeneous
             x, edge_index should be dicts;
             edge_attr should be a dict if edge features exist, else None;
@@ -60,12 +68,12 @@ class GATBackbone(nn.Module):
         else
             x, edge_index should be tensors;
             edge_attr should be a tensor if edge features exist, else None
-            batch should be a torch_geometric.Size object
-        '''
+            batch should be a Size instance returned by torch_geometric.loader.DataLoader
+        """
         if self.heterogeneous:
             for node_type, data in x.items():
                 x[node_type] = self.lin_dict[node_type](data).relu_()
-        
+
         for GATLayer in self.GATLayers:
             if self.heterogeneous:
                 x = GATLayer(x, edge_index)
@@ -74,16 +82,17 @@ class GATBackbone(nn.Module):
                 x = F.relu(x)
         return x
 
+
 class GATForClassification(nn.Module):
     def __init__(
-        self, 
-        num_classes, 
-        input_dim, 
-        hidden_dim, 
-        edge_dim, 
-        num_heads, 
-        num_layers, 
-        res_connect=False, 
+        self,
+        num_classes,
+        input_dim,
+        hidden_dim,
+        edge_dim,
+        num_heads,
+        num_layers,
+        res_connect=False,
         heterogeneous=False,
         node_types=None,
         metadata=None,
@@ -112,16 +121,15 @@ class GATForClassification(nn.Module):
         edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None, 
         batch: Size | Dict[str, Size]
     ):
-        '''
+        """
         if heterogeneous
             x, edge_index should be dicts;
             edge_attr should be a dict if edge features exist, else None;
             batch should be a dict of torch_geometric.Size objects
         else
-            x, edge_index should be tensors;
-            edge_attr should be a tensor if edge features exist, else None
-            batch should be a torch_geometric.Size object
-        '''
+            x, edge_index, edge_attr should be tensors;
+            batch should be a Size instance returned by torch_geometric.loader.DataLoader
+        """
         x = self.GAT(x, edge_index, edge_attr, batch)
         if self.heterogeneous:
             x = gnn.global_mean_pool(x['action'], batch['action'])

@@ -8,13 +8,14 @@ GazePosition = Tuple[int, int]
 EdgeFeature = torch.Tensor
 NodeId = int
 
+
 class Edge:
     """
     Represents a directed edge in the scene graph.
-    
+
     Each edge connects two nodes and stores information about the spatial
     relationship between them, such as angle, distance, and relative positions.
-    
+
     Attributes:
         source_id: The ID of the source node
         target_id: The ID of the target node
@@ -22,17 +23,18 @@ class Edge:
         curr_gaze_pos: Current gaze position (x,y)
         num_bins: Number of angle bins for discretization
     """
+
     def __init__(
         self,
         source_id: NodeId,
         target_id: NodeId,
         prev_gaze_pos: GazePosition,
         curr_gaze_pos: GazePosition,
-        num_bins: int = 8
+        num_bins: int = 8,
     ):
         """
         Initialize a new Edge.
-        
+
         Args:
             source_id: The ID of the source node
             target_id: The ID of the target node
@@ -45,7 +47,7 @@ class Edge:
         self.prev_gaze_pos = prev_gaze_pos
         self.curr_gaze_pos = curr_gaze_pos
         self.num_bins = num_bins
-    
+
     @property
     def angle(self) -> float:
         """
@@ -56,7 +58,7 @@ class Edge:
         curr_x, curr_y = self.curr_gaze_pos
         dx, dy = curr_x - prev_x, curr_y - prev_y
         return AngleUtils.get_angle_bin(dx, dy, self.num_bins)
-    
+
     @property
     def distance(self) -> float:
         """
@@ -67,7 +69,7 @@ class Edge:
         curr_x, curr_y = self.curr_gaze_pos
         dx, dy = curr_x - prev_x, curr_y - prev_y
         return np.sqrt(dx**2 + dy**2)
-    
+
     @staticmethod
     def create_bidirectional_edges(
         source_id: NodeId,
@@ -75,11 +77,11 @@ class Edge:
         is_root: bool,
         prev_gaze_pos: GazePosition,
         curr_gaze_pos: GazePosition,
-        num_bins: int = 8
-    ) -> Tuple['Edge', Optional['Edge']]:
+        num_bins: int = 8,
+    ) -> Tuple["Edge", Optional["Edge"]]:
         """
         Create bidirectional edges between two nodes.
-        
+
         Args:
             source_id: ID of the source node
             target_id: ID of the target node
@@ -87,21 +89,25 @@ class Edge:
             prev_gaze_pos: Previous gaze position (x,y)
             curr_gaze_pos: Current gaze position (x,y)
             num_bins: Number of angle bins
-            
+
         Returns:
             Tuple of (forward_edge, backward_edge)
             backward_edge is None if source is the root node
         """
-        forward_edge = Edge(source_id, target_id, prev_gaze_pos, curr_gaze_pos, num_bins)
+        forward_edge = Edge(
+            source_id, target_id, prev_gaze_pos, curr_gaze_pos, num_bins
+        )
         backward_edge = None
         if not is_root:
-            backward_edge = Edge(target_id, source_id, curr_gaze_pos, prev_gaze_pos, num_bins)
+            backward_edge = Edge(
+                target_id, source_id, curr_gaze_pos, prev_gaze_pos, num_bins
+            )
         return forward_edge, backward_edge
-    
+
     def get_features(self) -> Dict[str, Any]:
         """
         Get a dictionary of human-readable features for this edge.
-        
+
         Returns:
             Dictionary with basic edge information
         """
@@ -110,13 +116,13 @@ class Edge:
             "angle_degrees": AngleUtils.to_degrees(self.angle),
             "distance": self.distance,
             "prev_pos": self.prev_gaze_pos,
-            "curr_pos": self.curr_gaze_pos
+            "curr_pos": self.curr_gaze_pos,
         }
-    
+
     def get_feature_tensor(self) -> EdgeFeature:
         """
         Get features for this edge as a tensor, with values ready for machine learning.
-        
+
         Returns:
             Feature tensor containing:
             - Previous gaze position (x, y)
@@ -127,59 +133,55 @@ class Edge:
         features = self.get_features()
         prev_x, prev_y = features["prev_pos"]
         curr_x, curr_y = features["curr_pos"]
-        return torch.tensor([
-            prev_x, prev_y,
-            curr_x, curr_y
-        ])
-    
+        return torch.tensor([prev_x, prev_y, curr_x, curr_y])
+
     @staticmethod
-    def get_edges_tensor(edges: List['Edge']) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_edges_tensor(edges: List["Edge"]) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Convert a list of edges to tensor format.
-        
+
         Args:
             edges: List of Edge objects
-            
+
         Returns:
             Tuple of (edge_index, edge_attr)
         """
         if not edges:
-            return torch.tensor([[],[]], dtype=torch.long), torch.tensor([])
+            return torch.tensor([[], []], dtype=torch.long), torch.tensor([])
         edge_index = [[], []]
         for edge in edges:
             edge_index[0].append(edge.source_id)
             edge_index[1].append(edge.target_id)
         edge_attr = [edge.get_feature_tensor() for edge in edges]
         return torch.tensor(edge_index, dtype=torch.long), torch.stack(edge_attr)
-    
+
     def __eq__(self, other: object) -> bool:
         """
         Check if two edges are equal based on their endpoints.
-        
+
         Args:
             other: The other edge to compare with
-            
+
         Returns:
             True if the edges have the same source and target, False otherwise
         """
         if not isinstance(other, Edge):
             return False
-        return (self.source_id == other.source_id and 
-                self.target_id == other.target_id)
-    
+        return self.source_id == other.source_id and self.target_id == other.target_id
+
     def __hash__(self) -> int:
         """
         Hash function for Edge based on source and target IDs.
-        
+
         Returns:
             Hash value
         """
         return hash((self.source_id, self.target_id))
-    
+
     def __repr__(self) -> str:
         """
         String representation of the edge.
-        
+
         Returns:
             String representation
         """
