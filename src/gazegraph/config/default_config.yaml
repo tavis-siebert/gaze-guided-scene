@@ -66,30 +66,22 @@ models:
     model_dir: ${directories.scratch.egtea}/clip_model
     model_id: "openai/clip-vit-base-patch16"
   yolo_world:
-    backend: "onnx"  # "ultralytics" or "onnx"
-    paths:
-      onnx: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.onnx
-      ultralytics: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.pt
+    model_path: ${directories.scratch.egtea}/yolo_world_model/yolov8x-worldv2.onnx
     image_size: 640
-    onnx:
-      conf_threshold: 0.15
-      iou_threshold: 0.5
-    ultralytics:
-      conf_threshold: 0.15
-      iou_threshold: 0.5
+    conf_threshold: 0.15
+    iou_threshold: 0.5
 
 # Training
 training:
   batch_size: 128
-  num_epochs: 150
-  optimizer: "Adam"
+  num_epochs: 200
+  optimizer: "AdamW"
   lr: 0.001
   num_classes: 106
   num_heads: 4
-  hidden_dim: 256
-  num_layers: 3
+  hidden_dim: 512
+  num_layers: 4
   res_connect: false
-  node_dropping: true
   node_drop_p: 0
   max_nodes_droppable: 4
   # Validation set sampling timestamps (as ratios of video length)

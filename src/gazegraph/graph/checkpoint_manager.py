@@ -7,21 +7,23 @@ from gazegraph.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 @dataclass
 class GraphCheckpoint:
     """Encapsulates graph state at a specific timestamp.
 
     All context attributes (video_name, object_label_to_id, video_length) are required for correct operation.
     """
+
     # Graph structure
     nodes: Dict[int, Dict]
     edges: List[Dict]
     adjacency: Dict[int, List[int]]
-    
+
     # Metadata per checkpoint
     frame_number: int
     non_black_frame_count: int
-    
+
     # Shared video context - always required
     video_name: str
     object_label_to_id: Dict[str, int]
@@ -32,7 +34,6 @@ class GraphCheckpoint:
         """Return the number of object classes (computed from object_label_to_id)."""
         return len(self.object_label_to_id)
 
-    
     def to_dict(self) -> Dict:
         """Convert checkpoint to serializable dictionary without shared context."""
         return {
@@ -40,13 +41,13 @@ class GraphCheckpoint:
             "edges": self.edges,
             "adjacency": self.adjacency,
             "frame_number": self.frame_number,
-            "non_black_frame_count": self.non_black_frame_count
+            "non_black_frame_count": self.non_black_frame_count,
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict, context: Dict) -> 'GraphCheckpoint':
+    def from_dict(cls, data: Dict, context: Dict) -> "GraphCheckpoint":
         """Create checkpoint from dictionary with required shared context.
-        
+
         Args:
             data: Dictionary with checkpoint data
             context: Shared context data (must include video_name, object_label_to_id, video_length)
@@ -57,7 +58,9 @@ class GraphCheckpoint:
             context["object_label_to_id"] = context.pop("labels_to_int")
         missing = [k for k in required_keys if k not in context or context[k] is None]
         if missing:
-            raise ValueError(f"Missing required context keys for GraphCheckpoint: {missing}")
+            raise ValueError(
+                f"Missing required context keys for GraphCheckpoint: {missing}"
+            )
         return cls(
             nodes=data["nodes"],
             edges=data["edges"],
@@ -73,46 +76,53 @@ class GraphCheckpoint:
         """Compare checkpoints based on serialized graph state."""
         if not isinstance(other, GraphCheckpoint):
             return NotImplemented
-        return self.nodes == other.nodes and self.edges == other.edges and self.adjacency == other.adjacency
-    
-    def get_future_action_labels(self, frame_number: Optional[int] = None, metadata=None) -> Optional[Dict[str, torch.Tensor]]:
+        return (
+            self.nodes == other.nodes
+            and self.edges == other.edges
+            and self.adjacency == other.adjacency
+        )
+
+    def get_future_action_labels(
+        self, frame_number: Optional[int] = None, metadata=None
+    ) -> Optional[Dict[str, torch.Tensor]]:
         """Get future action labels for this checkpoint or a specific frame.
-        
+
         Args:
             frame_number: Optional frame number to use instead of the checkpoint's frame number
             metadata: VideoMetadata object to use for obtaining action labels
-            
+
         Returns:
             Dictionary containing action labels, or None if labels cannot be obtained
-            
+
         Raises:
             ValueError: If metadata is not provided or video_name is not set
         """
         if metadata is None:
             raise ValueError("VideoMetadata object must be provided")
-        
+
         if self.video_name is None:
             raise ValueError("Checkpoint must have video_name set")
-        
+
         # Use provided frame number or default to checkpoint's frame number
         frame = self.frame_number if frame_number is None else frame_number
-        
+
         # Get action labels from metadata
         return metadata.get_future_action_labels(self.video_name, frame)
 
+
 class CheckpointManager:
     """Manages the creation and storage of graph checkpoints."""
-    
+
     def __init__(
-        self, 
+        self,
         graph: Graph,
         gaze_data_length: int = None,
         video_name: str = "",
         output_dir: Optional[str] = None,
-        split: str = "train"
+        split: str = "train",
     ):
         """Initialize the checkpoint manager.
-        
+
         Args:
             graph: The graph to checkpoint
             gaze_data_length: Length of gaze data
@@ -126,42 +136,57 @@ class CheckpointManager:
         self.video_name = video_name
         self.split = split
         self.checkpoints = []
-        
+
         # Setup output directory if provided
         if output_dir:
             self.output_dir = Path(output_dir) / split
             self.output_dir.mkdir(parents=True, exist_ok=True)
         else:
             self.output_dir = None
-    
-    def _serialize_state(self) -> Tuple[Dict[int, Dict], List[Dict], Dict[int, List[int]]]:
+
+    def _serialize_state(
+        self,
+    ) -> Tuple[Dict[int, Dict], List[Dict], Dict[int, List[int]]]:
         """Serialize graph state for checkpoint comparison and creation."""
-        nodes = {nid: {"id": node.id, "object_label": node.object_label, "visits": node.visits}
-                 for nid, node in self.graph.nodes.items() if nid >= 0}
-        edges = [{"source_id": e.source_id, "target_id": e.target_id,
-                  "angle": e.angle, "prev_gaze_pos": e.prev_gaze_pos, "curr_gaze_pos": e.curr_gaze_pos}
-                 for e in self.graph.edges if e.source_id >= 0 and e.target_id >= 0]
+        nodes = {
+            nid: {
+                "id": node.id,
+                "object_label": node.object_label,
+                "visits": node.visits,
+            }
+            for nid, node in self.graph.nodes.items()
+            if nid >= 0
+        }
+        edges = [
+            {
+                "source_id": e.source_id,
+                "target_id": e.target_id,
+                "angle": e.angle,
+                "prev_gaze_pos": e.prev_gaze_pos,
+                "curr_gaze_pos": e.curr_gaze_pos,
+            }
+            for e in self.graph.edges
+            if e.source_id >= 0 and e.target_id >= 0
+        ]
         adjacency = {k: v for k, v in self.graph.adjacency.items()}
         return nodes, edges, adjacency
-    
+
     def create_checkpoint(
-        self,
-        frame_num: int,
-        non_black_frame_count: int
+        self, frame_num: int, non_black_frame_count: int
     ) -> Optional[GraphCheckpoint]:
         """Create a checkpoint of the current graph state.
-        
+
         Args:
             frame_num: Current frame number
             non_black_frame_count: Number of non-black frames processed
-            
+
         Returns:
             GraphCheckpoint object or None if checkpoint creation failed
         """
         if not self.graph.edges:
-            logger.info(f"Skipping checkpoint - no edges in graph")
+            logger.info("Skipping checkpoint - no edges in graph")
             return None
-            
+
         # Serialize current state for checkpoint
         nodes_data, edges_data, adjacency_data = self._serialize_state()
         checkpoint = GraphCheckpoint(
@@ -172,37 +197,33 @@ class CheckpointManager:
             non_black_frame_count=non_black_frame_count,
             video_name=self.video_name,
             object_label_to_id=self.graph.object_label_to_id,
-            video_length=self.graph.video_length
+            video_length=self.graph.video_length,
         )
-        
+
         self.checkpoints.append(checkpoint)
         self.last_checkpoint_frame = frame_num
-        
+
         # Log checkpoint creation
         self.graph.tracer.log_checkpoint_created(
-            frame_num,
-            self.graph.num_nodes,
-            len(self.graph.edges)
+            frame_num, self.graph.num_nodes, len(self.graph.edges)
         )
-        
+
         logger.info(f"\n[Frame {frame_num}] Created graph checkpoint")
-        logger.debug(f"Checkpoint created:")
+        logger.debug("Checkpoint created:")
         logger.debug(f"- Nodes: {self.graph.num_nodes}")
         logger.debug(f"- Edges: {len(self.graph.edges)}")
-        
+
         return checkpoint
-    
+
     def checkpoint_if_needed(
-        self,
-        frame_num: int,
-        non_black_frame_count: int
+        self, frame_num: int, non_black_frame_count: int
     ) -> Optional[GraphCheckpoint]:
         """Check if a checkpoint is needed and create one if necessary.
-        
+
         Args:
             frame_num: Current frame number
             non_black_frame_count: Number of non-black frames processed
-            
+
         Returns:
             Created checkpoint or None
         """
@@ -222,8 +243,7 @@ class CheckpointManager:
             non_black_frame_count=non_black_frame_count,
             video_name=self.video_name,
             object_label_to_id=self.graph.object_label_to_id,
-
-            video_length=self.graph.video_length
+            video_length=self.graph.video_length,
         )
         # Skip if no state change
         if temp_checkpoint == self.checkpoints[-1]:
@@ -231,54 +251,58 @@ class CheckpointManager:
             return None
         # State changed, create new checkpoint
         return self.create_checkpoint(frame_num, non_black_frame_count)
-    
+
     def save_checkpoints(self) -> Optional[str]:
         """Save all checkpoints to disk using a more portable format.
-        
+
         Returns:
             Path to the saved file or None if saving failed
         """
         if not self.output_dir or not self.checkpoints:
             return None
-        
+
         output_file = self.output_dir / f"{self.video_name}_graph.pth"
         logger.info(f"Saving {len(self.checkpoints)} checkpoints to {output_file}")
-        
+
         # Extract shared context data
         if self.checkpoints:
             first_checkpoint = self.checkpoints[0]
             context = {
                 "video_name": self.video_name,
                 "object_label_to_id": first_checkpoint.object_label_to_id,
-                "video_length": first_checkpoint.video_length
+                "video_length": first_checkpoint.video_length,
             }
         else:
             context = {}
-        
+
         # Create the portable dictionary format
         checkpoint_data = {
             "context": context,
-            "checkpoints": [cp.to_dict() for cp in self.checkpoints]
+            "checkpoints": [cp.to_dict() for cp in self.checkpoints],
         }
-        
+
         torch.save(checkpoint_data, output_file)
         return str(output_file)
-    
+
     @staticmethod
     def load_checkpoints(file_path: str) -> List[GraphCheckpoint]:
         """Load checkpoints from disk.
-        
+
         Args:
             file_path: Path to the checkpoint file
-            
+
         Returns:
             List of GraphCheckpoint objects
         """
         data = torch.load(file_path, weights_only=False)
-        
+
         if isinstance(data, dict) and "checkpoints" in data:
             context = data.get("context", {})
-            return [GraphCheckpoint.from_dict(cp, context) for cp in data["checkpoints"]]
+            return [
+                GraphCheckpoint.from_dict(cp, context) for cp in data["checkpoints"]
+            ]
         else:
-            logger.error(f"Unsupported checkpoint format in {file_path}. Use the conversion script.")
-            return [] 
+            logger.error(
+                f"Unsupported checkpoint format in {file_path}. Use the conversion script."
+            )
+            return []

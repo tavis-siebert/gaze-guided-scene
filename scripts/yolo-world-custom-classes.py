@@ -2,12 +2,14 @@ from ultralytics import YOLOWorld
 from pathlib import Path
 from PIL import Image
 import numpy as np
+import os
 
-model_dir = Path("/work/courses/3dv/36/egtea_gaze/yolo_world_model/")
+# Use environment variable or fallback to local path
+model_dir = Path(os.environ.get("YOLO_MODEL_DIR", "data/models/yolo_world_model"))
 model_name = "yolov8x-worldv2.pt"
 custom_model_name = "custom_yolov8x-worldv2.pt"
 image_path = "data/tests/yolo-world/knife-hand-plate-tomato.png"
-nouns_file = "data/egtea_gaze/action_annotation/noun_idx.txt" # format: noun idx
+nouns_file = "data/egtea_gaze/action_annotation/noun_idx.txt"  # format: noun idx
 
 with open(nouns_file, "r") as f:
     nouns = f.readlines()
@@ -17,15 +19,15 @@ print(classes)
 
 image = Image.open(image_path)
 
-model = YOLOWorld(model_dir / model_name)
+model = YOLOWorld(str(model_dir / model_name))
 model.set_classes(classes)
-model.save(model_dir / custom_model_name)
+model.save(str(model_dir / custom_model_name))
 del model
 
-model = YOLOWorld(model_dir / model_name)
+model = YOLOWorld(str(model_dir / model_name))
 model.set_classes(classes)
 
-custom_model = YOLOWorld(model_dir / custom_model_name)
+custom_model = YOLOWorld(str(model_dir / custom_model_name))
 
 
 def print_top_k_classes(results, mean_top_k=5):
@@ -39,12 +41,12 @@ def print_top_k_classes(results, mean_top_k=5):
 
 
 for i in range(3):
-    print(f"Original model {i+1}")
+    print(f"Original model {i + 1}")
     results = model.predict(image)
     print_top_k_classes(results)
 
     print("-" * 40)
-    print(f"Custom model {i+1}")
+    print(f"Custom model {i + 1}")
     custom_results = custom_model.predict(image, half=True, augment=True)
     print_top_k_classes(custom_results)
 

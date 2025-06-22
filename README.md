@@ -11,6 +11,8 @@ This project builds scene graphs from egocentric video and gaze data to capture 
 3. Extracts features at specified timestamps for downstream tasks
 4. Provides interactive visualization of the graph construction process
 
+Note: Refer to "Quick Start" section for instructions on how to visualize the graph construction process using the provided sample data.
+
 ## Project Structure
 
 ```
@@ -32,10 +34,7 @@ src/gazegraph/               # Main package code
 ├── logger.py, main.py       # Logging and main entry point
 └── setup_scratch.py         # Dataset setup utilities
 
-datasets/graphs/             # Generated scene graph files
-├── train/                   # Training data
-└── val/                     # Validation data
-
+datasets/sample_data/         # Sample data for graph visualization
 figures/                     # Documentation and visualization outputs
 scripts/                     # Utility and build scripts  
 tests/                       # Test suite with component-specific tests and fixtures
@@ -50,6 +49,9 @@ tests/                       # Test suite with component-specific tests and fixt
 - [uv package manager](https://astral.sh/uv) (setup scripts will install if not present)
 
 ### Quick Start
+
+> **Note:** The graph visualization only requires the raw video file and corresponding trace file to be present, which we provide in `datasets/sample_data/`. All other steps, except for the environment setup, are optional.
+
 
 1. **Setup environment**:
    Choose the appropriate setup script based on your environment:
@@ -109,10 +111,15 @@ tests/                       # Test suite with component-specific tests and fixt
    scripts/run.sh train --task next_action
    ```
 
-6. **Visualize graph construction** (requires prior trace generation):
+6. **Visualize graph construction**
+
+   To visualize the graph construction process e.g. using the sample data:
    ```bash
-   scripts/run.sh visualize --video-name VIDEO_NAME
+   scripts/run.sh visualize --video-path datasets/sample_data/OP03-R02-TurkeySandwich.mp4 --trace-path datasets/sample_data/OP03-R02-TurkeySandwich_trace.jsonl
    ```
+
+   The interactive dashboard should now be available at http://127.0.0.1:8050/
+   
 
 ## Configuration System
 
