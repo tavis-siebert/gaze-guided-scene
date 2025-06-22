@@ -29,10 +29,10 @@ def get_samples(
     samples_per_video: int,
     allow_duplicates: bool,
     oversampling: bool,
-    metadata: VideoMetadata
+    metadata: VideoMetadata,
 ) -> List[Tuple[GraphCheckpoint, Dict]]:
     """Sample checkpoints according to the specified strategy.
-    
+
     Args:
         checkpoints: List of checkpoints to sample from
         video_name: Name of the video
@@ -41,10 +41,10 @@ def get_samples(
         allow_duplicates: Whether to allow duplicate samples
         oversampling: Whether to sample from all frames (not just checkpoint frames)
         metadata: VideoMetadata object to get valid frame ranges
-    
+
     Returns:
         List of tuples (checkpoint, action_labels), where action_labels is pre-computed future action labels.
-    
+
     Raises:
         ValueError: If the strategy is not recognized
     """
@@ -54,7 +54,7 @@ def get_samples(
     checkpoints_sorted = sorted(checkpoints, key=lambda x: x.frame_number)
 
     # Handle action recognition sampling
-    if task_mode == "action_recognition":
+    if strategy == "action_recognition":
         return get_action_recognition_samples(
             checkpoints=checkpoints_sorted,
             video_name=video_name,
@@ -64,7 +64,7 @@ def get_samples(
         )
 
     # Handle object recognition sampling
-    if task_mode == "object_recognition":
+    if strategy == "object_recognition":
         return get_object_recognition_samples(
             checkpoints=checkpoints_sorted,
             video_name=video_name,
@@ -79,7 +79,9 @@ def get_samples(
         try:
             start_frame, end_frame = metadata.get_action_frame_range(video_name)
             valid_frames = range(start_frame, end_frame + 1)
-            potential = _potential_from_oversampling(checkpoints_sorted, valid_frames, metadata)
+            potential = _potential_from_oversampling(
+                checkpoints_sorted, valid_frames, metadata
+            )
         except ValueError:
             logger.info("Falling back to checkpoint sampling due to metadata error.")
             potential = _potential_from_checkpoints(checkpoints_sorted, metadata)
@@ -90,7 +92,9 @@ def get_samples(
     return _sample_potential(potential, strategy, samples_per_video, allow_duplicates)
 
 
-def _potential_from_checkpoints(checkpoints: List[GraphCheckpoint], metadata: VideoMetadata):
+def _potential_from_checkpoints(
+    checkpoints: List[GraphCheckpoint], metadata: VideoMetadata
+):
     """Build all valid (checkpoint, labels) pairs from checkpoints."""
     return [
         (cp, labels)
@@ -98,7 +102,10 @@ def _potential_from_checkpoints(checkpoints: List[GraphCheckpoint], metadata: Vi
         if (labels := cp.get_future_action_labels(cp.frame_number, metadata)) and labels
     ]
 
-def _potential_from_oversampling(checkpoints: List[GraphCheckpoint], valid_frames, metadata: VideoMetadata):
+
+def _potential_from_oversampling(
+    checkpoints: List[GraphCheckpoint], valid_frames, metadata: VideoMetadata
+):
     """Build all valid (checkpoint, labels) pairs for oversampling frames."""
     potential = []
     for frame in valid_frames:
@@ -110,6 +117,7 @@ def _potential_from_oversampling(checkpoints: List[GraphCheckpoint], valid_frame
         if labels:
             potential.append((cp, labels))
     return potential
+
 
 def _sample_potential(potential, strategy, samples_per_video, allow_duplicates):
     """Sample from potential samples based on strategy."""
