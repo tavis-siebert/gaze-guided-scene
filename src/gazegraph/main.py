@@ -116,7 +116,7 @@ def setup_parser() -> argparse.ArgumentParser:
         "--object-node-feature",
         type=str,
         choices=["one-hot", "roi-embeddings", "object-label-embeddings"],
-        default="one-hot",
+        default="object-label-embeddings",
         help="Type of object node features to use (default: one-hot)",
     )
     train_parser.add_argument(
