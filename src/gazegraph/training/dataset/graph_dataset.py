@@ -1,9 +1,8 @@
 import random
-import torch
 from pathlib import Path
 from typing import List, Optional, Tuple, Literal
-from torch_geometric.data import Data, Dataset
-from gazegraph.training.dataset.graph_assembler import create_graph_assembler, GraphAssembler
+from torch_geometric.data import Data, Dataset, InMemoryDataset
+from gazegraph.training.dataset.graph_assembler import create_graph_assembler
 from tqdm import tqdm
 import numpy as np
 from bisect import bisect_right
@@ -26,22 +25,22 @@ class GraphDataset(Dataset):
         config: DotDict,
         root_dir: str,
         split: str = "train",
-        val_timestamps: Optional[List[float]] = None,
         task_mode: str = "future_actions",
         node_drop_p: float = 0.0,
         max_droppable: int = 0,
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        object_node_feature: str = "one-hot",
+        object_node_feature: str = "object-label-embeddings",
         action_node_feature: str = "action-label-embedding",
         device: str = "cuda",
-        graph_type: Literal["object-graph", "action-graph"] = "object-graph"
+        graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
     ):
-        self.root_dir = Path(root_dir) / split
+        self.root_dir = Path(root_dir) / split  # use `/ (split + "_small")` if you want to test
         self.split = split
         self.config = config
         self.metadata = VideoMetadata(config)
+        
         if (
             not config
             or not hasattr(config, "training")
@@ -51,16 +50,19 @@ class GraphDataset(Dataset):
         self.val_timestamps = config.training.val_timestamps  # type: ignore
         if self.val_timestamps is None:
             raise ValueError("No validation timestamps provided")
+
         self.task_mode = task_mode
         self.node_drop_p = node_drop_p
         self.max_droppable = max_droppable
         self.device = device
+
         self.object_node_feature = object_node_feature
         self.action_node_feature = action_node_feature
         self.graph_type = graph_type
         self.checkpoint_files = list(self.root_dir.glob("*_graph.pth"))
         if not hasattr(self, 'sample_tuples'): # Exists if loaded from cache
             self.sample_tuples : List[Tuple[GraphCheckpoint, dict]] = []
+
         self._load_and_collect_samples()
         # Create the appropriate graph assembler based on the graph type
         self._assembler = create_graph_assembler(
@@ -68,7 +70,8 @@ class GraphDataset(Dataset):
             config=self.config,
             device=self.device,
             object_node_feature=self.object_node_feature,
-            action_node_feature=self.action_node_feature
+            action_node_feature=self.action_node_feature,
+            split=self.split    # primarily for loading caches in heterogeneous graphs
         )
         self._data_cache = {}
         super().__init__(root=str(self.root_dir), transform=transform, pre_transform=pre_transform, pre_filter=pre_filter)
@@ -211,7 +214,8 @@ class GraphDataset(Dataset):
         checkpoint, action_labels = self.sample_tuples[idx]
         y = action_labels[self.task_mode]
         data = self._assembler.assemble(checkpoint, y)
-        data = self._apply_augmentations(data)
+        if self.graph_type != "action-object-graph":    #TODO handle aug for hetero
+            data = self._apply_augmentations(data)
         self._data_cache[idx] = data
         return data
 

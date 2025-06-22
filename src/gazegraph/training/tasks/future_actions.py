@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import numpy as np
@@ -35,15 +36,25 @@ class FutureActionsTask(BaseTask):
         )
 
         # Log overall metrics
-        self.log_metric("train_loss", epoch_loss / num_samples, epoch)
-        self.log_metric("train_recall", train_recall, epoch)
-        self.log_metric("train_precision", train_precision, epoch)
-        self.log_metric("train_mAP", train_mAP, epoch)
+        self.log_metric('train_loss', epoch_loss / num_samples, epoch)
+        self.log_metric('train_recall', train_recall, epoch)
+        self.log_metric('train_precision', train_precision, epoch)
+        self.log_metric('train_mAP', train_mAP, epoch)
+        
+        self.log_metric('test_recall', test_recall, epoch)
+        self.log_metric('test_precision', test_precision, epoch)
+        self.log_metric('test_mAP', test_mAP, epoch)
 
-        self.log_metric("test_recall", test_recall, epoch)
-        self.log_metric("test_precision", test_precision, epoch)
-        self.log_metric("test_mAP", test_mAP, epoch)
-
+        # save best models
+        if test_mAP >= max(self.metrics["test_mAP"]):
+            model_save_path = os.path.join(self.writer.file_writer.get_logdir(), "bestl_model.pt")
+            state = {
+                'config': self.config.to_dict(),
+                'state_dict': self.model.state_dict()
+            }
+            torch.save(state, model_save_path)
+            self.logger.info(f"Epoch {epoch}: Best model saved")
+        
         # Log per-class metrics
         if epoch % 5 == 0:  # Log detailed metrics every 5 epochs to avoid cluttering
             # Log per-class metrics using human-readable action names

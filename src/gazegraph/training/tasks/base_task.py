@@ -15,7 +15,16 @@ from logger import get_logger
 from pathlib import Path
 
 class BaseTask:
-    def __init__(self, config, device, task_name, object_node_feature="one-hot", action_node_feature="action-label-embedding", load_cached=False, graph_type: Literal["object-graph", "action-graph"] = "object-graph"):
+    def __init__(
+        self,
+        config, 
+        device, 
+        task_name, 
+        object_node_feature="roi-embedding",
+        action_node_feature="action-label-embedding", 
+        load_cached=False, 
+        graph_type: Literal["object-graph", "action-graph", "action-object-graph"] = "object-graph"
+    ):
         self.task = task_name
         self.device = device
         self.config = config
@@ -25,9 +34,11 @@ class BaseTask:
         self.action_node_feature = action_node_feature
         self.load_cached = load_cached
         self.graph_type = graph_type
+
+        self.heterogeneous = True if graph_type == 'action-object-graph' else False
         
         self.logger.info(f"Using object node feature type: {object_node_feature}")
-        if self.graph_type == "action-graph":
+        if "action" in self.graph_type:
             self.logger.info(f"Using action node feature type: {action_node_feature}")
         self.logger.info(f"Using graph type: {graph_type}")
         
@@ -35,6 +46,7 @@ class BaseTask:
         self._setup_data()
         
         # Initialize model
+        self._setup_model_params()
         self.model = GATForClassification(
             self.num_classes,
             self.input_dim, 
@@ -42,7 +54,10 @@ class BaseTask:
             self.edge_dim, 
             self.num_heads, 
             self.num_layers, 
-            self.res_connect
+            self.res_connect,
+            self.heterogeneous,
+            self.node_types,
+            self.metadata
         )
         self.model.to(self.device)
         
@@ -59,7 +74,7 @@ class BaseTask:
     def _setup_tensorboard_writer(self):
         """Setup tensorboard writer with unique run directory"""
         # Create base log directory for the task
-        base_log_dir = os.path.join('logs', f'{self.task}')
+        base_log_dir = os.path.join('logs', f'{self.task}', f'{self.graph_type}')
         
         # Find the next available run directory
         run_dirs = [d for d in os.listdir(base_log_dir) if os.path.isdir(os.path.join(base_log_dir, d)) and d.startswith('run_')] if os.path.exists(base_log_dir) else []
@@ -110,32 +125,39 @@ class BaseTask:
             graph_type=self.graph_type
         )
         
-        # Extract dimensions from data
-        train_dataset = self.train_loader.dataset
-        sample = train_dataset[0]
-        self.input_dim = sample.x.shape[1]
-        self.edge_dim = sample.edge_attr.shape[1]
-        self.hidden_dim = self.config.training.hidden_dim
-        self.num_heads = self.config.training.num_heads
-        self.num_layers = self.config.training.num_layers
-        self.res_connect = self.config.training.res_connect
+        self.logger.info(f"Loaded train dataset with {len(self.train_loader.dataset)} samples")
+        self.logger.info(f"Loaded validation dataset with {len(self.test_loader.dataset)} samples")
+    
+    def _setup_model_params(self):
+        sample = self.train_loader.dataset[0]
 
-        self.logger.info(f"Loaded train dataset with {len(train_dataset)} samples")  # type: ignore
-        self.logger.info(
-            f"Loaded validation dataset with {len(self.test_loader.dataset)} samples"  # type: ignore
-        )
+        #TODO input dim is a placeholder for now, can maybe specify in config later
+        self.input_dim   = 768 if self.heterogeneous else sample.x.shape[1]
+        self.edge_dim    = None if self.heterogeneous else sample.edge_attr.shape[1]
+        self.hidden_dim  = self.config.training.hidden_dim
+        self.num_heads   = self.config.training.num_heads
+        self.num_layers  = self.config.training.num_layers
+        self.res_connect = self.config.training.res_connect
+        self.node_types  = sample.node_types if self.heterogeneous else None
+        self.metadata    = sample.metadata() if self.heterogeneous else None
 
     def _transfer_batch_to_device(self, data):
         """Transfer batch data to device"""
-        x, edge_index, edge_attr, y, batch = data.x, data.edge_index, data.edge_attr, data.y, data.batch
-        edge_attr = edge_attr.to(x.dtype)
-        return (
-            x.to(self.device),
-            edge_index.to(self.device),
-            edge_attr.to(self.device),
-            y.to(self.device),
-            batch.to(self.device)
-        )
+        if self.heterogeneous:
+            data = data.to(self.device)
+            x = data.x_dict
+            edge_index = data.edge_index_dict
+            edge_attr = None
+            y = data.y
+            batch = data.batch_dict
+        else:
+            x = data.x.to(self.device)
+            edge_index = data.edge_index.to(self.device)
+            edge_attr = data.edge_attr.to(self.device).to(x.dtype)
+            y = data.y.to(self.device)
+            batch = data.batch.to(self.device)
+        
+        return (x, edge_index, edge_attr, y, batch)
     
     @contextlib.contextmanager
     def evaluation_mode(self):
@@ -316,14 +338,21 @@ class BaseTask:
             # Log progress at specified intervals
             if (epoch + 1) % 5 == 0 or epoch == 0:
                 self.print_progress(epoch, epoch_loss, num_samples)
+        
+        # Log final metrics
+        self.logger.info("Best Scores")
+        self.log_separator(sep='=')
+        for metric, metric_values in self.metrics.items():
+            if "loss" not in metric:
+                self.log_metric_row(metric, max(metric_values))
     
     def log_metric_row(self, label, value):
         """Log a formatted metric row"""
         self.logger.info(f"{label}: {value:.6f}")
     
-    def log_separator(self):
+    def log_separator(self, sep='-'):
         """Log a separator line"""
-        self.logger.info('-' * 12)
+        self.logger.info(sep * 12)
     
     def compute_loss(self, output, y):
         """Compute loss - to be implemented by subclasses"""

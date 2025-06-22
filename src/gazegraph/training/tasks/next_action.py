@@ -1,3 +1,5 @@
+import os
+import torch
 import torch.nn as nn
 from gazegraph.training.tasks.base_task import BaseTask
 from gazegraph.datasets.egtea_gaze.action_record import ActionRecord
@@ -36,6 +38,16 @@ class NextActionTask(BaseTask):
         self.log_metric("train_top5_acc", train_top5_acc, epoch)
         self.log_metric("test_acc", test_acc, epoch)
         self.log_metric("test_top5_acc", test_top5_acc, epoch)
+        
+        # Save best model
+        if test_acc >= max(self.metrics['test_acc']):
+            model_save_path = os.path.join(self.writer.file_writer.get_logdir(), "bestl_model.pt")
+            state = {
+                'config': self.config.to_dict(),
+                'state_dict': self.model.state_dict()
+            }
+            torch.save(state, model_save_path)
+            self.logger.info(f"Epoch {epoch}: Best model saved")
 
         # Log per-class metrics every 5 epochs
         if epoch % 5 == 0:

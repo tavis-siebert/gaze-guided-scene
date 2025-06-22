@@ -93,7 +93,8 @@ external:
     dropbox_cropped_clips: "https://www.dropbox.com/scl/fi/97r0kjz65wb6xf0mjpcd0/video_clips.tar?rlkey=flcqqd91lyxtm6nlsh4vjzvkq&e=1&dl=0"
     dropbox_video_links: "https://www.dropbox.com/scl/fi/o7mrc7okncgoz14a49e5q/video_links.txt?rlkey=rcz1ffw4eoibod8mmyj1nmyot&e=1&dl=0"
     ego_topo_repo: "https://github.com/facebookresearch/ego-topo.git"
-    yolo_world_model: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
+    yolo_world_model_onnx: "https://github.com/Ziad-Algrafi/ODLabel/raw/main/assets/yolov8x-worldv2.onnx?download="
+    yolo_world_model_ultralytics: "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8x-worldv2.pt"
 
 # Processing settings
 processing:

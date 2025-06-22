@@ -452,7 +452,8 @@ class NodeEmbeddings:
             )
 
             # Save the object label embeddings cache
-            self._save_object_label_embeddings_cache()
+            if not self.object_label_embedding_path.exists():
+                self._save_object_label_embeddings_cache()
         else:
             logger.warning(
                 "No noun labels found for prepopulating object label embeddings cache"
@@ -477,7 +478,8 @@ class NodeEmbeddings:
             )
 
             # Save the action label embeddings cache
-            self._save_action_label_embeddings_cache()
+            if not self.action_label_embedding_path.exists():
+                self._save_action_label_embeddings_cache()
         else:
             logger.warning(
                 "No action names found for prepopulating action label embeddings cache"

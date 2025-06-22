@@ -36,6 +36,7 @@ class ClipModel:
             jit=jit,
             download_root=download_root,  # type: ignore
         )
+        logger.info(f"Loaded CLIP model: {name}")
 
     def encode_texts(self, texts: List[str]) -> List[torch.Tensor]:
         """Encode text inputs using CLIP.

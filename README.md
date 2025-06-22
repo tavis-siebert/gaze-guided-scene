@@ -75,7 +75,7 @@ tests/                       # Test suite with component-specific tests and fixt
    - Create an app at [Dropbox App Console](https://www.dropbox.com/developers/apps/)
    - Enable `sharing.read` permission
    - Generate an OAuth 2.0 token
-   - Add to `.env` file: 
+   - Create a `.env` file in the project root and add the following: 
      ```
      # Dropbox token for dataset downloads
      DROPBOX_TOKEN=your_token_here

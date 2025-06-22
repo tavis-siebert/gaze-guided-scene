@@ -54,21 +54,21 @@ class GATBackbone(nn.Module):
             input_dim = hidden_dim
 
     def forward(
-        self,
-        x: torch.Tensor | Dict[str, torch.Tensor],
-        edge_index: torch.Tensor | Dict[str, torch.Tensor],
-        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None,
-        batch: Size | None,
+        self, 
+        x: torch.Tensor | Dict[str, torch.Tensor], 
+        edge_index: torch.Tensor | Dict[str, torch.Tensor], 
+        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None, 
+        batch: Size | Dict[str, Size]
     ):
         """
         if heterogeneous
             x, edge_index should be dicts;
             edge_attr should be a dict if edge features exist, else None;
-            batch should be None
+            batch should be a dict of torch_geometric.Size objects
         else
             x, edge_index should be tensors;
             edge_attr should be a tensor if edge features exist, else None
-            batch should be a Size instanc returned by torch_geometric.loader.DataLoader
+            batch should be a Size instance returned by torch_geometric.loader.DataLoader
         """
         if self.heterogeneous:
             for node_type, data in x.items():
@@ -94,7 +94,7 @@ class GATForClassification(nn.Module):
         num_layers,
         res_connect=False,
         heterogeneous=False,
-        node_type=None,
+        node_types=None,
         metadata=None,
     ):
         super().__init__()
@@ -109,33 +109,34 @@ class GATForClassification(nn.Module):
             num_layers=num_layers,
             res_connect=res_connect,
             heterogeneous=heterogeneous,
-            node_types=node_type,
+            node_types=node_types,
             metadata=metadata,
         )
         self.fc = nn.Linear(hidden_dim, num_classes)
 
     def forward(
-        self,
-        x: torch.Tensor | Dict[str, torch.Tensor],
-        edge_index: torch.Tensor | Dict[str, torch.Tensor],
-        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None,
-        batch: Size | None,
+        self, 
+        x: torch.Tensor | Dict[str, torch.Tensor], 
+        edge_index: torch.Tensor | Dict[str, torch.Tensor], 
+        edge_attr: torch.Tensor | Dict[str, torch.Tensor] | None, 
+        batch: Size | Dict[str, Size]
     ):
         """
         if heterogeneous
-            x, edge_index, edge_attr should be dicts;
-            batch should be None
+            x, edge_index should be dicts;
+            edge_attr should be a dict if edge features exist, else None;
+            batch should be a dict of torch_geometric.Size objects
         else
             x, edge_index, edge_attr should be tensors;
-            batch should be a Size instanc returned by torch_geometric.loader.DataLoader
+            batch should be a Size instance returned by torch_geometric.loader.DataLoader
         """
         x = self.GAT(x, edge_index, edge_attr, batch)
         if self.heterogeneous:
-            # NOTE currently using last action's embedding as context
-            # we can edit this in the future to whatever works better (e.g. pool all actions)
-            x = self.fc(x["action"][-1])
+            x = gnn.global_mean_pool(x['action'], batch['action'])
         else:
             x = gnn.global_mean_pool(x, batch)
-            # NOTE if doing BCE, use BCEWithLogits. This is done to keep one model for both BCE and CE loss
-            x = self.fc(x)
+            
+        #NOTE if training with BCE, use BCEWithLogits.
+        # This is done to keep one model for both BCE and CE loss
+        x = self.fc(x)
         return x

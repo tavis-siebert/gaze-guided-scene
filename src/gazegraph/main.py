@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import sys
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -11,7 +12,6 @@ import multiprocessing as mp
 logger = None
 
 mp.set_start_method("spawn", force=True)
-
 
 def setup_parser() -> argparse.ArgumentParser:
     load_dotenv()
@@ -106,11 +106,11 @@ def setup_parser() -> argparse.ArgumentParser:
         help="Task to train the model on",
     )
     train_parser.add_argument(
-        "--graph-type",
-        type=str,
-        choices=["object-graph", "action-graph"],
+        "--graph-type", 
+        type=str, 
+        choices=["object-graph", "action-graph", 'action-object-graph'],
         default="object-graph",
-        help="Type of graph dataset to use (default: object-graph)",
+        help="Type of graph dataset to use (default: object-graph)"
     )
     train_parser.add_argument(
         "--object-node-feature",
@@ -131,6 +131,7 @@ def setup_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Load cached GraphDataset from files in data/datasets/",
     )
+
 
     # Visualization command
     visualize_parser = subparsers.add_parser(
