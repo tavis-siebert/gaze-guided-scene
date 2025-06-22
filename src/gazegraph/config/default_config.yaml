@@ -87,7 +87,6 @@ training:
   hidden_dim: 256
   num_layers: 3
   res_connect: false
-  node_dropping: true
   node_drop_p: 0
   max_nodes_droppable: 4
   # Validation set sampling timestamps (as ratios of video length)
