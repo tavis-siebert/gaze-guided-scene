@@ -20,7 +20,6 @@ class Dashboard:
         trace_file_path: str,
         video_path: Optional[str] = None,
         play_interval_ms: int = DEFAULT_PLAY_INTERVAL_MS,
-        action_mapping_path: str = None,
         verb_idx_file: Optional[str] = None,
         noun_idx_file: Optional[str] = None,
         train_split_file: Optional[str] = None,
@@ -32,7 +31,6 @@ class Dashboard:
             trace_file_path: Path to the trace file
             video_path: Optional path to the video file
             play_interval_ms: Interval between frame updates in milliseconds
-            action_mapping_path: Path to the action mapping CSV file
             verb_idx_file: Path to the verb index mapping file
             noun_idx_file: Path to the noun index mapping file
             train_split_file: Path to the training data split file

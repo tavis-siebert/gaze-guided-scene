@@ -119,7 +119,6 @@ class GraphVisualizer:
 def visualize_graph_construction(
     trace_file: str,
     video_path: Optional[str] = None,
-    action_mapping_path: Optional[str] = None,
     port: int = 8050,
     debug: bool = False,
     verb_idx_file: Optional[str] = None,
@@ -135,7 +134,6 @@ def visualize_graph_construction(
     Args:
         trace_file: Path to the trace file with graph events
         video_path: Optional path to the video file
-        action_mapping_path: Optional path to the action mapping CSV file
         port: Port number to run the server on
         debug: Whether to run in debug mode
         verb_idx_file: Path to the verb index mapping file
@@ -146,7 +144,6 @@ def visualize_graph_construction(
     dashboard = Dashboard(
         trace_file,
         video_path,
-        action_mapping_path=action_mapping_path,
         verb_idx_file=verb_idx_file,
         noun_idx_file=noun_idx_file,
         train_split_file=train_split_file,
