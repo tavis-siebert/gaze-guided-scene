@@ -140,46 +140,23 @@ class GraphDataset(Dataset):
         if not checkpoints:
             return
 
-        # For action_recognition and object_recognition tasks, we need to use
-        # task-specific sampling instead of future action labels
+        # For action_recognition and object_recognition tasks, use the same
+        # sampling approach as training to get ALL annotated actions
         if self.task_mode in ["action_recognition", "object_recognition"]:
             # Extract video name from checkpoint
             video_name = checkpoints[0].video_name
 
-            # Use the same sampling approach as training but with validation timestamps
-            # Create samples at validation timestamp locations
-            video_length = checkpoints[0].video_length
-            timestamp_frames = [int(r * video_length) for r in self.val_timestamps]
-            frame_to_cp = {cp.frame_number: cp for cp in checkpoints}
-            frames_sorted = sorted(frame_to_cp.keys())
-
-            # For each validation timestamp, find the closest checkpoint
-            validation_checkpoints = []
-            for target in timestamp_frames:
-                idx = bisect_right(frames_sorted, target)
-                closest = (
-                    frame_to_cp[frames_sorted[0]]
-                    if idx == 0
-                    else frame_to_cp[frames_sorted[idx - 1]]
-                )
-                validation_checkpoints.append(closest)
-
-            # Use task-specific sampling on these validation checkpoints
+            # Get sampling configuration
             sampling_cfg = (
                 self.config.dataset.sampling  # type: ignore
                 if hasattr(self.config, "dataset")
                 and hasattr(self.config.dataset, "sampling")  # type: ignore
                 else None
             )
-            if sampling_cfg is None:
-                # Fallback to default sampling parameters
-                sampling_kwargs = {
-                    "action_completion_ratio": 1.0,
-                    "min_nodes_threshold": 1,
-                    "visit_lookback_frames": 0,
-                }
-            else:
-                sampling_kwargs = {}
+
+            # Prepare sampling parameters
+            sampling_kwargs = {}
+            if sampling_cfg is not None:
                 if self.task_mode == "action_recognition":
                     sampling_kwargs.update(
                         {
@@ -194,16 +171,36 @@ class GraphDataset(Dataset):
                             ),
                         }
                     )
+                elif self.task_mode == "object_recognition":
+                    sampling_kwargs.update(
+                        {
+                            "action_completion_ratio": getattr(
+                                sampling_cfg, "action_completion_ratio", 1.0
+                            ),
+                            "min_nodes_threshold": getattr(
+                                sampling_cfg, "min_nodes_threshold", 1
+                            ),
+                            "visit_lookback_frames": getattr(
+                                sampling_cfg, "visit_lookback_frames", 0
+                            ),
+                        }
+                    )
+            else:
+                # Fallback to default sampling parameters
+                sampling_kwargs = {
+                    "action_completion_ratio": 1.0,
+                    "min_nodes_threshold": 1,
+                    "visit_lookback_frames": 0,
+                }
 
-            # Use get_samples to get properly labeled samples
+            # Use get_samples to get properly labeled samples for ALL actions
+            # Use "all" strategy to get all annotated actions, not just timestamp-based samples
             samples = get_samples(
-                checkpoints=validation_checkpoints,
+                checkpoints=checkpoints,
                 video_name=video_name,
-                strategy="all",  # Use all validation checkpoints
-                samples_per_video=len(
-                    validation_checkpoints
-                ),  # One sample per validation checkpoint
-                allow_duplicates=True,  # Allow duplicates since we want specific timestamps
+                strategy="all",  # Use all annotated actions
+                samples_per_video=0,  # 0 means use all available samples
+                allow_duplicates=False,
                 oversampling=False,
                 metadata=self.metadata,
                 task_mode=self.task_mode,
@@ -211,7 +208,7 @@ class GraphDataset(Dataset):
             )
             self.sample_tuples.extend(samples)
         else:
-            # For future action tasks, use the original approach
+            # For future action tasks, use the original timestamp-based approach
             video_length = checkpoints[0].video_length
             timestamp_frames = [int(r * video_length) for r in self.val_timestamps]
             frame_to_cp = {cp.frame_number: cp for cp in checkpoints}

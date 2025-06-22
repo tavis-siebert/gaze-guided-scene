@@ -6,6 +6,7 @@ import pytest
 from unittest.mock import Mock, patch
 from gazegraph.training.dataset.graph_dataset import GraphDataset
 from gazegraph.config.config_utils import DotDict
+from pathlib import Path
 
 
 @pytest.fixture
@@ -69,7 +70,7 @@ class TestGraphDatasetIntegration:
         mock_assembler.return_value = Mock()
 
         # Create dataset with action recognition task mode
-        dataset = GraphDataset(
+        GraphDataset(
             config=mock_config,
             root_dir=mock_root_dir,
             split="train",
@@ -112,7 +113,7 @@ class TestGraphDatasetIntegration:
         mock_assembler.return_value = Mock()
 
         # Create dataset with future actions task mode
-        dataset = GraphDataset(
+        GraphDataset(
             config=mock_config,
             root_dir=mock_root_dir,
             split="train",
@@ -165,7 +166,7 @@ class TestGraphDatasetIntegration:
         mock_assembler.return_value = Mock()
 
         # Create dataset with action recognition task mode
-        dataset = GraphDataset(
+        GraphDataset(
             config=minimal_config,
             root_dir=mock_root_dir,
             split="train",
@@ -182,3 +183,70 @@ class TestGraphDatasetIntegration:
                 assert kwargs.get("action_completion_ratio") == 1.0  # Default
                 assert kwargs.get("min_nodes_threshold") == 1  # Default
                 assert kwargs.get("visit_lookback_frames") == 0  # Default
+
+    @patch("gazegraph.training.dataset.graph_dataset.CheckpointManager")
+    @patch("gazegraph.training.dataset.graph_dataset.VideoMetadata")
+    @patch("gazegraph.training.dataset.graph_dataset.get_samples")
+    @patch("gazegraph.training.dataset.graph_dataset.create_graph_assembler")
+    def test_validation_sampling_for_recognition_tasks(
+        self,
+        mock_assembler,
+        mock_get_samples,
+        mock_metadata_class,
+        mock_checkpoint_manager,
+        mock_config,
+        mock_root_dir,
+    ):
+        """Test that validation sampling for recognition tasks uses all annotated actions."""
+        # Create validation directory structure
+        val_dir = Path(mock_root_dir) / "val"
+        val_dir.mkdir(exist_ok=True)
+
+        # Create mock checkpoint file
+        checkpoint_file = val_dir / "test_video_graph.pth"
+        checkpoint_file.touch()
+
+        # Create mock checkpoint
+        mock_checkpoint = Mock()
+        mock_checkpoint.video_name = "test_video"
+        mock_checkpoint.frame_number = 100
+        mock_checkpoint.video_length = 1000
+
+        # Setup mocks
+        mock_metadata_class.return_value = Mock()
+        mock_checkpoint_manager.load_checkpoints.return_value = [
+            mock_checkpoint
+        ]  # Provide checkpoints
+        mock_get_samples.return_value = []
+        mock_assembler.return_value = Mock()
+
+        # Create validation dataset with action recognition task mode
+        GraphDataset(
+            config=mock_config,
+            root_dir=mock_root_dir,
+            split="val",  # Validation split
+            task_mode="action_recognition",
+        )
+
+        # Verify get_samples was called for validation sampling
+        expected_calls = mock_get_samples.call_args_list
+        assert len(expected_calls) >= 1
+
+        # Check that validation sampling uses the correct parameters
+        validation_call = None
+        for call in expected_calls:
+            kwargs = call.kwargs
+            if kwargs.get("task_mode") == "action_recognition":
+                validation_call = kwargs
+                break
+
+        assert validation_call is not None
+        # Validation should use "all" strategy to get all annotated actions
+        assert validation_call["strategy"] == "all"
+        assert validation_call["samples_per_video"] == 0  # Use all available
+        assert not validation_call["allow_duplicates"]
+        assert not validation_call["oversampling"]
+        # Should include action recognition parameters
+        assert "action_completion_ratio" in validation_call
+        assert "min_nodes_threshold" in validation_call
+        assert "visit_lookback_frames" in validation_call
