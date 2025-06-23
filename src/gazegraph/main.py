@@ -155,6 +155,42 @@ def setup_parser() -> argparse.ArgumentParser:
         "--debug", action="store_true", help="Whether to run in debug mode"
     )
 
+    # label-fixations command
+    label_parser = subparsers.add_parser(
+        "label-fixations", help="Run YOLO-World to label fixations in videos."
+    )
+    label_parser.add_argument(
+        "--in-pkl", type=str, help="Path to base features pickle file (e.g., from LFB)."
+    )
+    label_parser.add_argument(
+        "--out-dir", type=str, help="Directory to save fixation label and ROI maps."
+    )
+    label_parser.add_argument(
+        "--skip-roi", action="store_true", help="Disable CLIP/ROI vector computation to run faster."
+    )
+
+    # compose-features command
+    compose_parser = subparsers.add_parser(
+        "compose-features", help="Compose final feature vectors from multiple sources."
+    )
+    compose_parser.add_argument(
+        "--base-pkl", type=str, help="Path to base 2048-D backbone features pickle."
+    )
+    compose_parser.add_argument(
+        "--fix-pkl", type=str, help="Path to fixation_label_map.pkl from label-fixations."
+    )
+    compose_parser.add_argument(
+        "--out-pkl", type=str, help="Path to save the final composed features pickle."
+    )
+    compose_parser.add_argument(
+        "--mode", required=True, 
+        choices=["onehot", "clip", "roi", "text+roi", "combo", "combo+roi"],
+        help="Feature composition mode."
+    )
+    compose_parser.add_argument(
+        "--clip-cache", type=str, help="Path to pre-computed CLIP text embedding cache."
+    )
+
     return parser
 
 
@@ -361,6 +397,28 @@ def main():
             train_split_file=config.dataset.ego_topo.splits.train,
             val_split_file=config.dataset.ego_topo.splits.val,
         )
+    elif args.command == "label-fixations":
+        from gazegraph.processing.label_fixations import run_fixation_labeling
+        
+        # Use paths from config if not provided
+        in_pkl = Path(args.in_pkl or config.directories.features + "/base_features.pkl")
+        out_dir = Path(args.out_dir or config.directories.features)
+
+        logger.info(f"Starting fixation labeling from {in_pkl}")
+        run_fixation_labeling(config, in_pkl, out_dir, args.skip_roi)
+
+    elif args.command == "compose-features":
+        from gazegraph.processing.compose_features import run_feature_composition
+        
+        # Use paths from config if not provided
+        base_pkl = Path(args.base_pkl or config.directories.features + "/base_features.pkl")
+        fix_pkl_name = f"{base_pkl.stem}_label_map.pkl"
+        fix_pkl = Path(args.fix_pkl or config.directories.features + f"/{fix_pkl_name}")
+        out_pkl = Path(args.out_pkl or config.directories.features + f"/composed_features_{args.mode}.pkl")
+        clip_cache = Path(args.clip_cache or config.directories.features + "/clip_text_cache.pt")
+
+        logger.info(f"Starting feature composition in '{args.mode}' mode.")
+        run_feature_composition(config, base_pkl, fix_pkl, out_pkl, args.mode, clip_cache)
 
 
 if __name__ == "__main__":

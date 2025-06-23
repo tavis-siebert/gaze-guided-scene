@@ -9,6 +9,7 @@ directories:
   egtea: ${directories.data_dir}/egtea_gaze
   graphs: ${directories.data_dir}/graphs
   traces: ${directories.data_dir}/traces
+  features: ${directories.data_dir}/features
 
   # Scratch directories
   scratch:
