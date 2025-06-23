@@ -119,7 +119,79 @@ tests/                       # Test suite with component-specific tests and fixt
    ```
 
    The interactive dashboard should now be available at http://127.0.0.1:8050/
-   
+
+### Running Gaze-Augmented Ego-Topo Experiments
+
+This project can generate gaze-augmented features that can be used to enhance the performance of the [Ego-Topo](https://github.com/facebookresearch/ego-topo) model. The workflow involves generating fixation labels and ROI features using this repository, composing them with the base features provided by Ego-Topo, and then using the resulting feature file within a cloned Ego-Topo repository.
+
+#### Prerequisites
+
+- You must have our fork of the Ego-Topo repository cloned and set up according to its official instructions. You can clone it via:
+  ```bash
+  git clone https://github.com/jankulik/ego-topo-gaze.git
+  ```
+- Ensure you have downloaded the base features from the Ego-Topo project (e.g., `train_lfb_s30_verb.pkl` and `val_lfb_s30_verb.pkl`).
+
+#### Step-by-Step Workflow
+
+**Step 1: Setup This Repository**
+
+If you haven't already, set up the `gaze-guided-scene-graph` environment and download the necessary datasets by following the "Quick Start" instructions.
+
+**Step 2: Generate Fixation Labels**
+
+The first step is to process the EGTEA Gaze+ videos to determine the most likely fixated object for each frame. This is done using the `label-fixations` command.
+
+This command will produce two files:
+- `*_label_map.pkl`: A map from each video frame to a detected object label.
+- `*_roi_map.pkl`: (Optional) A map from each video frame to a CLIP embedding of the object's Region of Interest (ROI).
+
+Run the command for both the training and validation splits. The `--skip-roi` flag can be used to speed up the process if you only need object labels initially.
+
+```bash
+# For the training split
+scripts/run.sh label-fixations --in-pkl /path/to/ego-topo/features/train_lfb_s30_verb.pkl
+
+# For the validation split
+scripts/run.sh label-fixations --in-pkl /path/to/ego-topo/features/val_lfb_s30_verb.pkl
+```
+
+> **Note:** The output files will be saved in the directory specified by `directories.features` in your `config.yaml`, which defaults to `data/features/`.
+
+**Step 3: Compose Gaze-Augmented Features**
+
+Next, combine the base Ego-Topo features with the fixation labels (and optionally ROI embeddings) you just generated. Use the `compose-features` command for this.
+
+There are several composition `modes` available. For gaze-augmented Ego-Topo, you might use:
+- `onehot`: Concatenates the base feature with a one-hot vector of the fixated object label.
+- `clip`: Concatenates the base feature with a CLIP text embedding of the fixated object label.
+- `roi`: Concatenates the base feature with a CLIP image embedding of the fixated object's ROI.
+
+```bash
+# Example: Compose features for the training split using one-hot encoding
+scripts/run.sh compose-features \
+  --mode onehot \
+  --base-pkl /path/to/ego-topo/features/train_lfb_s30_verb.pkl \
+  --fix-pkl data/features/train_lfb_s30_verb_label_map.pkl \
+  --out-pkl data/features/composed_train_onehot.pkl
+
+# Example: Compose features for the validation split using one-hot encoding
+scripts/run.sh compose-features \
+  --mode onehot \
+  --base-pkl /path/to/ego-topo/features/val_lfb_s30_verb.pkl \
+  --fix-pkl data/features/val_lfb_s30_verb_label_map.pkl \
+  --out-pkl data/features/composed_val_onehot.pkl
+```
+
+Repeat this step for each composition mode you wish to evaluate.
+
+**Step 4: Train with Augmented Features in the Ego-Topo Repository**
+
+Finally, use the newly created composed feature files (`composed_*.pkl`) to train the model within your cloned Ego-Topo repository.
+
+You will need to modify the training script in the Ego-Topo repository to point to these new feature files. For example, you might change its `main.py` or configuration to load `composed_train_onehot.pkl` instead of the original `train_lfb_s30_verb.pkl`.
+
+Please refer to the [Ego-Topo repository's documentation](https://github.com/facebookresearch/ego-topo) for specific instructions on how to run training with custom feature files.
 
 ## Configuration System
 
